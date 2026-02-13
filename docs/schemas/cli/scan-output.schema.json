@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/cli/scan-output.schema.json",
+  "title": "Skillbase Scan JSON Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "policy",
+    "summary",
+    "issues",
+    "findings",
+    "policyDecisions"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lintOnly", "security", "allowRuleIds", "severityOverrides", "allowlist"],
+      "properties": {
+        "lintOnly": { "type": "boolean" },
+        "security": { "type": "string", "enum": ["off", "warn", "fail"] },
+        "allowRuleIds": { "type": "array", "items": { "type": "string" } },
+        "severityOverrides": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "enum": ["high", "medium"] }
+        },
+        "allowlist": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ruleId", "reason"],
+            "properties": {
+              "ruleId": { "type": "string" },
+              "source": { "type": "string" },
+              "skill": { "type": "string" },
+              "reason": { "type": "string" },
+              "expiresAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skills", "lintIssues", "highFindings", "mediumFindings", "suppressedFindings"],
+      "properties": {
+        "skills": { "type": "integer", "minimum": 0 },
+        "lintIssues": { "type": "integer", "minimum": 0 },
+        "highFindings": { "type": "integer", "minimum": 0 },
+        "mediumFindings": { "type": "integer", "minimum": 0 },
+        "suppressedFindings": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "skill", "severity", "message"],
+        "properties": {
+          "source": { "type": "string" },
+          "skill": { "type": "string" },
+          "severity": { "type": "string", "enum": ["high", "medium"] },
+          "message": { "type": "string" },
+          "file": { "type": "string" }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "skill", "id", "originalSeverity", "severity", "message", "file"],
+        "properties": {
+          "source": { "type": "string" },
+          "skill": { "type": "string" },
+          "id": { "type": "string" },
+          "originalSeverity": { "type": "string", "enum": ["high", "medium"] },
+          "severity": { "type": "string", "enum": ["high", "medium"] },
+          "message": { "type": "string" },
+          "file": { "type": "string" }
+        }
+      }
+    },
+    "policyDecisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "skill",
+          "file",
+          "ruleId",
+          "action",
+          "reason",
+          "originalSeverity",
+          "effectiveSeverity"
+        ],
+        "properties": {
+          "source": { "type": "string" },
+          "skill": { "type": "string" },
+          "file": { "type": "string" },
+          "ruleId": { "type": "string" },
+          "action": { "type": "string", "enum": ["suppressed", "reported"] },
+          "reason": {
+            "type": "string",
+            "enum": ["allowRuleIds", "allowlist", "allowlist-expired", "no-match"]
+          },
+          "originalSeverity": { "type": "string", "enum": ["high", "medium"] },
+          "effectiveSeverity": { "type": "string", "enum": ["high", "medium"] },
+          "matchedAllowlist": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ruleId", "reason"],
+            "properties": {
+              "ruleId": { "type": "string" },
+              "source": { "type": "string" },
+              "skill": { "type": "string" },
+              "reason": { "type": "string" },
+              "expiresAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

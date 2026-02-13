@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/release-tag-signature-report.schema.json",
+  "title": "Skillbase Release Tag Signature Verification Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "ok", "skipped", "reason"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "ok": { "type": "boolean" },
+    "skipped": { "type": "boolean" },
+    "reason": { "type": "string", "minLength": 1 },
+    "tagName": { "type": "string" },
+    "objectType": { "type": "string" },
+    "objectSha": { "type": "string" },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verified", "reason"],
+      "properties": {
+        "verified": { "type": "boolean" },
+        "reason": { "type": "string" }
+      }
+    }
+  }
+}

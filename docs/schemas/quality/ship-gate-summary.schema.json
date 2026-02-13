@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/ship-gate-summary.schema.json",
+  "title": "Skillbase Ship Gate Summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "cwd", "overall", "stages"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "cwd": { "type": "string", "minLength": 1 },
+    "overall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ok", "succeeded", "failed", "total", "totalDurationMs"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "succeeded": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "totalDurationMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "command", "args", "status", "ok", "durationMs", "stdout", "stderr"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": ["verify", "mutation", "fuzz-differential", "audit", "sbom", "release-verify-local"]
+          },
+          "command": { "type": "string", "minLength": 1 },
+          "args": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "status": { "type": "integer", "minimum": 0 },
+          "ok": { "type": "boolean" },
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" }
+        }
+      }
+    }
+  }
+}

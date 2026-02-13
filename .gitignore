@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.skillbase/
+skillbase.lock.json
+.stryker-tmp/
+.fuzz-artifacts/
+reports/
+.DS_Store
+.specstory/

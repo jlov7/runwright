@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "generatedAt": "2026-02-13T00:00:00.000Z",
+  "sources": {
+    "acme/tooling": {
+      "resolved": {
+        "ref": "commit",
+        "value": "1234567890abcdef"
+      },
+      "skills": {
+        "remote-safe": {
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "path": "/compat/store/skills/remote-safe"
+        }
+      },
+      "type": "github"
+    },
+    "https://skills.sh/acme/pack": {
+      "resolved": {
+        "ref": "tag",
+        "value": "v1.2.3"
+      },
+      "skills": {
+        "skills-sh-safe": {
+          "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "path": "/compat/store/skills/skills-sh-safe"
+        }
+      },
+      "type": "skills.sh"
+    }
+  }
+}

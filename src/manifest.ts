@@ -1,0 +1,174 @@
+import yaml from "js-yaml";
+import { z } from "zod";
+import { SECURITY_RULE_IDS } from "./scanner/security.js";
+
+const TargetMode = z.enum(["link", "copy", "mirror"]);
+const Scope = z.enum(["global", "project"]);
+const GitHubSource = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const SkillsShSource = /^https:\/\/skills\.sh\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)?$/;
+
+function isValidSource(value: string): boolean {
+  if (value.startsWith("local:")) return value.slice("local:".length).trim().length > 0;
+  if (GitHubSource.test(value)) return true;
+  return SkillsShSource.test(value);
+}
+
+function isValidSecurityRuleId(value: string): boolean {
+  return SECURITY_RULE_IDS.includes(value as (typeof SECURITY_RULE_IDS)[number]);
+}
+
+const SeverityOverrideValue = z.enum(["high", "medium"]);
+
+const ScanAllowlistEntrySchema = z
+  .object({
+    ruleId: z.string().refine(isValidSecurityRuleId, {
+      message: `ruleId must be one of: ${SECURITY_RULE_IDS.join(", ")}`
+    }),
+    source: z.string().min(1).optional(),
+    skill: z.string().min(1).optional(),
+    expiresAt: z.preprocess(
+      (value) => (value instanceof Date ? value.toISOString() : value),
+      z
+        .string()
+        .optional()
+        .refine((value) => (value ? !Number.isNaN(Date.parse(value)) : true), {
+          message: "expiresAt must be a valid ISO-8601 date-time"
+        })
+    ),
+    reason: z.string().min(1)
+  })
+  .strict();
+
+const DefaultsSchema = z
+  .object({
+    mode: TargetMode.optional(),
+    scope: Scope.optional(),
+    verify: z.boolean().optional(),
+    scan: z
+      .object({
+        lint: z.boolean().optional(),
+        security: z.enum(["off", "warn", "fail"]).optional(),
+        allowRuleIds: z
+          .array(
+            z.string().refine(isValidSecurityRuleId, {
+              message: `allowRuleIds entries must be valid security rule IDs: ${SECURITY_RULE_IDS.join(", ")}`
+            })
+          )
+          .optional()
+          .refine((ruleIds) => (ruleIds ? new Set(ruleIds).size === ruleIds.length : true), {
+            message: "allowRuleIds entries must be unique"
+          }),
+        severityOverrides: z
+          .record(SeverityOverrideValue)
+          .optional()
+          .superRefine((overrides, ctx) => {
+            if (!overrides) return;
+            for (const ruleId of Object.keys(overrides)) {
+              if (!isValidSecurityRuleId(ruleId)) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: `severityOverrides keys must be valid security rule IDs: ${SECURITY_RULE_IDS.join(", ")}`,
+                  path: [ruleId]
+                });
+              }
+            }
+          }),
+        allowlist: z.array(ScanAllowlistEntrySchema).optional()
+      })
+      .optional()
+  })
+  .partial()
+  .strict();
+
+const TargetSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    mode: TargetMode.optional(),
+    scope: Scope.optional()
+  })
+  .partial()
+  .strict();
+
+const TargetsSchema = z
+  .object({
+    codex: TargetSchema.optional(),
+    "claude-code": TargetSchema.optional(),
+    cursor: TargetSchema.optional()
+  })
+  .strict();
+
+const SkillRefSchema = z
+  .object({
+    source: z.string().refine(isValidSource, {
+      message: "source must be owner/repo, https://skills.sh/... or local:<path>"
+    }),
+    pick: z
+      .array(z.string().min(1))
+      .optional()
+      .refine((pick) => (pick ? new Set(pick).size === pick.length : true), {
+        message: "pick entries must be unique"
+      })
+  })
+  .strict();
+
+const SkillsetSchema = z
+  .object({
+    description: z.string().optional(),
+    skills: z.array(SkillRefSchema)
+  })
+  .strict();
+
+const ApplySchema = z
+  .object({
+    useSkillsets: z
+      .array(z.string().min(1))
+      .optional()
+      .refine((skillsets) => (skillsets ? new Set(skillsets).size === skillsets.length : true), {
+        message: "useSkillsets entries must be unique"
+      }),
+    extraSkills: z.array(SkillRefSchema).optional()
+  })
+  .partial()
+  .strict();
+
+const ManifestSchema = z
+  .object({
+    version: z.literal(1),
+    defaults: DefaultsSchema.optional(),
+    targets: TargetsSchema.optional(),
+    skillsets: z.record(SkillsetSchema).optional(),
+    apply: ApplySchema.optional()
+  })
+  .strict()
+  .superRefine((manifest, ctx) => {
+    const configuredSkillsets = new Set(Object.keys(manifest.skillsets ?? {}));
+    const requestedSkillsets = manifest.apply?.useSkillsets ?? [];
+    for (const skillset of requestedSkillsets) {
+      if (!configuredSkillsets.has(skillset)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `apply.useSkillsets references missing skillset '${skillset}'`,
+          path: ["apply", "useSkillsets"]
+        });
+      }
+    }
+  });
+
+export type SkillbaseManifest = z.infer<typeof ManifestSchema>;
+
+export function parseManifest(raw: string, opts: { filename: string }): SkillbaseManifest {
+  let data: unknown;
+  if (opts.filename.endsWith(".json")) {
+    data = JSON.parse(raw);
+  } else {
+    data = yaml.load(raw);
+  }
+  const parsed = ManifestSchema.safeParse(data);
+  if (!parsed.success) {
+    const msg = parsed.error.issues
+      .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("\n");
+    throw new Error(`Invalid manifest (${opts.filename}):\n${msg}`);
+  }
+  return parsed.data;
+}

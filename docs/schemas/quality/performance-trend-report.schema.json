@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/performance-trend-report.schema.json",
+  "title": "Skillbase Performance Trend Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "ok", "maxRegressionPercent", "comparisons"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "ok": { "type": "boolean" },
+    "maxRegressionPercent": { "type": "number", "minimum": 0 },
+    "comparisons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric", "reference", "current", "deltaPercent", "ok", "referenceKind"],
+        "properties": {
+          "metric": { "type": "string", "minLength": 1 },
+          "reference": { "type": "number", "minimum": 0 },
+          "current": { "type": "number", "minimum": 0 },
+          "deltaPercent": { "type": "number" },
+          "ok": { "type": "boolean" },
+          "referenceKind": { "type": "string", "enum": ["baseline", "previous"] }
+        }
+      }
+    }
+  }
+}

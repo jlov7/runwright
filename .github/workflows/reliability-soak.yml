@@ -1,0 +1,32 @@
+name: Reliability Soak
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  soak-ship-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm ship:soak -- --iterations 2 --only verify --only audit --only sbom --out-dir reports/quality/soak
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: reliability-soak-report
+          path: reports/quality/soak/

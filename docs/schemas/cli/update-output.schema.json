@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/cli/update-output.schema.json",
+  "title": "Skillbase Update JSON Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "lockfileVerified", "sources", "skills"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "status": { "type": "integer", "minimum": 0 },
+    "code": { "type": "string" },
+    "reason": { "type": "string" },
+    "lockfileVerified": { "type": "boolean" },
+    "lockfile": { "type": "string" },
+    "sources": { "type": "integer", "minimum": 0 },
+    "skills": { "type": "integer", "minimum": 0 }
+  }
+}

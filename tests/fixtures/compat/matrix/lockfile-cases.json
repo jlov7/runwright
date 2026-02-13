@@ -1,0 +1,19 @@
+[
+  {
+    "name": "v1-local",
+    "file": "lockfile/v1-local.skillbase.lock.json",
+    "expect": "success",
+    "expectedFile": "lockfile/v1-local.expected.json"
+  },
+  {
+    "name": "v1-remote",
+    "file": "lockfile/v1-remote.skillbase.lock.json",
+    "expect": "success",
+    "expectedFile": "lockfile/v1-remote.expected.json"
+  },
+  {
+    "name": "v2-unsupported",
+    "file": "lockfile/v2-unsupported.skillbase.lock.json",
+    "expect": "error"
+  }
+]

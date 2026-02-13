@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/cli/export-output.schema.json",
+  "title": "Skillbase Export JSON Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "out", "files", "lockfileGenerated"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "status": { "type": "integer", "minimum": 0 },
+    "out": { "type": "string", "minLength": 1 },
+    "files": { "type": "integer", "minimum": 0 },
+    "lockfileGenerated": { "type": "boolean" },
+    "signature": { "type": "string", "minLength": 1 },
+    "signatureAlgorithm": {
+      "type": "string",
+      "enum": ["hmac-sha256", "ed25519"]
+    }
+  }
+}

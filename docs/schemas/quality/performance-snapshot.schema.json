@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/performance-snapshot.schema.json",
+  "title": "Skillbase Performance Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "platform", "nodeVersion", "sample", "metrics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "platform": { "type": "string", "minLength": 1 },
+    "nodeVersion": { "type": "string", "minLength": 1 },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skills", "iterations"],
+      "properties": {
+        "skills": { "type": "integer", "minimum": 1 },
+        "iterations": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["updateMs", "exportMedianMs", "verifyMedianMs"],
+      "properties": {
+        "updateMs": { "type": "number", "minimum": 0 },
+        "exportMedianMs": { "type": "number", "minimum": 0 },
+        "verifyMedianMs": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

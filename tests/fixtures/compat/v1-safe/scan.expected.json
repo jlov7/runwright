@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "policy": {
+    "lintOnly": false,
+    "security": "warn",
+    "allowRuleIds": [],
+    "severityOverrides": {},
+    "allowlist": []
+  },
+  "summary": {
+    "skills": 1,
+    "lintIssues": 0,
+    "highFindings": 0,
+    "mediumFindings": 0,
+    "suppressedFindings": 0
+  },
+  "issues": [],
+  "findings": [],
+  "policyDecisions": []
+}

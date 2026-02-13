@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/cli/verify-bundle-output.schema.json",
+  "title": "Skillbase Verify Bundle JSON Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "integrityOk", "signatureVerified", "issues"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "status": { "type": "integer", "minimum": 0 },
+    "code": { "type": "string" },
+    "integrityOk": { "type": "boolean" },
+    "signatureVerified": { "type": "boolean" },
+    "issues": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

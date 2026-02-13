@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "generatedAt": "2026-02-13T00:00:00.000Z",
+  "sources": {
+    "local:./skills": {
+      "type": "local",
+      "resolved": {
+        "ref": "local",
+        "value": "local"
+      },
+      "skills": {
+        "safe": {
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path": "/compat/store/skills/safe"
+        }
+      }
+    }
+  }
+}

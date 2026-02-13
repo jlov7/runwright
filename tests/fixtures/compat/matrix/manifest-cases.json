@@ -1,0 +1,20 @@
+[
+  {
+    "name": "v1-minimal",
+    "file": "manifest/v1-minimal.skillbase.yml",
+    "expect": "success",
+    "expectedFile": "manifest/v1-minimal.expected.json"
+  },
+  {
+    "name": "v1-policy-rich",
+    "file": "manifest/v1-policy-rich.skillbase.yml",
+    "expect": "success",
+    "expectedFile": "manifest/v1-policy-rich.expected.json"
+  },
+  {
+    "name": "v1-invalid-root-key",
+    "file": "manifest/v1-invalid-root-key.skillbase.yml",
+    "expect": "error",
+    "errorIncludes": "Invalid manifest"
+  }
+]

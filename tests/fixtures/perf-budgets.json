@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "1.0",
+  "exportMs": 12000,
+  "verifyMs": 12000,
+  "toleranceFactor": 1.5
+}

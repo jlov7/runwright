@@ -1,0 +1,174 @@
+name: Release Verify
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-release-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+      - name: Verify release tag signature for tagged refs
+        run: |
+          pnpm release:tag:verify -- \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref-name "$GITHUB_REF_NAME" \
+            --ref-type "$GITHUB_REF_TYPE" \
+            --out .release/project/tag-signature.verify.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Load release signing keys from secrets
+        run: |
+          mkdir -p .release/keys
+          test -n "${SKILLBASE_RELEASE_PRIVATE_KEY:-}" || (echo "Missing SKILLBASE_RELEASE_PRIVATE_KEY secret" >&2 && exit 1)
+          test -n "${SKILLBASE_RELEASE_PUBLIC_KEY:-}" || (echo "Missing SKILLBASE_RELEASE_PUBLIC_KEY secret" >&2 && exit 1)
+          printf '%s' "$SKILLBASE_RELEASE_PRIVATE_KEY" > .release/keys/private.pem
+          printf '%s' "$SKILLBASE_RELEASE_PUBLIC_KEY" > .release/keys/public.pem
+        env:
+          SKILLBASE_RELEASE_PRIVATE_KEY: ${{ secrets.SKILLBASE_RELEASE_PRIVATE_KEY }}
+          SKILLBASE_RELEASE_PUBLIC_KEY: ${{ secrets.SKILLBASE_RELEASE_PUBLIC_KEY }}
+      - name: Build signed release bundle and verify it
+        run: |
+          mkdir -p .release/project/skills/safe
+          cat > .release/project/skills/safe/SKILL.md <<'SKILL'
+          ---
+          name: safe
+          description: safe skill
+          ---
+
+          # Safe
+          SKILL
+          cat > .release/project/skillbase.yml <<'MANIFEST'
+          version: 1
+          skillsets:
+            base:
+              skills:
+                - source: local:./skills
+          apply:
+            useSkillsets: [base]
+          MANIFEST
+          pnpm build
+          (cd .release/project && \
+            node ../../dist/cli.js update --json && \
+            node ../../dist/cli.js export --out skillbase-release.zip --sign-private-key ../keys/private.pem --deterministic --json && \
+            node ../../dist/cli.js verify-bundle --bundle skillbase-release.zip --sign-public-key ../keys/public.pem --require-signature --json > skillbase-release.verify.json && \
+            shasum -a 256 skillbase-release.zip > SHA256SUMS)
+        env:
+          SOURCE_DATE_EPOCH: "1704067200"
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: .release/project/skillbase-release.zip
+      - name: Download attestation bundle for offline verification
+        run: |
+          for attempt in 1 2 3; do
+            if (cd .release/project && gh attestation download skillbase-release.zip --repo "$GITHUB_REPOSITORY" --predicate-type "https://slsa.dev/provenance/v1"); then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Failed to download attestation bundle after retries" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+          BUNDLE_FILE="$(cd .release/project && ls -1 sha256*.jsonl | head -n 1)"
+          test -n "$BUNDLE_FILE" || (echo "Unable to locate downloaded attestation bundle" >&2 && exit 1)
+          mv ".release/project/$BUNDLE_FILE" .release/project/skillbase-release.attestation.jsonl
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Verify release artifact as downstream consumer
+        run: |
+          bash scripts/verify_release_consumer_artifact.sh \
+            --artifact .release/project/skillbase-release.zip \
+            --checksums .release/project/SHA256SUMS \
+            --verify-json .release/project/skillbase-release.verify.json \
+            --public-key .release/keys/public.pem \
+            --repo "$GITHUB_REPOSITORY" \
+            --bundle .release/project/skillbase-release.attestation.jsonl \
+            --attestation-out .release/project/skillbase-release.attestation.verify.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Generate release quality scorecard
+        run: |
+          pnpm tsx scripts/generate_quality_scorecard.ts \
+            --out .release/project/release-scorecard.json \
+            --md .release/project/release-scorecard.md \
+            --title "Skillbase Release Verification Scorecard" \
+            --check verify=success \
+            --check signed-bundle=success \
+            --check attestation-download=success \
+            --check consumer-verification=success \
+            --metric source_date_epoch=1704067200
+      - name: Verify release quality evidence gate
+        run: |
+          pnpm tsx scripts/verify_quality_evidence.ts \
+            --scorecard .release/project/release-scorecard.json \
+            --require-check verify \
+            --require-check signed-bundle \
+            --require-check attestation-download \
+            --require-check consumer-verification \
+            --out .release/project/release-scorecard.verify.json
+      - name: Generate release notes artifact
+        run: |
+          pnpm release:notes:generate -- \
+            --tag "$GITHUB_REF_NAME" \
+            --scorecard .release/project/release-scorecard.json \
+            --evidence .release/project/release-scorecard.verify.json \
+            --out .release/project/release-notes.md
+      - name: Generate immutable release artifact manifest
+        run: |
+          pnpm release:artifact-manifest:generate -- \
+            --base-dir .release/project \
+            --out .release/project/release-artifact-manifest.json \
+            --file skillbase-release.zip \
+            --file SHA256SUMS \
+            --file skillbase-release.verify.json \
+            --file skillbase-release.attestation.jsonl \
+            --file skillbase-release.attestation.verify.json \
+            --file release-scorecard.json \
+            --file release-scorecard.md \
+            --file release-scorecard.verify.json \
+            --file release-notes.md \
+            --file tag-signature.verify.json
+      - name: Verify immutable release artifact manifest
+        run: |
+          pnpm release:artifact-manifest:verify -- \
+            --manifest .release/project/release-artifact-manifest.json \
+            --out .release/project/release-artifact-manifest.verify.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verified-release-bundle
+          path: |
+            .release/project/tag-signature.verify.json
+            .release/project/skillbase-release.zip
+            .release/project/SHA256SUMS
+            .release/project/skillbase-release.verify.json
+            .release/project/skillbase-release.attestation.jsonl
+            .release/project/skillbase-release.attestation.verify.json
+            .release/project/release-scorecard.json
+            .release/project/release-scorecard.md
+            .release/project/release-scorecard.verify.json
+            .release/project/release-notes.md
+            .release/project/release-artifact-manifest.json
+            .release/project/release-artifact-manifest.verify.json

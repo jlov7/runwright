@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/evidence-verification.schema.json",
+  "title": "Skillbase Quality Evidence Verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "ok", "checks", "metrics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "ok": { "type": "boolean" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "ok", "detail"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "ok": { "type": "boolean" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mutationScore", "minMutationScore", "sbomComponents"],
+      "properties": {
+        "mutationScore": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+        "minMutationScore": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+        "sbomComponents": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    }
+  }
+}

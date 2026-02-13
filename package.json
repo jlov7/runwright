@@ -1,0 +1,60 @@
+{
+  "name": "skillbase",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "skillbase": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --dts",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:compat-matrix": "vitest run tests/compatibility-replay.test.ts tests/migration-compatibility.test.ts",
+    "test:contracts": "vitest run tests/adapters.contract.test.ts tests/source-provider.contract.test.ts",
+    "test:perf": "vitest run tests/resolver.benchmark.test.ts -t \"benchmark guards\"",
+    "test:mutation": "stryker run",
+    "test:fuzz-differential": "pnpm build && pnpm tsx scripts/fuzz_differential_manifest.ts",
+    "perf:snapshot": "pnpm tsx scripts/capture_performance_snapshot.ts",
+    "perf:trend:check": "pnpm tsx scripts/check_performance_trend.ts",
+    "sbom:generate": "mkdir -p reports/sbom && cdxgen -t npm -o reports/sbom/bom.json .",
+    "scorecard:generate": "pnpm tsx scripts/generate_quality_scorecard.ts",
+    "quality:evidence:verify": "pnpm tsx scripts/verify_quality_evidence.ts",
+    "ship:gate": "pnpm tsx scripts/run_ship_gate.ts",
+    "ship:soak": "pnpm tsx scripts/soak_ship_gate.ts",
+    "release:verify-local": "bash scripts/verify_release_artifact.sh",
+    "release:tag:verify": "pnpm tsx scripts/verify_release_tag_signature.ts",
+    "release:artifact-manifest:generate": "pnpm tsx scripts/generate_artifact_manifest.ts",
+    "release:artifact-manifest:verify": "pnpm tsx scripts/verify_artifact_manifest.ts",
+    "release:notes:generate": "pnpm tsx scripts/generate_release_notes.ts",
+    "typecheck": "tsc --noEmit",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "audit:deps": "pnpm audit --prod --audit-level high",
+    "lint": "eslint .",
+    "format": "prettier -w ."
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@cyclonedx/cdxgen": "^12.1.0",
+    "@eslint/js": "^9.39.2",
+    "@stryker-mutator/core": "^9.5.1",
+    "@stryker-mutator/typescript-checker": "^9.5.1",
+    "@stryker-mutator/vitest-runner": "^9.5.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^9.0.0",
+    "fast-check": "^4.5.3",
+    "prettier": "^3.3.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.55.0",
+    "vitest": "^2.0.0"
+  }
+}

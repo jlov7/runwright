@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/ship-gate-soak-report.schema.json",
+  "title": "Skillbase Ship Gate Soak Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "iterations", "outDir", "consistent", "diffs", "runs"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "iterations": { "type": "integer", "minimum": 2 },
+    "outDir": { "type": "string", "minLength": 1 },
+    "consistent": { "type": "boolean" },
+    "diffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["iteration", "artifact", "baselineHash", "currentHash"],
+        "properties": {
+          "iteration": { "type": "integer", "minimum": 2 },
+          "artifact": { "type": "string", "enum": ["summary", "scorecard", "evidence", "stageLogs"] },
+          "baselineHash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+          "currentHash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["iteration", "outDir", "status"],
+        "properties": {
+          "iteration": { "type": "integer", "minimum": 1 },
+          "outDir": { "type": "string", "minLength": 1 },
+          "status": { "type": "integer", "minimum": 0 },
+          "artifactHashes": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["summary", "scorecard", "evidence", "stageLogs"],
+            "properties": {
+              "summary": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+              "scorecard": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+              "evidence": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+              "stageLogs": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

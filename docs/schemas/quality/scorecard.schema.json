@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/scorecard.schema.json",
+  "title": "Skillbase Quality Scorecard",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "title",
+    "checks",
+    "totals",
+    "overall",
+    "metrics"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "title": { "type": "string", "minLength": 1 },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "result", "pass"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "result": {
+            "type": "string",
+            "enum": ["success", "failure", "cancelled", "skipped", "unknown"]
+          },
+          "pass": { "type": "boolean" }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["success", "failure", "cancelled", "skipped", "unknown", "total"],
+      "properties": {
+        "success": { "type": "integer", "minimum": 0 },
+        "failure": { "type": "integer", "minimum": 0 },
+        "cancelled": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "unknown": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "overall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pass", "scorePercent"],
+      "properties": {
+        "pass": { "type": "boolean" },
+        "scorePercent": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

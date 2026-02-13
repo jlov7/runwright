@@ -1,0 +1,230 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit:deps
+      - run: pnpm verify
+
+  mutation:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:mutation
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: stryker-mutation-report
+          path: reports/mutation/
+
+  fuzz-differential:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: rm -rf .fuzz-artifacts
+      - run: pnpm test:fuzz-differential
+        env:
+          SKILLBASE_FUZZ_CASES: "128"
+          SKILLBASE_FUZZ_SEED: "12648430"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: fuzz-differential-artifacts
+          path: .fuzz-artifacts/manifest-differential/
+
+  sbom:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm sbom:generate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sbom
+          path: reports/sbom/bom.json
+
+  compatibility-matrix:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:compat-matrix
+
+  performance-trend:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm perf:snapshot -- --out reports/performance/current.snapshot.json
+      - run: |
+          pnpm perf:trend:check -- \
+            --current reports/performance/current.snapshot.json \
+            --baseline docs/benchmarks/performance-baseline.json \
+            --max-regression-percent 40 \
+            --out reports/performance/trend.report.json \
+            --history-dir reports/performance/history
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: performance-trend
+          path: reports/performance/
+
+  sarif:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Generate scanner SARIF
+        run: |
+          mkdir -p .ci-scan/skills/safe
+          cat > .ci-scan/skills/safe/SKILL.md <<'EOF'
+          ---
+          name: safe
+          description: safe skill
+          ---
+
+          # Safe
+          EOF
+          cat > .ci-scan/skillbase.yml <<'EOF'
+          version: 1
+          skillsets:
+            base:
+              skills:
+                - source: local:./skills
+          apply:
+            useSkillsets: [base]
+          EOF
+          (cd .ci-scan && node ../dist/cli.js scan --format sarif > skillbase.sarif)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: skillbase-sarif
+          path: .ci-scan/skillbase.sarif
+      - uses: github/codeql-action/upload-sarif@f5c2471be782132e47a6e6f9c725e56730d6e9a3 # v3
+        continue-on-error: true
+        with:
+          sarif_file: .ci-scan/skillbase.sarif
+
+  quality-scorecard:
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - verify
+      - mutation
+      - fuzz-differential
+      - sbom
+      - compatibility-matrix
+      - performance-trend
+      - sarif
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Generate quality scorecard
+        run: |
+          pnpm tsx scripts/generate_quality_scorecard.ts \
+            --out reports/quality/ci-scorecard.json \
+            --md reports/quality/ci-scorecard.md \
+            --title "Skillbase CI Quality Scorecard" \
+            --check verify=${{ needs.verify.result }} \
+            --check mutation=${{ needs.mutation.result }} \
+            --check fuzz-differential=${{ needs.fuzz-differential.result }} \
+            --check sbom=${{ needs.sbom.result }} \
+            --check compatibility-matrix=${{ needs.compatibility-matrix.result }} \
+            --check performance-trend=${{ needs.performance-trend.result }} \
+            --check sarif=${{ needs.sarif.result }}
+      - name: Verify quality evidence gate
+        run: |
+          pnpm tsx scripts/verify_quality_evidence.ts \
+            --scorecard reports/quality/ci-scorecard.json \
+            --require-check verify \
+            --require-check mutation \
+            --require-check fuzz-differential \
+            --require-check sbom \
+            --require-check compatibility-matrix \
+            --require-check performance-trend \
+            --require-check sarif \
+            --out reports/quality/ci-evidence.verify.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ci-quality-scorecard
+          path: |
+            reports/quality/ci-scorecard.json
+            reports/quality/ci-scorecard.md
+            reports/quality/ci-evidence.verify.json

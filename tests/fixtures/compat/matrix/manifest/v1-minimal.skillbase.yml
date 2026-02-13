@@ -1,0 +1,7 @@
+version: 1
+skillsets:
+  base:
+    skills:
+      - source: local:./skills
+apply:
+  useSkillsets: [base]

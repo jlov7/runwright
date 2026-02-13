@@ -1,0 +1,30 @@
+version: 1
+defaults:
+  mode: copy
+  scope: project
+  verify: true
+  scan:
+    lint: true
+    security: fail
+    allowRuleIds: [env-dump-printenv]
+    severityOverrides:
+      remote-shell-curl-pipe: medium
+    allowlist:
+      - ruleId: remote-shell-curl-pipe
+        source: local:./skills
+        skill: risky
+        expiresAt: "2030-01-01T00:00:00.000Z"
+        reason: approved for migration test
+targets:
+  codex:
+    enabled: true
+    mode: copy
+    scope: project
+skillsets:
+  base:
+    description: baseline set
+    skills:
+      - source: local:./skills
+        pick: [safe, helper]
+apply:
+  useSkillsets: [base]

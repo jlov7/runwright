@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/cli/apply-output.schema.json",
+  "title": "Skillbase Apply JSON Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "dryRun", "scanned", "operations", "summary"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "status": { "type": "integer", "minimum": 0 },
+    "code": { "type": "string" },
+    "reason": { "type": "string" },
+    "dryRun": { "type": "boolean" },
+    "scanned": { "type": "boolean" },
+    "lockfileVerified": { "type": "boolean" },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "mode", "source", "destination"],
+        "properties": {
+          "target": { "type": "string", "enum": ["codex", "claude-code", "cursor"] },
+          "mode": { "type": "string", "enum": ["link", "copy", "mirror"] },
+          "source": { "type": "string" },
+          "destination": { "type": "string" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lintIssues", "highFindings", "mediumFindings", "suppressedFindings"],
+      "properties": {
+        "lintIssues": { "type": "integer", "minimum": 0 },
+        "highFindings": { "type": "integer", "minimum": 0 },
+        "mediumFindings": { "type": "integer", "minimum": 0 },
+        "suppressedFindings": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

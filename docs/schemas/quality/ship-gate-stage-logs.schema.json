@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/ship-gate-stage-logs.schema.json",
+  "title": "Skillbase Ship Gate Stage Logs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "stages"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "ok", "durationMs", "stdout", "stderr"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": ["verify", "mutation", "fuzz-differential", "audit", "sbom", "release-verify-local"]
+          },
+          "status": { "type": "integer", "minimum": 0 },
+          "ok": { "type": "boolean" },
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" }
+        }
+      }
+    }
+  }
+}
