@@ -9,6 +9,7 @@ pnpm tsx src/cli.ts journey
 ```
 
 `journey` shows current onboarding status and the single next best action.
+It also detects stale evidence: if skills or manifest changed after `update`/`scan`/`apply`, those steps return to pending until rerun.
 
 ## Help topics
 - Command recipes: `docs/help/cli-recipes.md`

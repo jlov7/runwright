@@ -40,6 +40,16 @@ This shows:
 - bundle export + verification
 - CI scorecard and evidence verification artifacts
 
+## How to read pass/fail quickly (no engineering deep dive required)
+- `journey` progress at `100%` core steps means onboarding is complete.
+- Any `blocked` step means action is required before release.
+- `Apply Failed` with status `11` means frozen lockfile checks failed and must be fixed before proceeding.
+- `Bundle Verification Failed` means release artifacts are not trustworthy yet.
+
+## Naming note for audits
+- Some files and environment variables still use the historical `skillbase` prefix (for compatibility), while user-facing guidance uses `Runwright`.
+- This is expected and does not indicate two different systems.
+
 ## Governance and accountability
 - Ownership: `.github/CODEOWNERS`
 - Support process: `.github/SUPPORT.md`

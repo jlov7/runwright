@@ -88,7 +88,7 @@ pnpm tsx src/cli.ts journey
 
 Expected result:
 - all core steps complete
-- next action points to optional hardening/release flow
+- next action points to the steady-state core loop (`update -> scan -> apply`)
 
 ## 10) Optional: package and verify
 

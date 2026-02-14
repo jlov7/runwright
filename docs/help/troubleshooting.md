@@ -36,6 +36,9 @@ Fix:
 2. Commit lockfile.
 3. Re-run frozen command.
 
+Tip:
+- If text output shows `Apply Failed` with status `11`, this is expected for frozen-lockfile mismatches and should be treated as a hard failure (not a warning).
+
 ## Symptom: apply fails due to security findings
 Cause:
 - Blocking scanner findings in `fail` mode.

@@ -38,6 +38,7 @@ pnpm tsx src/cli.ts journey
 ```
 
 Then follow the `Next best action` shown by `journey` until core steps are complete.
+Default starter projects are scoped to `project` installs to avoid accidental global writes during onboarding.
 
 ## Local Setup
 
@@ -95,6 +96,9 @@ CI release verification is defined in `.github/workflows/release-verify.yml` and
 | `SKILLBASE_OPERATION_LOG_PATH` | Optional | Override operations log path (default `.skillbase/operations.jsonl`). |
 | `SKILLBASE_RELEASE_PRIVATE_KEY` | CI only | Private ed25519 key secret used by release verification workflow. |
 | `SKILLBASE_RELEASE_PUBLIC_KEY` | CI only | Public ed25519 key secret used by release verification workflow. |
+
+Compatibility note:
+- `skillbase.lock.json`, `.skillbase/`, and `SKILLBASE_*` env vars use legacy naming retained for backward compatibility.
 
 ## How People Actually Use Runwright
 

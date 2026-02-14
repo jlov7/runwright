@@ -37,6 +37,9 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - [x] M2: Harden onboarding/help UX for first-run + key failure guidance (tests first).
 - [x] M3: Close docs gaps (README deploy/env vars + minimal docs/help landing page).
 - [x] M4: Final checklist reconciliation, open questions capture, and release verification run.
+- [x] M5: Multi-persona deep UX audit with transcript evidence and prioritized gap capture.
+- [x] M6: Remediate all discovered P0/P1 UX gaps (journey freshness, error semantics, text-mode failures, onboarding command correctness).
+- [x] M7: Publish product + backend scorecards with explicit evidence mapping.
 
 ## Surprises & Discoveries
 - Repo already has broad automated coverage (240 tests) and strong CI workflows.
@@ -44,12 +47,16 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - Help and error guidance UX tests already exist and are passing.
 - `journey` previously treated blocked scan/dry-run attempts as complete; this hid failure recovery paths. Added blocked-state handling and tests.
 - Windows CI surfaced two nondeterministic checks (`resolver.benchmark` timing strictness and soak script runner portability) that required deterministic hardening.
+- `journey` correctness depends on freshness, not just historical success events; stale-success states can silently erode operator trust.
+- Frozen lockfile failures were technically correct (exit code) but text copy could still mislead humans into treating failures as successful apply output.
 
 ## Decision Log
 - 2026-02-14: Treat CLI output as product UX surface; prioritize copy clarity and recovery guidance over structural refactors.
 - 2026-02-14: Keep milestone edits small to avoid broad regression risk before release.
 - 2026-02-14: Stabilize script-level CI tests by adding explicit deterministic test hooks instead of relying on live `pnpm audit` behavior in test assertions.
 - 2026-02-14: Execute soak runs via `node + tsx` directly rather than shelling through `pnpm` to avoid Windows command resolution variance.
+- 2026-02-14: Treat freshness as first-class onboarding UX; step completion now requires up-to-date evidence relative to manifest/skills/lockfile changes.
+- 2026-02-14: Prefer explicit failure headings in text mode (`Apply Failed`, `Bundle Verification Failed`) to avoid human misreads despite correct exit codes.
 
 ## Outcomes & Retrospective
 - Done:

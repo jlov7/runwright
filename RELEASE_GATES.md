@@ -25,6 +25,8 @@
 - Requirement: primary journeys are fully keyboard-driven with clear actionable copy and help.
 - Evidence:
   - `journey`, `help`, and error guidance tests pass via `pnpm doctor`.
+  - Stale evidence detection is covered in journey UX tests (changed skills force pending `update`/`scan`/`apply` steps).
+  - Text-mode hard failures are explicit (`Apply Failed`, `Bundle Verification Failed`) and covered by UX tests.
   - Docs/help page exists at `docs/help/README.md`.
 
 ## Gate RG-004: Performance Baseline

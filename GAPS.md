@@ -2,6 +2,24 @@
 
 ## P0
 
+### P0-005: Journey skill-creation command was non-executable
+- Evidence: `runwright journey` step 2 previously suggested `create skills/<skill-name>/SKILL.md`, which is not a valid shell command in standard environments.
+- Impacted journey: First-run onboarding (technical + non-technical guided setup).
+- Fix strategy: Replace with executable command and align empty-state copy to quickstart template.
+- Status: Done
+
+### P0-006: Frozen lockfile failures looked like successful apply in text mode
+- Evidence: `runwright apply --frozen-lockfile` could exit `11` while still printing generic success-style apply summary and next-step copy.
+- Impacted journey: Core loop failure recovery, CI-style local validation.
+- Fix strategy: Introduce explicit failure rendering (`Apply Failed`) with lockfile-specific reason and recovery actions.
+- Status: Done
+
+### P0-007: Journey progress did not detect stale safety/install evidence
+- Evidence: `runwright journey` could show `6/6` complete after skill changes without rerunning `update`/`scan`/`apply`.
+- Impacted journey: Ongoing core loop trust and release-readiness confidence.
+- Fix strategy: Add freshness checks using file mtimes + operation event timestamps; downgrade stale steps back to pending with explicit rerun guidance.
+- Status: Done
+
 ### P0-001: Missing executable doctor gate
 - Evidence: `pnpm run doctor` now writes `reports/doctor/doctor.json` with all checks passing (`overall.ok: true`, generated `2026-02-14T16:04:02.937Z`).
 - Impacted journey: Release manager sign-off and repeatable release verification.
@@ -28,6 +46,18 @@
 
 ## P1
 
+### P1-003: Semantic flag validation was deferred behind manifest loading
+- Evidence: `runwright apply --scan-security severe` in a fresh directory previously surfaced `missing-manifest` instead of invalid flag value.
+- Impacted journey: Error-state diagnosis and self-service correction.
+- Fix strategy: Add early semantic flag validation before manifest load for relevant commands.
+- Status: Done
+
+### P1-004: Verify-bundle text mode lacked consistent human-readable UX
+- Evidence: Operators relying on non-JSON output had less structured verification failure messaging.
+- Impacted journey: Manual release checks and non-technical review handoffs.
+- Fix strategy: Add dedicated text-mode renderer for verify-bundle success/failure with actionable next steps.
+- Status: Done
+
 ### P1-001: Gap loop algorithm not enforced in working agreement
 - Evidence: Prior `AGENTS.md` loop stopped at milestone planning semantics and did not define strict stop conditions.
 - Impacted journey: Autonomous product hardening pass from planning to completion.
@@ -41,6 +71,12 @@
 - Status: Done
 
 ## P2
+
+### P2-002: Non-technical docs lacked explicit pass/fail interpretation guidance
+- Evidence: Stakeholder docs described outcomes but did not provide quick interpretation for `blocked`, status `11`, or verification failures.
+- Impacted journey: PM/compliance review without source-code dependency.
+- Fix strategy: Add plain-language status interpretation and compatibility naming notes.
+- Status: Done
 
 ### P2-001: Product decision defaults still open
 - Evidence: `QUESTIONS.md` still contains open release-channel and signing-mode decisions.
