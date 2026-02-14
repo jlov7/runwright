@@ -101,6 +101,8 @@ Environment:
 ## Output conventions
 
 - Human output is concise and grouped by target.
+- Error output includes recovery guidance (`Next:`) for common failure modes.
+- Unknown commands/help topics include nearest-command suggestions when confidence is high.
 - `--json` emits a stable machine schema:
   - plan summary
   - changed files

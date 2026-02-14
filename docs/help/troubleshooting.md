@@ -9,6 +9,15 @@ Fix:
 2. Execute the `Next best action` shown.
 3. Re-run `journey` until all core steps are complete.
 
+## Symptom: "Unknown command" or command typo
+Cause:
+- Mistyped command name.
+
+Fix:
+1. Re-run the command and follow the built-in `Did you mean` suggestion.
+2. Run `pnpm tsx src/cli.ts help` for the full command list.
+3. Run `pnpm tsx src/cli.ts help <command>` for command-specific examples.
+
 ## Symptom: `invalid-manifest`
 Cause:
 - Unknown key or schema mismatch in `skillbase.yml`.

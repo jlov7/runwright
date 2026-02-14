@@ -199,13 +199,110 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   }
 };
 
-function usage(command?: string) {
+const KNOWN_TOP_LEVEL_COMMANDS = new Set<string>([...Object.keys(COMMAND_HELP), "help"]);
+
+function levenshteinDistance(left: string, right: string): number {
+  const rows = left.length + 1;
+  const cols = right.length + 1;
+  const matrix = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
+  for (let i = 0; i < rows; i += 1) matrix[i][0] = i;
+  for (let j = 0; j < cols; j += 1) matrix[0][j] = j;
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[left.length][right.length];
+}
+
+function suggestCommand(rawInput: string, candidates: string[]): string | undefined {
+  const input = rawInput.trim().toLowerCase();
+  if (!input) return undefined;
+  if (candidates.includes(input)) return input;
+  const threshold = input.length <= 4 ? 2 : Math.max(2, Math.floor(input.length / 3));
+  let best: { candidate: string; distance: number } | undefined;
+
+  for (const candidate of candidates) {
+    const distance = candidate.startsWith(input) || input.startsWith(candidate)
+      ? Math.abs(candidate.length - input.length)
+      : levenshteinDistance(input, candidate);
+    if (!best || distance < best.distance) best = { candidate, distance };
+  }
+
+  if (!best || best.distance > threshold) return undefined;
+  return best.candidate;
+}
+
+function renderUnknownHelpTopic(topic: string): string {
+  const suggestion = suggestCommand(topic, Object.keys(COMMAND_HELP));
+  if (!suggestion) return `Unknown help topic: ${topic}`;
+  return [`Unknown help topic: ${topic}`, `Did you mean: skillbase help ${suggestion}`].join("\n");
+}
+
+function renderUnknownCommandMessage(command: string): string {
+  const suggestion = suggestCommand(command, Object.keys(COMMAND_HELP));
+  if (!suggestion) {
+    return [`Unknown command: ${command}`, "Run `skillbase help` to see available commands."].join("\n");
+  }
+  return [
+    `Unknown command: ${command}`,
+    `Did you mean: skillbase ${suggestion}`,
+    "Run `skillbase help` to see available commands."
+  ].join("\n");
+}
+
+function formatCliErrorGuidance(error: CliError, failedCommand?: string): string {
+  const helpForCommand = failedCommand && COMMAND_HELP[failedCommand] ? `skillbase ${failedCommand} --help` : "skillbase help";
+  const hints: string[] = [];
+
+  switch (error.code) {
+    case "missing-manifest":
+      hints.push("skillbase init", "skillbase journey");
+      break;
+    case "invalid-manifest":
+      hints.push("Fix manifest keys/types, then rerun your command.");
+      hints.push("Reference: MANIFEST_SPEC.md");
+      break;
+    case "invalid-flag":
+    case "invalid-argument":
+    case "invalid-format":
+      hints.push(helpForCommand);
+      break;
+    case "lockfile-error":
+      hints.push("skillbase update --json", "Retry your previous command.");
+      break;
+    case "source-resolution-failed":
+      if (failedCommand && COMMAND_HELP[failedCommand]) {
+        hints.push(`skillbase ${failedCommand} --refresh-sources`);
+      }
+      hints.push("Check source refs in skillbase.yml.");
+      break;
+    case "bundle-verification-failed":
+    case "invalid-bundle-manifest":
+    case "invalid-bundle-archive":
+      hints.push("Re-export bundle from a trusted source and rerun verify-bundle.");
+      break;
+    default:
+      if (error.exitCode === 10) hints.push("skillbase journey");
+      break;
+  }
+
+  if (hints.length === 0) return error.message;
+  return `${error.message}\n\nNext:\n${hints.map((hint) => `  ${hint}`).join("\n")}`;
+}
+
+function usage(command?: string): boolean {
   if (command) {
     const entry = COMMAND_HELP[command];
     if (!entry) {
-      console.log(`Unknown help topic: ${command}\n`);
+      console.log(`${renderUnknownHelpTopic(command)}\n`);
       usage();
-      return;
+      return false;
     }
     console.log(
       [
@@ -221,7 +318,7 @@ function usage(command?: string) {
         ""
       ].join("\n")
     );
-    return;
+    return true;
   }
 
   console.log(`skillbase
@@ -252,6 +349,7 @@ Help:
   skillbase help <command>
   skillbase <command> --help
 `);
+  return true;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -2480,18 +2578,25 @@ async function main() {
   }
   if (cmd === "help") {
     const topic = parsed.positionals[0];
-    usage(topic);
-    process.exit(topic && !COMMAND_HELP[topic] ? 1 : 0);
+    const knownTopic = usage(topic);
+    process.exit(topic && !knownTopic ? 1 : 0);
   }
   if (commandFlagHelp) {
-    usage(cmd);
-    process.exit(0);
+    const knownCommand = usage(cmd);
+    process.exit(knownCommand ? 0 : 1);
   }
 
   const cwd = process.cwd();
   const jsonOutput = getBooleanFlag(parsed, "json");
   const startedAtMs = PROCESS_STARTED_AT_MS;
   validateAllowedFlags(parsed);
+
+  if (!KNOWN_TOP_LEVEL_COMMANDS.has(cmd)) {
+    const unknownMessage = renderUnknownCommandMessage(cmd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion({ status: 1, code: "unknown-command", error: unknownMessage }));
+    else process.stderr.write(`${unknownMessage}\n`);
+    process.exit(1);
+  }
 
   if (cmd === "init") {
     const init = runInit(cwd);
@@ -2712,12 +2817,8 @@ async function main() {
     process.exit(exportResult.status);
   }
 
-  const unknownMessage = `Unknown command: ${cmd}`;
-  if (jsonOutput) writeJson(withJsonSchemaVersion({ status: 1, code: "unknown-command", error: unknownMessage }));
-  else {
-    process.stderr.write(`${unknownMessage}\n`);
-    usage();
-  }
+  process.stderr.write("Unhandled command routing state.\n");
+  usage();
   process.exit(1);
 }
 
@@ -2746,7 +2847,7 @@ main().catch((err) => {
         })
       );
     }
-    else process.stderr.write(`${err.message}\n`);
+    else process.stderr.write(`${formatCliErrorGuidance(err, failedCommand)}\n`);
     process.exit(err.exitCode);
   }
   const message = err instanceof Error ? err.stack ?? err.message : String(err);
