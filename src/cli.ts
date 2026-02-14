@@ -350,6 +350,9 @@ Help:
   runwright help
   runwright help <command>
   runwright <command> --help
+
+Docs:
+  docs/help/README.md
 `);
   return true;
 }

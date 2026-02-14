@@ -39,6 +39,63 @@ pnpm tsx src/cli.ts journey
 
 Then follow the `Next best action` shown by `journey` until core steps are complete.
 
+## Local Setup
+
+```bash
+pnpm install
+pnpm build
+```
+
+Run directly from source during development:
+
+```bash
+pnpm tsx src/cli.ts help
+```
+
+## Run Commands
+
+```bash
+pnpm tsx src/cli.ts journey
+pnpm tsx src/cli.ts update --json
+pnpm tsx src/cli.ts scan --format json
+pnpm tsx src/cli.ts apply --target all --scope project --mode copy --dry-run --json
+```
+
+## Test and Verify
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm verify
+pnpm ship:gate
+```
+
+## Deploy / Release Notes
+
+Runwright is a CLI package, so "deploy" is release artifact creation and verification.
+
+Local release verification:
+
+```bash
+pnpm release:verify-local
+pnpm release:artifact-manifest:generate
+pnpm release:artifact-manifest:verify
+```
+
+CI release verification is defined in `.github/workflows/release-verify.yml` and enforces signature + checksum verification.
+
+## Environment Variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `SOURCE_DATE_EPOCH` | Optional | Fixed Unix timestamp (seconds) for deterministic exports. |
+| `SKILLBASE_SOURCE_DATE_EPOCH` | Optional | Fallback deterministic timestamp if `SOURCE_DATE_EPOCH` is not set. |
+| `SKILLBASE_OPERATION_LOG_PATH` | Optional | Override operations log path (default `.skillbase/operations.jsonl`). |
+| `SKILLBASE_RELEASE_PRIVATE_KEY` | CI only | Private ed25519 key secret used by release verification workflow. |
+| `SKILLBASE_RELEASE_PUBLIC_KEY` | CI only | Public ed25519 key secret used by release verification workflow. |
+
 ## How People Actually Use Runwright
 
 ### Technical (individual engineer)
@@ -74,6 +131,7 @@ Then follow the `Next best action` shown by `journey` until core steps are compl
 - Technical quickstart: `docs/getting-started/quickstart.md`
 - Non-technical onboarding: `docs/getting-started/non-technical-onboarding.md`
 - Persona journeys: `docs/getting-started/user-journeys.md`
+- Help center: `docs/help/README.md`
 - Practical command recipes: `docs/help/cli-recipes.md`
 - Troubleshooting: `docs/help/troubleshooting.md`
 

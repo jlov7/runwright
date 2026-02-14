@@ -22,6 +22,7 @@ describe("help UX", () => {
     expect(result.stdout).toContain("runwright init");
     expect(result.stdout).toContain("runwright journey");
     expect(result.stdout).toContain("runwright help <command>");
+    expect(result.stdout).toContain("docs/help/README.md");
   });
 
   it("supports command-scoped help via --help", () => {
