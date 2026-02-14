@@ -22,14 +22,14 @@ pnpm tsx src/cli.ts apply --frozen-lockfile --target all --scope project --mode 
 
 ## Export and verify a deterministic bundle
 ```bash
-SOURCE_DATE_EPOCH=1704067200 pnpm tsx src/cli.ts export --out skillbase-release.zip --deterministic --json
-pnpm tsx src/cli.ts verify-bundle --bundle skillbase-release.zip --json
+SOURCE_DATE_EPOCH=1704067200 pnpm tsx src/cli.ts export --out runwright-release.zip --deterministic --json
+pnpm tsx src/cli.ts verify-bundle --bundle runwright-release.zip --json
 ```
 
 ## Export and verify with ed25519 signature
 ```bash
-pnpm tsx src/cli.ts export --out skillbase-release.zip --sign-private-key private.pem --deterministic --json
-pnpm tsx src/cli.ts verify-bundle --bundle skillbase-release.zip --sign-public-key public.pem --require-signature --json
+pnpm tsx src/cli.ts export --out runwright-release.zip --sign-private-key private.pem --deterministic --json
+pnpm tsx src/cli.ts verify-bundle --bundle runwright-release.zip --sign-public-key public.pem --require-signature --json
 ```
 
 ## Troubleshoot policy exceptions

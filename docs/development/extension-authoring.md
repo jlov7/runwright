@@ -1,7 +1,7 @@
 # Extension Authoring Guide
 
 ## Scope
-This guide describes how to add new adapters and source providers without breaking Skillbase contracts.
+This guide describes how to add new adapters and source providers without breaking Runwright contracts.
 
 ## Adapter Extensions
 An adapter must provide:
@@ -25,7 +25,7 @@ When adding a new adapter:
 4. Run `pnpm test:contracts`.
 
 ## Source Provider Extensions
-Skillbase validates provider outputs with strict contracts through resolver checks.
+Runwright validates provider outputs with strict contracts through resolver checks.
 
 Provider response requirements:
 - `rootPath` must exist and be under managed store.

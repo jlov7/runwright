@@ -20,7 +20,7 @@ Fix:
 
 ## Symptom: `invalid-manifest`
 Cause:
-- Unknown key or schema mismatch in `skillbase.yml`.
+- Unknown key or schema mismatch in `runwright.yml` (legacy `skillbase.yml` is still accepted).
 
 Fix:
 1. Compare manifest to `MANIFEST_SPEC.md`.

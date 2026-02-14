@@ -1,7 +1,7 @@
 # Non-Technical Onboarding Guide
 
-## What Skillbase is (plain language)
-Skillbase is a safety and consistency layer for AI coding skills.
+## What Runwright is (plain language)
+Runwright is a safety and consistency layer for AI coding skills.
 It ensures the right skills are installed, scanned, and verified the same way for every user and environment.
 
 ## What value you should expect

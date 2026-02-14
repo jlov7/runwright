@@ -1,7 +1,7 @@
 # Versioning and Deprecation Policy
 
 ## Release versioning
-- Skillbase follows Semantic Versioning (`MAJOR.MINOR.PATCH`).
+- Runwright follows Semantic Versioning (`MAJOR.MINOR.PATCH`).
 - `MAJOR` increments for backward-incompatible CLI, manifest, lockfile, or JSON contract changes.
 - `MINOR` increments for backward-compatible features.
 - `PATCH` increments for backward-compatible fixes and security hardening.

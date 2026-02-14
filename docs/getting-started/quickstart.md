@@ -18,8 +18,8 @@ pnpm tsx src/cli.ts init
 ```
 
 Expected result:
-- `skillbase.yml` exists
-- `.gitignore` includes skillbase ignores
+- `runwright.yml` exists
+- `.gitignore` includes lockfile/store ignores
 
 ## 3) Check your onboarding state
 
@@ -93,8 +93,8 @@ Expected result:
 ## 10) Optional: package and verify
 
 ```bash
-pnpm tsx src/cli.ts export --out skillbase-release.zip --deterministic --json
-pnpm tsx src/cli.ts verify-bundle --bundle skillbase-release.zip --json
+pnpm tsx src/cli.ts export --out runwright-release.zip --deterministic --json
+pnpm tsx src/cli.ts verify-bundle --bundle runwright-release.zip --json
 ```
 
 ## Success criteria

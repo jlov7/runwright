@@ -1,18 +1,18 @@
-# CLI spec — `skillbase`
+# CLI spec — `runwright`
 
 ## Commands
 
-### `skillbase init`
-- Generates a starter `skillbase.yml` + `.gitignore` entries.
+### `runwright init`
+- Generates a starter `runwright.yml` + `.gitignore` entries.
 - Optional: `--from skills.json` (import from other tools).
 
-### `skillbase journey`
+### `runwright journey`
 Shows onboarding progress and the single best next action based on current project state.
 
 Flags:
 - `--json`
 
-### `skillbase apply`
+### `runwright apply`
 Ensures target tools have the desired skills installed.
 
 Flags:
@@ -33,7 +33,7 @@ Exit codes:
 - 20 filesystem error
 - 30 scan failed (security mode = fail)
 
-### `skillbase doctor`
+### `runwright doctor`
 Detects problems:
 - duplicate skills across multiple discovery paths
 - broken symlinks
@@ -45,7 +45,7 @@ Flags:
 - `--json`
 - `--target ...`
 
-### `skillbase scan`
+### `runwright scan`
 Runs lint + security scan without installing.
 
 Flags:
@@ -59,7 +59,7 @@ JSON output includes:
 - policy decision traces
 - suppression counts
 
-### `skillbase policy check`
+### `runwright policy check`
 Validates scan policy allowlist entries and reports unresolved exceptions.
 
 Flags:
@@ -73,15 +73,15 @@ Exit codes:
 - 0 policy clean
 - 2 unresolved policy exceptions found
 
-### `skillbase list`
+### `runwright list`
 Shows resolved skills by target.
 
-### `skillbase update`
+### `runwright update`
 Updates sources to latest matching policy.
 - respects lockfile when `--frozen-lockfile`
 - writes updated lockfile otherwise
 
-### `skillbase export`
+### `runwright export`
 Creates a zip bundle of:
 - manifest
 - lockfile
@@ -109,7 +109,7 @@ Environment:
   - warnings/errors
   - installed skills
 
-### `skillbase verify-bundle`
+### `runwright verify-bundle`
 Verifies bundle integrity and (optionally) signature.
 
 Flags:

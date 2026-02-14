@@ -1,4 +1,4 @@
-# Test plan — Skillbase
+# Test plan — Runwright
 
 ## Test pyramid
 

@@ -36,9 +36,9 @@ describe("journey UX", () => {
     const projectDir = makeTempDir("skillbase-journey-empty-");
     const result = runCli(["journey"], projectDir);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("Skillbase Onboarding Journey");
+    expect(result.stdout).toContain("Runwright Onboarding Journey");
     expect(result.stdout).toContain("Next best action");
-    expect(result.stdout).toContain("skillbase init");
+    expect(result.stdout).toContain("runwright init");
   });
 
   it("recommends scan after lockfile exists but no scan evidence", () => {
@@ -60,7 +60,7 @@ describe("journey UX", () => {
     const result = runCli(["journey"], projectDir);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Next best action");
-    expect(result.stdout).toContain("skillbase scan --format json");
+    expect(result.stdout).toContain("runwright scan --format json");
   });
 
   it("supports machine-readable journey output", () => {

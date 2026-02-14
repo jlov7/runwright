@@ -37,8 +37,8 @@ describe("error guidance UX", () => {
     const result = runCli(["updat"], projectDir);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Unknown command: updat");
-    expect(result.stderr).toContain("Did you mean: skillbase update");
-    expect(result.stderr).toContain("skillbase help");
+    expect(result.stderr).toContain("Did you mean: runwright update");
+    expect(result.stderr).toContain("runwright help");
   });
 
   it("returns nonzero and suggests nearest command for unknown --help topics", () => {
@@ -46,16 +46,16 @@ describe("error guidance UX", () => {
     const result = runCli(["updat", "--help"], projectDir);
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("Unknown help topic: updat");
-    expect(result.stdout).toContain("Did you mean: skillbase help update");
+    expect(result.stdout).toContain("Did you mean: runwright help update");
   });
 
   it("includes a recovery next step for missing manifest errors", () => {
     const projectDir = makeTempDir("skillbase-ux-missing-manifest-");
     const result = runCli(["scan"], projectDir);
     expect(result.status).toBe(10);
-    expect(result.stderr).toContain("No skillbase.yml or skillbase.json found");
+    expect(result.stderr).toContain("No runwright.yml/runwright.json found");
     expect(result.stderr).toContain("Next:");
-    expect(result.stderr).toContain("skillbase init");
-    expect(result.stderr).toContain("skillbase journey");
+    expect(result.stderr).toContain("runwright init");
+    expect(result.stderr).toContain("runwright journey");
   });
 });

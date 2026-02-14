@@ -1,9 +1,10 @@
 {
-  "name": "skillbase",
+  "name": "runwright",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "bin": {
+    "runwright": "./dist/cli.js",
     "skillbase": "./dist/cli.js"
   },
   "scripts": {

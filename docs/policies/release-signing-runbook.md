@@ -1,7 +1,7 @@
 # Release Signing Runbook
 
 ## Scope
-- Applies to signed release bundles produced by `skillbase export --sign-private-key`.
+- Applies to signed release bundles produced by `runwright export --sign-private-key`.
 - Covers key generation, CI secret setup, verification evidence, and rotation.
 
 ## Key generation

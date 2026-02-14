@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security disclosure
-    url: https://github.com/jasonlovell/Skillbase/security/advisories/new
+    url: https://github.com/jlov7/runwright/security/advisories/new
     about: Use private reporting for vulnerabilities and release integrity issues.

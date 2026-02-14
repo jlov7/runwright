@@ -1,7 +1,7 @@
 # JSON Contract Versioning Policy
 
 ## Scope
-This policy governs machine-readable JSON output contracts for Skillbase CLI commands used in automation.
+This policy governs machine-readable JSON output contracts for Runwright CLI commands used in automation.
 
 Current schema contract version: `1.0`.
 

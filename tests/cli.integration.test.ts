@@ -103,12 +103,12 @@ afterEach(() => {
 });
 
 describe("cli integration", () => {
-  it("init creates a starter skillbase.yml", () => {
+  it("init creates a starter runwright.yml", () => {
     const projectDir = makeTempDir("skillbase-cli-init-");
     const result = runCli(["init"], projectDir);
 
     expect(result.status).toBe(0);
-    const manifest = readFileSync(join(projectDir, "skillbase.yml"), "utf8");
+    const manifest = readFileSync(join(projectDir, "runwright.yml"), "utf8");
     expect(manifest).toContain("version: 1");
     expect(manifest).toContain("skillsets:");
   });
@@ -1123,7 +1123,7 @@ describe("cli integration", () => {
     const bundleManifest = JSON.parse(strFromU8(archive["_bundle/manifest.json"]));
     expect(bundleManifest.provenance).toEqual(
       expect.objectContaining({
-        generator: "skillbase-cli",
+        generator: "runwright-cli",
         contractVersion: "1.0"
       })
     );
@@ -1190,7 +1190,7 @@ describe("cli integration", () => {
     const payload = JSON.parse(result.stdout);
     expect(payload.status).toBe(10);
     expect(payload.code).toBe("missing-manifest");
-    expect(String(payload.error ?? "")).toContain("No skillbase.yml or skillbase.json");
+    expect(String(payload.error ?? "")).toContain("No runwright.yml/runwright.json found");
   });
 
   it("scan --json returns invalid-manifest when manifest contains unknown keys", () => {

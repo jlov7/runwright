@@ -1,4 +1,4 @@
-# Skillbase
+# Runwright
 
 ```text
  ____  _    _ _ _ _ ____                    
@@ -10,13 +10,13 @@
 
 Policy-first skill distribution for Codex, Claude Code, Cursor, and compatible tools.
 
-[![CI](https://github.com/jlov7/skillbase/actions/workflows/ci.yml/badge.svg)](https://github.com/jlov7/skillbase/actions/workflows/ci.yml)
-[![Release Verify](https://github.com/jlov7/skillbase/actions/workflows/release-verify.yml/badge.svg)](https://github.com/jlov7/skillbase/actions/workflows/release-verify.yml)
-[![CodeQL](https://github.com/jlov7/skillbase/actions/workflows/codeql.yml/badge.svg)](https://github.com/jlov7/skillbase/actions/workflows/codeql.yml)
+[![CI](https://github.com/jlov7/runwright/actions/workflows/ci.yml/badge.svg)](https://github.com/jlov7/runwright/actions/workflows/ci.yml)
+[![Release Verify](https://github.com/jlov7/runwright/actions/workflows/release-verify.yml/badge.svg)](https://github.com/jlov7/runwright/actions/workflows/release-verify.yml)
+[![CodeQL](https://github.com/jlov7/runwright/actions/workflows/codeql.yml/badge.svg)](https://github.com/jlov7/runwright/actions/workflows/codeql.yml)
 
 ## What It Does
 
-Skillbase gives teams one reproducible path to:
+Runwright gives teams one reproducible path to:
 - define approved skills once
 - scan for risky instructions before install
 - apply consistently across tools and machines
@@ -39,7 +39,7 @@ pnpm tsx src/cli.ts journey
 
 Then follow the `Next best action` shown by `journey` until core steps are complete.
 
-## How People Actually Use Skillbase
+## How People Actually Use Runwright
 
 ### Technical (individual engineer)
 1. `init`
@@ -47,7 +47,7 @@ Then follow the `Next best action` shown by `journey` until core steps are compl
 3. `update` -> `scan` -> `apply --dry-run` -> `apply`
 
 ### Technical (team/platform)
-1. Standardize `skillbase.yml` and `skillbase.lock.json`
+1. Standardize `runwright.yml` and lockfile in repo
 2. Enforce `update --frozen-lockfile`, `scan`, and `ship:gate` in CI
 3. Publish verifiable bundles with `export` + `verify-bundle`
 
@@ -60,14 +60,14 @@ Then follow the `Next best action` shown by `journey` until core steps are compl
 
 | Goal | Command |
 | --- | --- |
-| See onboarding progress | `skillbase journey` |
-| Create starter manifest | `skillbase init` |
-| Resolve and lock sources | `skillbase update --json` |
-| Run lint/security checks | `skillbase scan --format json` |
-| Validate install plan | `skillbase apply --dry-run --json` |
-| Install to targets | `skillbase apply --target all --scope project --mode copy --json` |
-| Package release bundle | `skillbase export --out skillbase-release.zip --deterministic --json` |
-| Verify release bundle | `skillbase verify-bundle --bundle skillbase-release.zip --json` |
+| See onboarding progress | `runwright journey` |
+| Create starter manifest | `runwright init` |
+| Resolve and lock sources | `runwright update --json` |
+| Run lint/security checks | `runwright scan --format json` |
+| Validate install plan | `runwright apply --dry-run --json` |
+| Install to targets | `runwright apply --target all --scope project --mode copy --json` |
+| Package release bundle | `runwright export --out runwright-release.zip --deterministic --json` |
+| Verify release bundle | `runwright verify-bundle --bundle runwright-release.zip --json` |
 
 ## Start Here By Role
 

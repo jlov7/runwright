@@ -1,4 +1,4 @@
-# PRD — Skillbase
+# PRD — Runwright
 
 ## 1) Problem statement
 

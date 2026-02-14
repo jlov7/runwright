@@ -89,6 +89,8 @@ type ParsedArgs = {
 type FlagValueType = "boolean" | "string";
 const JSON_CONTRACT_SCHEMA_VERSION = "1.0";
 const DEFAULT_OPERATION_LOG_PATH = ".skillbase/operations.jsonl";
+const PRIMARY_MANIFEST_FILENAMES = ["runwright.yml", "runwright.json"] as const;
+const LEGACY_MANIFEST_FILENAMES = ["skillbase.yml", "skillbase.json"] as const;
 
 const adapters: Record<
   TargetName,
@@ -121,80 +123,80 @@ type CommandHelpEntry = {
 const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   init: {
     summary: "Create starter manifest and baseline ignore rules.",
-    usage: ["skillbase init [--json]"],
-    examples: ["skillbase init", "skillbase init --json"]
+    usage: ["runwright init [--json]"],
+    examples: ["runwright init", "runwright init --json"]
   },
   journey: {
     summary: "Show your current onboarding progress and the single best next action.",
-    usage: ["skillbase journey [--json]"],
-    examples: ["skillbase journey", "skillbase journey --json"]
+    usage: ["runwright journey [--json]"],
+    examples: ["runwright journey", "runwright journey --json"]
   },
   apply: {
     summary: "Install resolved skills into target tools (safe by default with scanning).",
     usage: [
-      "skillbase apply [--mode link|copy|mirror] [--target codex|claude-code|cursor|all]",
+      "runwright apply [--mode link|copy|mirror] [--target codex|claude-code|cursor|all]",
       "               [--scope global|project] [--dry-run] [--json] [--no-scan]",
       "               [--scan-security off|warn|fail] [--fix] [--frozen-lockfile]",
       "               [--refresh-sources] [--remote-cache-ttl <seconds>]"
     ],
     examples: [
-      "skillbase apply --target all --scope project --mode copy --dry-run --json",
-      "skillbase apply --target codex --scope project --mode copy",
-      "skillbase apply --frozen-lockfile --target all --mode copy --json"
+      "runwright apply --target all --scope project --mode copy --dry-run --json",
+      "runwright apply --target codex --scope project --mode copy",
+      "runwright apply --frozen-lockfile --target all --mode copy --json"
     ]
   },
   doctor: {
     summary: "Diagnose and optionally fix safe local install issues.",
-    usage: ["skillbase doctor [--fix] [--json] [--target ...] [--scope ...]"],
-    examples: ["skillbase doctor", "skillbase doctor --fix --json"]
+    usage: ["runwright doctor [--fix] [--json] [--target ...] [--scope ...]"],
+    examples: ["runwright doctor", "runwright doctor --fix --json"]
   },
   scan: {
     summary: "Run lint and security checks on resolved skills.",
     usage: [
-      "skillbase scan [--lint-only] [--security off|warn|fail] [--format text|json|sarif]",
+      "runwright scan [--lint-only] [--security off|warn|fail] [--format text|json|sarif]",
       "               [--policy-decisions-out <path>] [--refresh-sources] [--remote-cache-ttl <seconds>]"
     ],
     examples: [
-      "skillbase scan --format json",
-      "skillbase scan --security fail --format sarif",
-      "skillbase scan --policy-decisions-out reports/policy-decisions.jsonl --format json"
+      "runwright scan --format json",
+      "runwright scan --security fail --format sarif",
+      "runwright scan --policy-decisions-out reports/policy-decisions.jsonl --format json"
     ]
   },
   policy: {
     summary: "Check manifest scan-policy exceptions and expiry health.",
-    usage: ["skillbase policy check [--format text|json] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
-    examples: ["skillbase policy check", "skillbase policy check --json"]
+    usage: ["runwright policy check [--format text|json] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
+    examples: ["runwright policy check", "runwright policy check --json"]
   },
   list: {
     summary: "List resolved skills and effective target install paths.",
-    usage: ["skillbase list [--json] [--target ...] [--scope ...] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
-    examples: ["skillbase list --json", "skillbase list --target codex --scope project --json"]
+    usage: ["runwright list [--json] [--target ...] [--scope ...] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
+    examples: ["runwright list --json", "runwright list --target codex --scope project --json"]
   },
   update: {
     summary: "Resolve sources and write deterministic lockfile.",
-    usage: ["skillbase update [--frozen-lockfile] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
-    examples: ["skillbase update --json", "skillbase update --frozen-lockfile --json"]
+    usage: ["runwright update [--frozen-lockfile] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
+    examples: ["runwright update --json", "runwright update --frozen-lockfile --json"]
   },
   export: {
     summary: "Package manifest, lockfile, and skills into a verifiable bundle.",
     usage: [
-      "skillbase export [--out <bundle.zip>] [--sign-key <path>] [--sign-private-key <path>]",
+      "runwright export [--out <bundle.zip>] [--sign-key <path>] [--sign-private-key <path>]",
       "                 [--deterministic] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"
     ],
     examples: [
-      "skillbase export --out skillbase-release.zip --deterministic --json",
-      "skillbase export --out skillbase-release.zip --sign-private-key private.pem --deterministic --json"
+      "runwright export --out runwright-release.zip --deterministic --json",
+      "runwright export --out runwright-release.zip --sign-private-key private.pem --deterministic --json"
     ]
   },
   "verify-bundle": {
     summary: "Verify bundle integrity and optional signature requirements.",
     usage: [
-      "skillbase verify-bundle --bundle <bundle.zip> [--sign-key <path>] [--sign-public-key <path>]",
+      "runwright verify-bundle --bundle <bundle.zip> [--sign-key <path>] [--sign-public-key <path>]",
       "                        [--require-signature] [--json]"
     ],
     examples: [
-      "skillbase verify-bundle --bundle skillbase-release.zip --json",
-      "skillbase verify-bundle --bundle skillbase-release.zip --sign-public-key public.pem --require-signature --json"
+      "runwright verify-bundle --bundle runwright-release.zip --json",
+      "runwright verify-bundle --bundle runwright-release.zip --sign-public-key public.pem --require-signature --json"
     ]
   }
 };
@@ -241,28 +243,28 @@ function suggestCommand(rawInput: string, candidates: string[]): string | undefi
 function renderUnknownHelpTopic(topic: string): string {
   const suggestion = suggestCommand(topic, Object.keys(COMMAND_HELP));
   if (!suggestion) return `Unknown help topic: ${topic}`;
-  return [`Unknown help topic: ${topic}`, `Did you mean: skillbase help ${suggestion}`].join("\n");
+  return [`Unknown help topic: ${topic}`, `Did you mean: runwright help ${suggestion}`].join("\n");
 }
 
 function renderUnknownCommandMessage(command: string): string {
   const suggestion = suggestCommand(command, Object.keys(COMMAND_HELP));
   if (!suggestion) {
-    return [`Unknown command: ${command}`, "Run `skillbase help` to see available commands."].join("\n");
+    return [`Unknown command: ${command}`, "Run `runwright help` to see available commands."].join("\n");
   }
   return [
     `Unknown command: ${command}`,
-    `Did you mean: skillbase ${suggestion}`,
-    "Run `skillbase help` to see available commands."
+    `Did you mean: runwright ${suggestion}`,
+    "Run `runwright help` to see available commands."
   ].join("\n");
 }
 
 function formatCliErrorGuidance(error: CliError, failedCommand?: string): string {
-  const helpForCommand = failedCommand && COMMAND_HELP[failedCommand] ? `skillbase ${failedCommand} --help` : "skillbase help";
+  const helpForCommand = failedCommand && COMMAND_HELP[failedCommand] ? `runwright ${failedCommand} --help` : "runwright help";
   const hints: string[] = [];
 
   switch (error.code) {
     case "missing-manifest":
-      hints.push("skillbase init", "skillbase journey");
+      hints.push("runwright init", "runwright journey");
       break;
     case "invalid-manifest":
       hints.push("Fix manifest keys/types, then rerun your command.");
@@ -274,13 +276,13 @@ function formatCliErrorGuidance(error: CliError, failedCommand?: string): string
       hints.push(helpForCommand);
       break;
     case "lockfile-error":
-      hints.push("skillbase update --json", "Retry your previous command.");
+      hints.push("runwright update --json", "Retry your previous command.");
       break;
     case "source-resolution-failed":
       if (failedCommand && COMMAND_HELP[failedCommand]) {
-        hints.push(`skillbase ${failedCommand} --refresh-sources`);
+        hints.push(`runwright ${failedCommand} --refresh-sources`);
       }
-      hints.push("Check source refs in skillbase.yml.");
+      hints.push("Check source refs in runwright.yml (legacy skillbase.yml is also supported).");
       break;
     case "bundle-verification-failed":
     case "invalid-bundle-manifest":
@@ -288,7 +290,7 @@ function formatCliErrorGuidance(error: CliError, failedCommand?: string): string
       hints.push("Re-export bundle from a trusted source and rerun verify-bundle.");
       break;
     default:
-      if (error.exitCode === 10) hints.push("skillbase journey");
+      if (error.exitCode === 10) hints.push("runwright journey");
       break;
   }
 
@@ -306,7 +308,7 @@ function usage(command?: string): boolean {
     }
     console.log(
       [
-        `skillbase ${command}`,
+        `runwright ${command}`,
         "",
         entry.summary,
         "",
@@ -321,33 +323,33 @@ function usage(command?: string): boolean {
     return true;
   }
 
-  console.log(`skillbase
+  console.log(`runwright
 
 Policy-first manifest manager for agent skills.
 
 Start here:
-  1) skillbase init
-  2) skillbase journey
-  3) skillbase update --json
-  4) skillbase scan --format json
-  5) skillbase apply --target all --scope project --mode copy --dry-run --json
+  1) runwright init
+  2) runwright journey
+  3) runwright update --json
+  4) runwright scan --format json
+  5) runwright apply --target all --scope project --mode copy --dry-run --json
 
 Core commands:
-  skillbase init
-  skillbase journey
-  skillbase apply
-  skillbase doctor
-  skillbase scan
-  skillbase policy check
-  skillbase list
-  skillbase update
-  skillbase export
-  skillbase verify-bundle
+  runwright init
+  runwright journey
+  runwright apply
+  runwright doctor
+  runwright scan
+  runwright policy check
+  runwright list
+  runwright update
+  runwright export
+  runwright verify-bundle
 
 Help:
-  skillbase help
-  skillbase help <command>
-  skillbase <command> --help
+  runwright help
+  runwright help <command>
+  runwright <command> --help
 `);
   return true;
 }
@@ -470,21 +472,26 @@ function getBooleanFlag(args: ParsedArgs, key: string): boolean {
   return args.flags.get(key) === true;
 }
 
-function loadManifest(cwd: string): SkillbaseManifest {
-  const manifestPathYaml = resolve(cwd, "skillbase.yml");
-  const manifestPathJson = resolve(cwd, "skillbase.json");
-
-  let manifestRaw: string;
-  let filename: string;
-  if (existsSync(manifestPathYaml)) {
-    manifestRaw = readFileSync(manifestPathYaml, "utf8");
-    filename = "skillbase.yml";
-  } else if (existsSync(manifestPathJson)) {
-    manifestRaw = readFileSync(manifestPathJson, "utf8");
-    filename = "skillbase.json";
-  } else {
-    throw new CliError("No skillbase.yml or skillbase.json found in current directory.", 10, "missing-manifest");
+function resolveManifestFile(cwd: string): { path: string; filename: string } | undefined {
+  const filenames = [...PRIMARY_MANIFEST_FILENAMES, ...LEGACY_MANIFEST_FILENAMES];
+  for (const filename of filenames) {
+    const path = resolve(cwd, filename);
+    if (existsSync(path)) return { path, filename };
   }
+  return undefined;
+}
+
+function loadManifest(cwd: string): SkillbaseManifest {
+  const manifestRef = resolveManifestFile(cwd);
+  if (!manifestRef) {
+    throw new CliError(
+      "No runwright.yml/runwright.json found (legacy skillbase.yml/skillbase.json is also supported).",
+      10,
+      "missing-manifest"
+    );
+  }
+  const manifestRaw = readFileSync(manifestRef.path, "utf8");
+  const filename = manifestRef.filename;
 
   try {
     return parseManifest(manifestRaw, { filename });
@@ -772,7 +779,7 @@ const ZIP_GENERAL_PURPOSE_BIT_FLAG_ENCRYPTED = 0x0001;
 const ZIP_COMPRESSION_METHOD_STORED = 0;
 const ZIP_COMPRESSION_METHOD_DEFLATE = 8;
 const REQUIRED_BUNDLE_PATHS = ["skillbase.lock.json"] as const;
-const REQUIRED_BUNDLE_MANIFEST_CANDIDATES = ["skillbase.yml", "skillbase.json"] as const;
+const REQUIRED_BUNDLE_MANIFEST_CANDIDATES = ["runwright.yml", "runwright.json", "skillbase.yml", "skillbase.json"] as const;
 const ZIP_UTF8_DECODER = new TextDecoder("utf-8", { fatal: true });
 
 type ZipCentralDirectoryEntry = {
@@ -1374,12 +1381,11 @@ function performAtomicTargetApply(plan: TargetApplyPlan, cwd: string): void {
 }
 
 function runInit(cwd: string): { status: number; message: string } {
-  const manifestPathYaml = resolve(cwd, "skillbase.yml");
-  const manifestPathJson = resolve(cwd, "skillbase.json");
-  if (existsSync(manifestPathYaml) || existsSync(manifestPathJson)) {
+  if (resolveManifestFile(cwd)) {
     return { status: 2, message: "Manifest already exists; init skipped" };
   }
 
+  const manifestPathYaml = resolve(cwd, "runwright.yml");
   const starter = `version: 1
 defaults:
   mode: link
@@ -1417,7 +1423,7 @@ apply:
     if (!nextLines.includes(entry)) nextLines.push(entry);
   }
   writeFileSync(gitIgnorePath, `${nextLines.filter((line) => line.length > 0).join("\n")}\n`, "utf8");
-  return { status: 0, message: "Initialized skillbase.yml and updated .gitignore" };
+  return { status: 0, message: "Initialized runwright.yml and updated .gitignore" };
 }
 
 type JourneyStepStatus = "complete" | "pending";
@@ -1513,7 +1519,8 @@ function hasOperationEvent(
 }
 
 function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
-  const manifestExists = existsSync(resolve(cwd, "skillbase.yml")) || existsSync(resolve(cwd, "skillbase.json"));
+  const manifestRef = resolveManifestFile(cwd);
+  const manifestExists = Boolean(manifestRef);
   const skillsExist = hasAnySkillMarkdown(resolve(cwd, "skills"));
   const lockfileExists = existsSync(resolve(cwd, "skillbase.lock.json"));
   const events = readOperationEventRecords(cwd);
@@ -1527,8 +1534,10 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       id: "manifest",
       title: "Initialize project manifest",
       status: manifestExists ? "complete" : "pending",
-      details: manifestExists ? "skillbase.yml/skillbase.json detected." : "Create a baseline manifest for deterministic setup.",
-      command: "skillbase init"
+      details: manifestExists
+        ? `${manifestRef?.filename ?? "manifest"} detected.`
+        : "Create a baseline manifest for deterministic setup.",
+      command: "runwright init"
     },
     {
       id: "skills",
@@ -1544,7 +1553,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       details: lockfileExists
         ? "skillbase.lock.json exists."
         : "Generate lockfile so installs are reproducible and CI-safe.",
-      command: "skillbase update --json"
+      command: "runwright update --json"
     },
     {
       id: "scan",
@@ -1553,7 +1562,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       details: scanCompleted
         ? "At least one scan run is recorded in operations log."
         : "Run scan to surface risky content before apply.",
-      command: "skillbase scan --format json"
+      command: "runwright scan --format json"
     },
     {
       id: "dry-run-apply",
@@ -1562,7 +1571,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       details: dryRunApplyCompleted
         ? "Dry-run apply evidence recorded."
         : "Preview operations without filesystem changes.",
-      command: "skillbase apply --target all --scope project --mode copy --dry-run --json"
+      command: "runwright apply --target all --scope project --mode copy --dry-run --json"
     },
     {
       id: "apply",
@@ -1571,7 +1580,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       details: applyCompleted
         ? "Successful mutating apply evidence recorded."
         : "Install resolved skills into your configured targets.",
-      command: "skillbase apply --target all --scope project --mode copy --json"
+      command: "runwright apply --target all --scope project --mode copy --json"
     },
     {
       id: "verify-bundle",
@@ -1580,7 +1589,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       details: verifyBundleCompleted
         ? "Bundle verification succeeded at least once."
         : "Optional release assurance step for distribution workflows.",
-      command: "skillbase export --out skillbase-release.zip --deterministic --json && skillbase verify-bundle --bundle skillbase-release.zip --json",
+      command: "runwright export --out runwright-release.zip --deterministic --json && runwright verify-bundle --bundle runwright-release.zip --json",
       optional: true
     }
   ];
@@ -1598,7 +1607,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       }
     : {
         command:
-          "skillbase policy check --json && skillbase export --out skillbase-release.zip --deterministic --json",
+          "runwright policy check --json && runwright export --out runwright-release.zip --deterministic --json",
         reason: "Core onboarding is complete. Harden policy posture and produce a verifiable release bundle."
       };
 
@@ -1620,7 +1629,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
 
 function renderJourneyText(payload: JourneyPayload): string {
   const lines = [
-    "Skillbase Onboarding Journey",
+    "Runwright Onboarding Journey",
     "",
     `Progress: ${payload.summary.completedCoreSteps}/${payload.summary.totalCoreSteps} core steps complete (${payload.summary.completionPercent}%)`,
     ""
@@ -1914,17 +1923,17 @@ function renderApplyText(result: {
       "",
       "Next:",
       "  Address blocking findings or run with a non-blocking security mode, then rerun:",
-      "  skillbase scan --format json"
+      "  runwright scan --format json"
     );
   } else if (result.dryRun) {
     lines.push(
       "",
       "Next:",
       "  Run the same command without --dry-run to perform installation.",
-      "  skillbase apply --target all --scope project --mode copy --json"
+      "  runwright apply --target all --scope project --mode copy --json"
     );
   } else {
-    lines.push("", "Next:", "  Confirm target paths and installed skills with:", "  skillbase list --json");
+    lines.push("", "Next:", "  Confirm target paths and installed skills with:", "  runwright list --json");
   }
 
   lines.push("");
@@ -2018,8 +2027,8 @@ function runScan(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
           ? "  Resolve findings or tune policy exceptions, then rerun scan."
           : "  Run a dry-run apply to validate installation plan.",
         scan.highFindings > 0 || scan.mediumFindings > 0
-          ? "  skillbase policy check --json"
-          : "  skillbase apply --target all --scope project --mode copy --dry-run --json",
+          ? "  runwright policy check --json"
+          : "  runwright apply --target all --scope project --mode copy --dry-run --json",
         ""
       ].join("\n")
     }
@@ -2146,7 +2155,7 @@ function runExport(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): 
   signature?: string;
   signatureAlgorithm?: "hmac-sha256" | "ed25519";
 } {
-  const outPath = resolve(cwd, getStringFlag(args, "out") ?? "skillbase-export.zip");
+  const outPath = resolve(cwd, getStringFlag(args, "out") ?? "runwright-export.zip");
   const signKeyPath = getStringFlag(args, "sign-key");
   const signPrivateKeyPath = getStringFlag(args, "sign-private-key");
   const deterministicFlag = getBooleanFlag(args, "deterministic");
@@ -2159,10 +2168,16 @@ function runExport(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): 
     throw new CliError("Use only one signing mode: --sign-key or --sign-private-key", 1, "invalid-argument");
   }
 
-  const manifestPathYaml = resolve(cwd, "skillbase.yml");
-  const manifestPathJson = resolve(cwd, "skillbase.json");
-  const manifestPath = existsSync(manifestPathYaml) ? manifestPathYaml : manifestPathJson;
-  const manifestName = existsSync(manifestPathYaml) ? "skillbase.yml" : "skillbase.json";
+  const manifestRef = resolveManifestFile(cwd);
+  if (!manifestRef) {
+    throw new CliError(
+      "No runwright.yml/runwright.json found (legacy skillbase.yml/skillbase.json is also supported).",
+      10,
+      "missing-manifest"
+    );
+  }
+  const manifestPath = manifestRef.path;
+  const manifestName = manifestRef.filename;
 
   const lockPath = resolve(cwd, "skillbase.lock.json");
   const lockfileGenerated = !existsSync(lockPath);
@@ -2221,7 +2236,7 @@ function runExport(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): 
     createdAt,
     files,
     provenance: {
-      generator: "skillbase-cli",
+      generator: "runwright-cli",
       contractVersion: "1.0",
       createdBy: `node ${process.version}`
     }

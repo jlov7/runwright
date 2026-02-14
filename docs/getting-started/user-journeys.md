@@ -15,7 +15,7 @@ Install and use trusted skills quickly.
 Re-running apply does not cause drift.
 
 ### Critical UX requirement
-User always knows the next command by running `skillbase journey`.
+User always knows the next command by running `runwright journey`.
 
 ## 2) Team Lead / Platform Engineer
 ### Goal

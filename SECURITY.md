@@ -1,7 +1,7 @@
-# Security - Skillbase
+# Security - Runwright
 
 ## Security posture summary
-Skillbase is a policy-first manifest manager for untrusted skill content.
+Runwright is a policy-first manifest manager for untrusted skill content.
 It is designed to fail closed on malformed inputs, path traversal attempts, lockfile drift, and bundle tampering.
 
 ## Trust boundaries

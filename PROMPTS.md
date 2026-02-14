@@ -1,4 +1,4 @@
-# Prompts — how to build Skillbase with Codex / Claude Code / Cursor
+# Prompts — how to build Runwright with Codex / Claude Code / Cursor
 
 Use these prompts as copy/paste tasks. Keep each PR small (1–3 hours of work).
 
@@ -20,7 +20,7 @@ Use these prompts as copy/paste tasks. Keep each PR small (1–3 hours of work).
 
 Prompt:
 
-> You are working in a new repository named Skillbase (working name).  
+> You are working in a new repository named Runwright (working name).  
 > Create a TypeScript CLI project with:
 > - src/cli.ts (entry)
 > - src/manifest.ts (parse+validate)

@@ -2,5 +2,5 @@
   "schemaVersion": "1.0",
   "status": 10,
   "code": "missing-manifest",
-  "error": "No skillbase.yml or skillbase.json found in current directory."
+  "error": "No runwright.yml/runwright.json found (legacy skillbase.yml/skillbase.json is also supported)."
 }

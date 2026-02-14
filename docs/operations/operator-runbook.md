@@ -1,7 +1,7 @@
 # Operator Runbook
 
 ## Purpose
-Define the standard operating procedure for daily Skillbase operation and release-readiness validation.
+Define the standard operating procedure for daily Runwright operation and release-readiness validation.
 
 ## Daily health checks
 1. Run `pnpm verify`.

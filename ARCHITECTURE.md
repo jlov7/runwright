@@ -1,8 +1,8 @@
-# Architecture — Skillbase
+# Architecture — Runwright
 
 ## High-level view
 
-Skillbase is a CLI + library with 4 major subsystems:
+Runwright is a CLI + library with 4 major subsystems:
 
 1. **Resolver**: reads manifest, resolves sources → concrete skill directories.
 2. **Store**: caches canonical copies in a local store with metadata.
