@@ -23,7 +23,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit:deps
@@ -38,7 +37,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:mutation
@@ -57,7 +55,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: rm -rf .fuzz-artifacts
@@ -80,7 +77,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm sbom:generate
@@ -98,7 +94,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:compat-matrix
@@ -112,7 +107,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm perf:snapshot -- --out reports/performance/current.snapshot.json
@@ -141,7 +135,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
@@ -192,7 +185,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
-          cache: "pnpm"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - name: Generate quality scorecard

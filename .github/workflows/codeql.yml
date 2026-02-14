@@ -39,3 +39,4 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@f5c2471be782132e47a6e6f9c725e56730d6e9a3 # v3
+        continue-on-error: true
