@@ -142,7 +142,7 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     examples: [
       "runwright apply --target all --scope project --mode copy --dry-run --json",
       "runwright apply --target codex --scope project --mode copy",
-      "runwright apply --frozen-lockfile --target all --mode copy --json"
+      "runwright apply --frozen-lockfile --target all --scope project --mode copy --json"
     ]
   },
   doctor: {
@@ -585,6 +585,50 @@ function parsePolicyFormat(raw: string | undefined, fallback: PolicyFormat): Pol
   if (!raw) return fallback;
   if (raw === "text" || raw === "json") return raw;
   throw new CliError(`Invalid format: ${raw}`, 1, "invalid-format");
+}
+
+function validateSemanticFlags(args: ParsedArgs): void {
+  const command = args.command;
+  if (!command) return;
+
+  if (command === "apply") {
+    parseTargets(getStringFlag(args, "target"));
+    parseScope(getStringFlag(args, "scope"), "project");
+    parseMode(getStringFlag(args, "mode"), "link");
+    parseSecurityMode(getStringFlag(args, "scan-security"), "warn");
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "doctor") {
+    parseTargets(getStringFlag(args, "target"));
+    parseScope(getStringFlag(args, "scope"), "project");
+    return;
+  }
+
+  if (command === "scan") {
+    parseSecurityMode(getStringFlag(args, "security"), "warn");
+    parseScanFormat(getStringFlag(args, "format"), "text");
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "policy") {
+    parsePolicyFormat(getStringFlag(args, "format"), "text");
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "list") {
+    parseTargets(getStringFlag(args, "target"));
+    parseScope(getStringFlag(args, "scope"), "project");
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "update" || command === "export") {
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+  }
 }
 
 function resolverOptionsFromArgs(args: ParsedArgs): { refreshSources: boolean; remoteCacheTtlSeconds: number } {
@@ -1420,7 +1464,7 @@ function runInit(cwd: string): { status: number; message: string } {
   const starter = `version: 1
 defaults:
   mode: link
-  scope: global
+  scope: project
   verify: true
   scan:
     lint: true
@@ -1493,6 +1537,8 @@ type OperationEventRecord = {
   command: string;
   status: number;
   mutating: boolean;
+  timestampMs: number;
+  code?: string;
 };
 
 function hasAnySkillMarkdown(rootPath: string): boolean {
@@ -1512,6 +1558,31 @@ function hasAnySkillMarkdown(rootPath: string): boolean {
   return false;
 }
 
+function latestModifiedTimeMs(rootPath: string): number {
+  if (!existsSync(rootPath)) return 0;
+  const queue = [rootPath];
+  let latest = 0;
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (!current) continue;
+    let stats;
+    try {
+      stats = statSync(current);
+    } catch {
+      continue;
+    }
+    latest = Math.max(latest, stats.mtimeMs);
+    if (!stats.isDirectory()) continue;
+    for (const entry of readdirSyncFs(current, { withFileTypes: true })) {
+      if (entry.name === ".git" || entry.name === "node_modules") continue;
+      if (entry.isSymbolicLink()) continue;
+      if (!entry.isDirectory() && !entry.isFile()) continue;
+      queue.push(join(current, entry.name));
+    }
+  }
+  return latest;
+}
+
 function readOperationEventRecords(cwd: string): OperationEventRecord[] {
   const logPath = resolveOperationLogPath(cwd);
   if (!logPath || !existsSync(logPath)) return [];
@@ -1528,10 +1599,13 @@ function readOperationEventRecords(cwd: string): OperationEventRecord[] {
         typeof parsed.status === "number" &&
         typeof parsed.mutating === "boolean"
       ) {
+        const timestampRaw = typeof parsed.timestamp === "string" ? Date.parse(parsed.timestamp) : Number.NaN;
         events.push({
           command: parsed.command,
           status: parsed.status,
-          mutating: parsed.mutating
+          mutating: parsed.mutating,
+          timestampMs: Number.isFinite(timestampRaw) ? timestampRaw : 0,
+          ...(typeof parsed.code === "string" ? { code: parsed.code } : {})
         });
       }
     } catch {
@@ -1567,35 +1641,57 @@ function latestOperationEvent(
 function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
   const manifestRef = resolveManifestFile(cwd);
   const manifestExists = Boolean(manifestRef);
-  const skillsExist = hasAnySkillMarkdown(resolve(cwd, "skills"));
-  const lockfileExists = existsSync(resolve(cwd, "skillbase.lock.json"));
+  const skillsRoot = resolve(cwd, "skills");
+  const lockfilePath = resolve(cwd, "skillbase.lock.json");
+  const skillsExist = hasAnySkillMarkdown(skillsRoot);
+  const lockfileExists = existsSync(lockfilePath);
   const events = readOperationEventRecords(cwd);
   const scanEvent = latestOperationEvent(events, "scan");
   const dryRunApplyEvent = latestOperationEvent(events, "apply", (event) => event.mutating === false);
   const applyEvent = latestOperationEvent(events, "apply", (event) => event.mutating === true);
   const verifyBundleCompleted = hasOperationEvent(events, "verify-bundle", (event) => event.status === 0);
 
-  const scanStatus: JourneyStepStatus = scanEvent
-    ? scanEvent.status === 30
-      ? "blocked"
-      : scanEvent.status === 0 || scanEvent.status === 2
-        ? "complete"
-        : "pending"
-    : "pending";
-  const dryRunApplyStatus: JourneyStepStatus = dryRunApplyEvent
-    ? dryRunApplyEvent.status === 30
-      ? "blocked"
-      : dryRunApplyEvent.status === 0 || dryRunApplyEvent.status === 2
-        ? "complete"
-        : "pending"
-    : "pending";
-  const applyStatus: JourneyStepStatus = applyEvent
-    ? applyEvent.status === 30
-      ? "blocked"
-      : applyEvent.status === 0 || applyEvent.status === 2
-        ? "complete"
-        : "pending"
-    : "pending";
+  const sourceSnapshotMs = Math.max(
+    manifestRef ? latestModifiedTimeMs(manifestRef.path) : 0,
+    latestModifiedTimeMs(skillsRoot)
+  );
+  const lockfileUpdatedAtMs = lockfileExists ? latestModifiedTimeMs(lockfilePath) : 0;
+  const lockfileFresh = lockfileExists && lockfileUpdatedAtMs >= sourceSnapshotMs;
+  const scanFresh = Boolean(scanEvent && scanEvent.timestampMs >= Math.max(sourceSnapshotMs, lockfileUpdatedAtMs));
+  const dryRunFresh = Boolean(
+    dryRunApplyEvent && dryRunApplyEvent.timestampMs >= Math.max(sourceSnapshotMs, lockfileUpdatedAtMs, scanEvent?.timestampMs ?? 0)
+  );
+  const applyFresh = Boolean(
+    applyEvent && applyEvent.timestampMs >= Math.max(sourceSnapshotMs, lockfileUpdatedAtMs, scanEvent?.timestampMs ?? 0)
+  );
+
+  const scanStatus: JourneyStepStatus = !scanEvent
+    ? "pending"
+    : !scanFresh
+      ? "pending"
+      : scanEvent.status === 30
+        ? "blocked"
+        : scanEvent.status === 0 || scanEvent.status === 2
+          ? "complete"
+          : "pending";
+  const dryRunApplyStatus: JourneyStepStatus = !dryRunApplyEvent
+    ? "pending"
+    : !dryRunFresh
+      ? "pending"
+      : dryRunApplyEvent.status === 30
+        ? "blocked"
+        : dryRunApplyEvent.status === 0 || dryRunApplyEvent.status === 2
+          ? "complete"
+          : "pending";
+  const applyStatus: JourneyStepStatus = !applyEvent
+    ? "pending"
+    : !applyFresh
+      ? "pending"
+      : applyEvent.status === 30
+        ? "blocked"
+        : applyEvent.status === 0 || applyEvent.status === 2
+          ? "complete"
+          : "pending";
 
   const steps: JourneyStep[] = [
     {
@@ -1613,16 +1709,18 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       status: skillsExist ? "complete" : "pending",
       details: skillsExist
         ? "Found at least one SKILL.md under skills/."
-        : "Empty state: no SKILL.md found under skills/. Add one skill to unlock your first successful apply.",
-      command: "mkdir -p skills/<skill-name> && create skills/<skill-name>/SKILL.md"
+        : "Empty state: no SKILL.md found under skills/. Add one skill to unlock your first successful apply (see quickstart template).",
+      command: "mkdir -p skills/<skill-name> && touch skills/<skill-name>/SKILL.md"
     },
     {
       id: "lockfile",
       title: "Resolve and lock sources",
-      status: lockfileExists ? "complete" : "pending",
-      details: lockfileExists
-        ? "skillbase.lock.json exists."
-        : "Generate lockfile so installs are reproducible and CI-safe.",
+      status: lockfileExists && lockfileFresh ? "complete" : "pending",
+      details: !lockfileExists
+        ? "Generate lockfile so installs are reproducible and CI-safe."
+        : lockfileFresh
+          ? "skillbase.lock.json exists and is up to date."
+          : "Skills or manifest changed since the last lockfile update. Rerun update to keep installs reproducible.",
       command: "runwright update --json"
     },
     {
@@ -1631,6 +1729,8 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       status: scanStatus,
       details: scanStatus === "complete"
         ? "Latest scan run is recorded in operations log."
+        : scanEvent && !scanFresh
+          ? "Sources changed since the last scan. Rerun scan to refresh safety evidence."
         : scanStatus === "blocked"
           ? "Scan is blocked on findings. Resolve risky content, then rerun scan."
           : "Run scan to surface risky content before apply.",
@@ -1642,6 +1742,8 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       status: dryRunApplyStatus,
       details: dryRunApplyStatus === "complete"
         ? "Dry-run apply succeeded. Your install plan is ready for a real apply."
+        : dryRunApplyEvent && !dryRunFresh
+          ? "Changes detected since the last dry-run apply. Rerun dry-run before applying."
         : dryRunApplyStatus === "blocked"
           ? "Dry-run apply was blocked. Resolve scan/policy issues and rerun dry-run."
           : "Preview operations without filesystem changes.",
@@ -1653,6 +1755,8 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       status: applyStatus,
       details: applyStatus === "complete"
         ? "First success: skills were installed to your targets. Keep the update -> scan -> apply loop for every change."
+        : applyEvent && !applyFresh
+          ? "Changes detected since the last apply. Run apply again to keep targets in sync."
         : applyStatus === "blocked"
           ? "Apply was blocked. Resolve scan/policy issues and rerun apply."
           : "Install resolved skills into your configured targets to complete onboarding.",
@@ -1720,7 +1824,7 @@ function renderJourneyText(payload: JourneyPayload): string {
       lines.push(`      Run: ${step.command}`);
       const helpTipByStep: Record<JourneyStep["id"], string> = {
         manifest: "runwright help init",
-        skills: "docs/getting-started/non-technical-onboarding.md",
+        skills: "docs/getting-started/quickstart.md",
         lockfile: "runwright help update",
         scan: "runwright help scan",
         "dry-run-apply": "runwright help apply",
@@ -1993,20 +2097,43 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
 
 function renderApplyText(result: {
   status: number;
+  code?: string;
+  reason?: string;
   dryRun: boolean;
+  scanned?: boolean;
+  lockfileVerified?: boolean;
   operations: ApplyOperation[];
   summary: { lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
 }): string {
+  const lockfileReasonText: Record<string, string> = {
+    "missing-lockfile": "No skillbase.lock.json found for frozen mode.",
+    "invalid-lockfile": "skillbase.lock.json is malformed and cannot be read.",
+    "lockfile-mismatch": "skillbase.lock.json is out of date with local skill content."
+  };
+  const failed = result.status !== 0 && result.status !== 2 && result.status !== 30;
   const lines = [
-    "Apply Summary",
+    failed ? "Apply Failed" : "Apply Summary",
+    `- Status: ${result.status}`,
     `- Planned operations: ${result.operations.length}`,
     `- Mode: ${result.dryRun ? "dry-run (no filesystem changes)" : "apply"}`,
+    `- Scan executed: ${result.scanned === false ? "no" : "yes"}`,
     `- Lint issues: ${result.summary.lintIssues}`,
     `- Security findings: high=${result.summary.highFindings}, medium=${result.summary.mediumFindings}`,
-    `- Suppressed findings: ${result.summary.suppressedFindings}`
+    `- Suppressed findings: ${result.summary.suppressedFindings}`,
+    ...(typeof result.lockfileVerified === "boolean" ? [`- Lockfile verified: ${result.lockfileVerified ? "yes" : "no"}`] : [])
   ];
 
-  if (result.status === 30) {
+  if (result.status === 11 && result.code === "lockfile-error") {
+    lines.push(
+      "",
+      "Reason:",
+      `  ${lockfileReasonText[result.reason ?? ""] ?? "Frozen lockfile verification failed."}`,
+      "",
+      "Next:",
+      "  runwright update --json",
+      "  Retry your apply command."
+    );
+  } else if (result.status === 30) {
     lines.push(
       "",
       "Next:",
@@ -2020,6 +2147,8 @@ function renderApplyText(result: {
       "  Run the same command without --dry-run to perform installation.",
       "  runwright apply --target all --scope project --mode copy --json"
     );
+  } else if (failed) {
+    lines.push("", "Next:", "  Review command help and retry:", "  runwright apply --help");
   } else {
     lines.push("", "Next:", "  Confirm target paths and installed skills with:", "  runwright list --json");
   }
@@ -2379,7 +2508,15 @@ function runVerifyBundle(args: ParsedArgs, cwd: string): {
   issues: string[];
 } {
   const bundlePathFlag = getStringFlag(args, "bundle");
-  if (!bundlePathFlag) throw new CliError("verify-bundle requires --bundle <path>", 1, "missing-bundle");
+  if (!bundlePathFlag) {
+    return {
+      status: 1,
+      code: "missing-bundle",
+      integrityOk: false,
+      signatureVerified: false,
+      issues: ["verify-bundle requires --bundle <path>"]
+    };
+  }
 
   const bundlePath = resolve(cwd, bundlePathFlag);
   const signKeyPath = getStringFlag(args, "sign-key");
@@ -2671,6 +2808,42 @@ function runVerifyBundle(args: ParsedArgs, cwd: string): {
   };
 }
 
+function renderVerifyBundleText(result: {
+  status: number;
+  code?: string;
+  integrityOk: boolean;
+  signatureVerified: boolean;
+  issues: string[];
+}): string {
+  const lines: string[] = [
+    result.status === 0 ? "Bundle Verification" : "Bundle Verification Failed",
+    `- Status: ${result.status}`,
+    `- Integrity: ${result.integrityOk ? "ok" : "failed"}`,
+    `- Signature: ${result.signatureVerified ? "verified" : "not verified"}`,
+    `- Issues: ${result.issues.length}`
+  ];
+
+  if (result.status !== 0) {
+    if (result.code) lines.push(`- Code: ${result.code}`);
+    if (result.issues.length > 0) {
+      lines.push("", "Details:");
+      for (const issue of result.issues) lines.push(`  - ${issue}`);
+    }
+    lines.push("", "Next:");
+    if (result.code === "missing-bundle") {
+      lines.push("  runwright verify-bundle --bundle <bundle.zip> --json");
+    } else {
+      lines.push("  docs/help/troubleshooting.md");
+      lines.push("  runwright help verify-bundle");
+    }
+  } else {
+    lines.push("", "Next:", "  Keep this output with release evidence artifacts.");
+  }
+
+  lines.push("");
+  return lines.join("\n");
+}
+
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
   const cmd = parsed.command;
@@ -2700,6 +2873,7 @@ async function main() {
     else process.stderr.write(`${unknownMessage}\n`);
     process.exit(1);
   }
+  validateSemanticFlags(parsed);
 
   if (cmd === "init") {
     const init = runInit(cwd);
@@ -2725,7 +2899,8 @@ async function main() {
 
   if (cmd === "verify-bundle") {
     const result = runVerifyBundle(parsed, cwd);
-    writeJson(withJsonSchemaVersion(result));
+    if (jsonOutput) writeJson(withJsonSchemaVersion(result));
+    else process.stdout.write(renderVerifyBundleText(result));
     recordOperationEvent(cwd, startedAtMs, "verify-bundle", result.status, false, {
       ...(result.code ? { code: result.code } : {}),
       counters: { issues: result.issues.length, signatureVerified: result.signatureVerified ? 1 : 0 }

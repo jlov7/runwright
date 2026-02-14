@@ -110,6 +110,7 @@ describe("cli integration", () => {
     expect(result.status).toBe(0);
     const manifest = readFileSync(join(projectDir, "runwright.yml"), "utf8");
     expect(manifest).toContain("version: 1");
+    expect(manifest).toContain("scope: project");
     expect(manifest).toContain("skillsets:");
   });
 
