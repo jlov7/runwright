@@ -20,6 +20,7 @@ describe("help UX", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Start here:");
     expect(result.stdout).toContain("skillbase init");
+    expect(result.stdout).toContain("skillbase journey");
     expect(result.stdout).toContain("skillbase help <command>");
   });
 

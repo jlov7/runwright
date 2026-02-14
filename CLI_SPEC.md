@@ -6,6 +6,12 @@
 - Generates a starter `skillbase.yml` + `.gitignore` entries.
 - Optional: `--from skills.json` (import from other tools).
 
+### `skillbase journey`
+Shows onboarding progress and the single best next action based on current project state.
+
+Flags:
+- `--json`
+
 ### `skillbase apply`
 Ensures target tools have the desired skills installed.
 

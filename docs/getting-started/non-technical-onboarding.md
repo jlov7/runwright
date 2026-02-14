@@ -16,6 +16,18 @@ It ensures the right skills are installed, scanned, and verified the same way fo
 3. **Apply consistently**: Everyone gets the same configured skill set.
 4. **Share safely**: Signed, verifiable bundles can be distributed.
 
+## The single status view to ask for
+Ask your technical lead to run:
+
+```bash
+pnpm tsx src/cli.ts journey
+```
+
+This shows:
+- completed vs remaining onboarding steps
+- exact next action command
+- links to relevant guidance docs
+
 ## What “good” looks like
 - New engineer reaches first successful apply in less than 10 minutes.
 - No unresolved high-risk scan findings in release path.

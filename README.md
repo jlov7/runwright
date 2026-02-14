@@ -8,126 +8,95 @@
  |____/|_|\_\_|_|_|_|_.__/ \__,_|___/
 ```
 
-Policy-first manifest and supply-chain manager for **Agent Skills** across Codex, Claude Code, Cursor, and compatible tooling.
+Policy-first skill distribution for Codex, Claude Code, Cursor, and compatible tools.
 
 [![CI](https://github.com/jlov7/skillbase/actions/workflows/ci.yml/badge.svg)](https://github.com/jlov7/skillbase/actions/workflows/ci.yml)
 [![Release Verify](https://github.com/jlov7/skillbase/actions/workflows/release-verify.yml/badge.svg)](https://github.com/jlov7/skillbase/actions/workflows/release-verify.yml)
 [![CodeQL](https://github.com/jlov7/skillbase/actions/workflows/codeql.yml/badge.svg)](https://github.com/jlov7/skillbase/actions/workflows/codeql.yml)
 
-## What This Does
+## What It Does
 
-Skillbase gives teams one deterministic way to:
-- define which skills should exist
-- scan for risky content before install
-- apply skills across tools consistently
-- export signed bundles for distribution
-- verify artifact integrity and provenance
+Skillbase gives teams one reproducible path to:
+- define approved skills once
+- scan for risky instructions before install
+- apply consistently across tools and machines
+- export and verify release bundles with integrity checks
 
-## Why It Matters
+## Why Teams Use It
 
-Without Skillbase, teams often have:
-- ad hoc folder copying
-- no policy checks before install
-- unclear drift between machines
-- weak release verification
+- Prevents ad hoc manual copy/paste setup.
+- Makes onboarding deterministic instead of "works on my machine".
+- Produces evidence for security/compliance review.
+- Reduces release risk with verifiable artifacts.
 
-With Skillbase, teams get:
-- reproducible state from manifest + lockfile
-- explicit security policy and audit evidence
-- deterministic install/export/verify flows
-- CI-ready machine-readable contracts
-
-## How It Works
-
-1. **Define** desired state in `skillbase.yml`.
-2. **Resolve + lock** sources with `skillbase update`.
-3. **Scan + apply** safely with `skillbase scan` and `skillbase apply`.
-4. **Package + verify** with `skillbase export` and `skillbase verify-bundle`.
-
-## Install Prerequisites
-
-- Node.js 20+
-- `pnpm`
+## 2-Minute First Success
 
 ```bash
 pnpm install
-```
-
-## First Successful Run (2 Minutes)
-
-```bash
-# 1) Initialize a manifest in your project
 pnpm tsx src/cli.ts init
-
-# 2) Add at least one local skill
-mkdir -p skills/safe
-cat > skills/safe/SKILL.md <<'MD'
----
-name: safe
-description: safe skill
----
-
-# Safe
-MD
-
-# 3) Build lockfile + scan + dry-run apply
-pnpm tsx src/cli.ts update --json
-pnpm tsx src/cli.ts scan --format json
-pnpm tsx src/cli.ts apply --target codex --scope project --mode copy --dry-run --json
+pnpm tsx src/cli.ts journey
 ```
 
-If these pass, you are fully onboarded.
+Then follow the `Next best action` shown by `journey` until core steps are complete.
 
-## Choose Your Onboarding Path
+## How People Actually Use Skillbase
 
-- Technical quickstart: `docs/getting-started/quickstart.md`
-- Non-technical onboarding: `docs/getting-started/non-technical-onboarding.md`
-- End-to-end user journeys: `docs/getting-started/user-journeys.md`
-- Common command recipes: `docs/help/cli-recipes.md`
-- Troubleshooting guide: `docs/help/troubleshooting.md`
+### Technical (individual engineer)
+1. `init`
+2. Add one `skills/<name>/SKILL.md`
+3. `update` -> `scan` -> `apply --dry-run` -> `apply`
 
-## Command Cheat Sheet
+### Technical (team/platform)
+1. Standardize `skillbase.yml` and `skillbase.lock.json`
+2. Enforce `update --frozen-lockfile`, `scan`, and `ship:gate` in CI
+3. Publish verifiable bundles with `export` + `verify-bundle`
+
+### Non-technical (manager/reviewer)
+1. Review `journey` completion and onboarding docs
+2. Check scan/policy evidence and quality gate output
+3. Confirm release verification artifacts exist and pass
+
+## Core Commands
 
 | Goal | Command |
 | --- | --- |
-| Initialize manifest | `skillbase init` |
-| Validate sources/policy | `skillbase scan --format json` |
-| Check policy exceptions | `skillbase policy check --json` |
-| Build deterministic lockfile | `skillbase update --json` |
-| Apply skills locally | `skillbase apply --target all --mode copy` |
-| Export signed bundle | `skillbase export --out release.zip --sign-private-key key.pem --deterministic --json` |
-| Verify bundle | `skillbase verify-bundle --bundle release.zip --sign-public-key pub.pem --require-signature --json` |
+| See onboarding progress | `skillbase journey` |
+| Create starter manifest | `skillbase init` |
+| Resolve and lock sources | `skillbase update --json` |
+| Run lint/security checks | `skillbase scan --format json` |
+| Validate install plan | `skillbase apply --dry-run --json` |
+| Install to targets | `skillbase apply --target all --scope project --mode copy --json` |
+| Package release bundle | `skillbase export --out skillbase-release.zip --deterministic --json` |
+| Verify release bundle | `skillbase verify-bundle --bundle skillbase-release.zip --json` |
 
-For detailed command help:
+## Start Here By Role
+
+- Technical quickstart: `docs/getting-started/quickstart.md`
+- Non-technical onboarding: `docs/getting-started/non-technical-onboarding.md`
+- Persona journeys: `docs/getting-started/user-journeys.md`
+- Practical command recipes: `docs/help/cli-recipes.md`
+- Troubleshooting: `docs/help/troubleshooting.md`
+
+## Quality and Trust Gates
+
+Run locally before merging or releasing:
 
 ```bash
-pnpm tsx src/cli.ts help
-pnpm tsx src/cli.ts <command> --help
+pnpm verify
+pnpm ship:gate
 ```
 
-## Trust, Security, and Quality
+For deeper release confidence:
 
-Core local quality gates:
-- `pnpm verify`
-- `pnpm audit:deps`
-- `pnpm ship:gate`
+```bash
+pnpm ship:soak -- --iterations 2 --only verify --only audit --only sbom
+pnpm perf:snapshot -- --out reports/performance/current.snapshot.json
+pnpm perf:trend:check -- --current reports/performance/current.snapshot.json --baseline docs/benchmarks/performance-baseline.json --max-regression-percent 40 --out reports/performance/trend.report.json
+```
 
-Advanced reliability gates:
-- `pnpm ship:soak -- --iterations 2 --only verify --only audit --only sbom`
-- `pnpm perf:snapshot -- --out reports/performance/current.snapshot.json`
-- `pnpm perf:trend:check -- --current reports/performance/current.snapshot.json --baseline docs/benchmarks/performance-baseline.json --max-regression-percent 40 --out reports/performance/trend.report.json`
+## Reference Docs
 
-## Docs Map
-
-- Product and architecture: `PRD.md`, `ARCHITECTURE.md`
-- CLI and data contracts: `CLI_SPEC.md`, `MANIFEST_SPEC.md`
-- Security and release policy: `SECURITY.md`, `docs/policies/release-signing-runbook.md`
-- Quality evidence policy: `docs/policies/quality-evidence-policy.md`
-- Versioning/deprecation policy: `docs/policies/versioning-and-deprecation.md`
-- Operator docs: `docs/operations/operator-runbook.md`, `docs/operations/incident-playbook.md`
-
-## Contributing
-
-- Repository ownership and support process: `.github/CODEOWNERS`, `.github/SUPPORT.md`
-- Security disclosure path: `SECURITY.md`
-- Before opening PRs, run `pnpm verify`.
+- Product + architecture: `PRD.md`, `ARCHITECTURE.md`
+- CLI + manifest contracts: `CLI_SPEC.md`, `MANIFEST_SPEC.md`
+- Security policy: `SECURITY.md`
+- Release signing/integrity: `docs/policies/release-signing-runbook.md`

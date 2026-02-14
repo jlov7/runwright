@@ -124,6 +124,11 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     usage: ["skillbase init [--json]"],
     examples: ["skillbase init", "skillbase init --json"]
   },
+  journey: {
+    summary: "Show your current onboarding progress and the single best next action.",
+    usage: ["skillbase journey [--json]"],
+    examples: ["skillbase journey", "skillbase journey --json"]
+  },
   apply: {
     summary: "Install resolved skills into target tools (safe by default with scanning).",
     usage: [
@@ -225,12 +230,14 @@ Policy-first manifest manager for agent skills.
 
 Start here:
   1) skillbase init
-  2) skillbase update --json
-  3) skillbase scan --format json
-  4) skillbase apply --target all --scope project --mode copy --dry-run --json
+  2) skillbase journey
+  3) skillbase update --json
+  4) skillbase scan --format json
+  5) skillbase apply --target all --scope project --mode copy --dry-run --json
 
 Core commands:
   skillbase init
+  skillbase journey
   skillbase apply
   skillbase doctor
   skillbase scan
@@ -273,6 +280,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 
 const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
   init: { json: "boolean" },
+  journey: { json: "boolean" },
   apply: {
     mode: "string",
     target: "string",
@@ -1314,6 +1322,226 @@ apply:
   return { status: 0, message: "Initialized skillbase.yml and updated .gitignore" };
 }
 
+type JourneyStepStatus = "complete" | "pending";
+
+type JourneyStep = {
+  id:
+    | "manifest"
+    | "skills"
+    | "lockfile"
+    | "scan"
+    | "dry-run-apply"
+    | "apply"
+    | "verify-bundle";
+  title: string;
+  status: JourneyStepStatus;
+  details: string;
+  command: string;
+  optional?: boolean;
+};
+
+type JourneyPayload = {
+  summary: {
+    completedCoreSteps: number;
+    totalCoreSteps: number;
+    completionPercent: number;
+  };
+  steps: JourneyStep[];
+  nextAction: {
+    command: string;
+    reason: string;
+  };
+  docs: string[];
+};
+
+type OperationEventRecord = {
+  command: string;
+  status: number;
+  mutating: boolean;
+};
+
+function hasAnySkillMarkdown(rootPath: string): boolean {
+  if (!existsSync(rootPath)) return false;
+  const queue = [rootPath];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (!current) continue;
+    for (const entry of readdirSyncFs(current, { withFileTypes: true })) {
+      if (entry.name === ".git" || entry.name === "node_modules") continue;
+      const fullPath = join(current, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isFile() && entry.name === "SKILL.md") return true;
+      if (entry.isDirectory()) queue.push(fullPath);
+    }
+  }
+  return false;
+}
+
+function readOperationEventRecords(cwd: string): OperationEventRecord[] {
+  const logPath = resolveOperationLogPath(cwd);
+  if (!logPath || !existsSync(logPath)) return [];
+  const lines = readFileSync(logPath, "utf8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const events: OperationEventRecord[] = [];
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line) as Record<string, unknown>;
+      if (
+        typeof parsed.command === "string" &&
+        typeof parsed.status === "number" &&
+        typeof parsed.mutating === "boolean"
+      ) {
+        events.push({
+          command: parsed.command,
+          status: parsed.status,
+          mutating: parsed.mutating
+        });
+      }
+    } catch {
+      continue;
+    }
+  }
+  return events;
+}
+
+function hasOperationEvent(
+  events: OperationEventRecord[],
+  command: string,
+  predicate?: (event: OperationEventRecord) => boolean
+): boolean {
+  return events.some((event) => event.command === command && (predicate ? predicate(event) : true));
+}
+
+function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
+  const manifestExists = existsSync(resolve(cwd, "skillbase.yml")) || existsSync(resolve(cwd, "skillbase.json"));
+  const skillsExist = hasAnySkillMarkdown(resolve(cwd, "skills"));
+  const lockfileExists = existsSync(resolve(cwd, "skillbase.lock.json"));
+  const events = readOperationEventRecords(cwd);
+  const scanCompleted = hasOperationEvent(events, "scan", (event) => event.status === 0 || event.status === 2 || event.status === 30);
+  const dryRunApplyCompleted = hasOperationEvent(events, "apply", (event) => event.mutating === false);
+  const applyCompleted = hasOperationEvent(events, "apply", (event) => event.mutating === true && (event.status === 0 || event.status === 2));
+  const verifyBundleCompleted = hasOperationEvent(events, "verify-bundle", (event) => event.status === 0);
+
+  const steps: JourneyStep[] = [
+    {
+      id: "manifest",
+      title: "Initialize project manifest",
+      status: manifestExists ? "complete" : "pending",
+      details: manifestExists ? "skillbase.yml/skillbase.json detected." : "Create a baseline manifest for deterministic setup.",
+      command: "skillbase init"
+    },
+    {
+      id: "skills",
+      title: "Add at least one skill",
+      status: skillsExist ? "complete" : "pending",
+      details: skillsExist ? "Found at least one SKILL.md under skills/." : "Define one skill so update/scan/apply can produce useful output.",
+      command: "mkdir -p skills/<skill-name> && create skills/<skill-name>/SKILL.md"
+    },
+    {
+      id: "lockfile",
+      title: "Resolve and lock sources",
+      status: lockfileExists ? "complete" : "pending",
+      details: lockfileExists
+        ? "skillbase.lock.json exists."
+        : "Generate lockfile so installs are reproducible and CI-safe.",
+      command: "skillbase update --json"
+    },
+    {
+      id: "scan",
+      title: "Run safety scan",
+      status: scanCompleted ? "complete" : "pending",
+      details: scanCompleted
+        ? "At least one scan run is recorded in operations log."
+        : "Run scan to surface risky content before apply.",
+      command: "skillbase scan --format json"
+    },
+    {
+      id: "dry-run-apply",
+      title: "Validate install plan with dry-run",
+      status: dryRunApplyCompleted ? "complete" : "pending",
+      details: dryRunApplyCompleted
+        ? "Dry-run apply evidence recorded."
+        : "Preview operations without filesystem changes.",
+      command: "skillbase apply --target all --scope project --mode copy --dry-run --json"
+    },
+    {
+      id: "apply",
+      title: "Apply to targets",
+      status: applyCompleted ? "complete" : "pending",
+      details: applyCompleted
+        ? "Successful mutating apply evidence recorded."
+        : "Install resolved skills into your configured targets.",
+      command: "skillbase apply --target all --scope project --mode copy --json"
+    },
+    {
+      id: "verify-bundle",
+      title: "Verify release artifact integrity",
+      status: verifyBundleCompleted ? "complete" : "pending",
+      details: verifyBundleCompleted
+        ? "Bundle verification succeeded at least once."
+        : "Optional release assurance step for distribution workflows.",
+      command: "skillbase export --out skillbase-release.zip --deterministic --json && skillbase verify-bundle --bundle skillbase-release.zip --json",
+      optional: true
+    }
+  ];
+
+  const coreSteps = steps.filter((step) => !step.optional);
+  const completedCoreSteps = coreSteps.filter((step) => step.status === "complete").length;
+  const totalCoreSteps = coreSteps.length;
+  const completionPercent = Math.floor((completedCoreSteps / Math.max(totalCoreSteps, 1)) * 100);
+
+  const nextPending = coreSteps.find((step) => step.status === "pending");
+  const nextAction = nextPending
+    ? {
+        command: nextPending.command,
+        reason: nextPending.details
+      }
+    : {
+        command:
+          "skillbase policy check --json && skillbase export --out skillbase-release.zip --deterministic --json",
+        reason: "Core onboarding is complete. Harden policy posture and produce a verifiable release bundle."
+      };
+
+  return {
+    status: 0,
+    payload: {
+      summary: { completedCoreSteps, totalCoreSteps, completionPercent },
+      steps,
+      nextAction,
+      docs: [
+        "docs/getting-started/quickstart.md",
+        "docs/getting-started/user-journeys.md",
+        "docs/help/cli-recipes.md",
+        "docs/help/troubleshooting.md"
+      ]
+    }
+  };
+}
+
+function renderJourneyText(payload: JourneyPayload): string {
+  const lines = [
+    "Skillbase Onboarding Journey",
+    "",
+    `Progress: ${payload.summary.completedCoreSteps}/${payload.summary.totalCoreSteps} core steps complete (${payload.summary.completionPercent}%)`,
+    ""
+  ];
+
+  for (const [index, step] of payload.steps.entries()) {
+    const marker = step.status === "complete" ? "[done]" : "[todo]";
+    const optionalSuffix = step.optional ? " (optional)" : "";
+    lines.push(`${marker} ${index + 1}. ${step.title}${optionalSuffix}`);
+    lines.push(`      ${step.details}`);
+    if (step.status === "pending") lines.push(`      Run: ${step.command}`);
+  }
+
+  lines.push("", "Next best action:", `  ${payload.nextAction.command}`, `  Why: ${payload.nextAction.reason}`, "", "Guides:");
+  for (const docPath of payload.docs) lines.push(`  - ${docPath}`);
+  lines.push("");
+  return lines.join("\n");
+}
+
 function runDoctor(args: ParsedArgs, cwd: string): { status: number; issues: DoctorIssue[]; fixed: number } {
   const homeDir = homedir();
   const targetFlag = getStringFlag(args, "target");
@@ -1568,6 +1796,43 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   };
 }
 
+function renderApplyText(result: {
+  status: number;
+  dryRun: boolean;
+  operations: ApplyOperation[];
+  summary: { lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
+}): string {
+  const lines = [
+    "Apply Summary",
+    `- Planned operations: ${result.operations.length}`,
+    `- Mode: ${result.dryRun ? "dry-run (no filesystem changes)" : "apply"}`,
+    `- Lint issues: ${result.summary.lintIssues}`,
+    `- Security findings: high=${result.summary.highFindings}, medium=${result.summary.mediumFindings}`,
+    `- Suppressed findings: ${result.summary.suppressedFindings}`
+  ];
+
+  if (result.status === 30) {
+    lines.push(
+      "",
+      "Next:",
+      "  Address blocking findings or run with a non-blocking security mode, then rerun:",
+      "  skillbase scan --format json"
+    );
+  } else if (result.dryRun) {
+    lines.push(
+      "",
+      "Next:",
+      "  Run the same command without --dry-run to perform installation.",
+      "  skillbase apply --target all --scope project --mode copy --json"
+    );
+  } else {
+    lines.push("", "Next:", "  Confirm target paths and installed skills with:", "  skillbase list --json");
+  }
+
+  lines.push("");
+  return lines.join("\n");
+}
+
 function runScan(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   status: number;
   payload: Record<string, unknown>;
@@ -1643,7 +1908,22 @@ function runScan(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   return {
     status,
     payload: {
-      text: `skills=${skillUnits.length} lintIssues=${scan.lintIssues} highFindings=${scan.highFindings} mediumFindings=${scan.mediumFindings} suppressedFindings=${scan.suppressedFindings}`
+      text: [
+        "Scan Summary",
+        `- Skills scanned: ${skillUnits.length}`,
+        `- Lint issues: ${scan.lintIssues}`,
+        `- Security findings: high=${scan.highFindings}, medium=${scan.mediumFindings}`,
+        `- Suppressed findings: ${scan.suppressedFindings}`,
+        "",
+        "Next:",
+        scan.highFindings > 0 || scan.mediumFindings > 0
+          ? "  Resolve findings or tune policy exceptions, then rerun scan."
+          : "  Run a dry-run apply to validate installation plan.",
+        scan.highFindings > 0 || scan.mediumFindings > 0
+          ? "  skillbase policy check --json"
+          : "  skillbase apply --target all --scope project --mode copy --dry-run --json",
+        ""
+      ].join("\n")
     }
   };
 }
@@ -2238,6 +2518,17 @@ async function main() {
   if (cmd === "verify-bundle") {
     const result = runVerifyBundle(parsed, cwd);
     writeJson(withJsonSchemaVersion(result));
+    recordOperationEvent(cwd, startedAtMs, "verify-bundle", result.status, false, {
+      ...(result.code ? { code: result.code } : {}),
+      counters: { issues: result.issues.length, signatureVerified: result.signatureVerified ? 1 : 0 }
+    });
+    process.exit(result.status);
+  }
+
+  if (cmd === "journey") {
+    const result = runJourney(cwd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(result.payload));
+    else process.stdout.write(renderJourneyText(result.payload));
     process.exit(result.status);
   }
 
@@ -2246,11 +2537,7 @@ async function main() {
   if (cmd === "apply") {
     const applyResult = runApply(parsed, cwd, manifest);
     if (jsonOutput) writeJson(withJsonSchemaVersion({ ...applyResult }));
-    else {
-      process.stdout.write(
-        `apply: operations=${applyResult.operations.length} dryRun=${applyResult.dryRun} lintIssues=${applyResult.summary.lintIssues} highFindings=${applyResult.summary.highFindings} mediumFindings=${applyResult.summary.mediumFindings} suppressedFindings=${applyResult.summary.suppressedFindings}\n`
-      );
-    }
+    else process.stdout.write(renderApplyText(applyResult));
     const applyMutating = !applyResult.dryRun && applyResult.operations.length > 0 && applyResult.status !== 30;
     recordOperationEvent(cwd, startedAtMs, "apply", applyResult.status, applyMutating, {
       ...(applyResult.code ? { code: applyResult.code } : {}),
@@ -2273,6 +2560,15 @@ async function main() {
     } else {
       writeJson(scan.payload);
     }
+    recordOperationEvent(cwd, startedAtMs, "scan", scan.status, false, {
+      counters: scan.payload.summary && typeof scan.payload.summary === "object"
+        ? {
+            lintIssues: Number((scan.payload.summary as Record<string, unknown>).lintIssues ?? 0),
+            highFindings: Number((scan.payload.summary as Record<string, unknown>).highFindings ?? 0),
+            mediumFindings: Number((scan.payload.summary as Record<string, unknown>).mediumFindings ?? 0)
+          }
+        : undefined
+    });
     process.exit(scan.status);
   }
 

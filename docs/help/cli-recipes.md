@@ -1,8 +1,14 @@
 # CLI Recipes
 
+## See exactly what to do next
+```bash
+pnpm tsx src/cli.ts journey
+```
+
 ## Start a new project
 ```bash
 pnpm tsx src/cli.ts init
+pnpm tsx src/cli.ts journey
 pnpm tsx src/cli.ts update --json
 pnpm tsx src/cli.ts scan --format json
 pnpm tsx src/cli.ts apply --target all --scope project --mode copy --json

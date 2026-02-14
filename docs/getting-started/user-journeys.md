@@ -14,6 +14,9 @@ Install and use trusted skills quickly.
 ### Aha moment
 Re-running apply does not cause drift.
 
+### Critical UX requirement
+User always knows the next command by running `skillbase journey`.
+
 ## 2) Team Lead / Platform Engineer
 ### Goal
 Standardize skill delivery across the team.
@@ -26,6 +29,9 @@ Standardize skill delivery across the team.
 
 ### Aha moment
 Same manifest produces same install state on every machine.
+
+### Critical UX requirement
+Onboarding and release flows are scriptable and audit-friendly.
 
 ## 3) Security/Compliance Reviewer
 ### Goal
@@ -40,6 +46,9 @@ Confirm release integrity and risk posture.
 ### Aha moment
 Evidence is machine-readable and reproducible, not just narrative.
 
+### Critical UX requirement
+Policy/risk evidence can be reviewed without reading source code internals.
+
 ## 4) Non-Technical Stakeholder
 ### Goal
 Understand readiness without reading source code.
@@ -51,6 +60,9 @@ Understand readiness without reading source code.
 
 ### Aha moment
 Operational maturity is explicit and test-backed.
+
+### Critical UX requirement
+Status is legible in plain language with clear pass/fail signals.
 
 ## Definition of done across journeys
 - Onboarding is quick and predictable.

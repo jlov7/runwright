@@ -1,5 +1,14 @@
 # Troubleshooting
 
+## Symptom: "I don't know what to do next"
+Cause:
+- Onboarding state is unclear (missing manifest, lockfile, scan, or apply step).
+
+Fix:
+1. Run `pnpm tsx src/cli.ts journey`.
+2. Execute the `Next best action` shown.
+3. Re-run `journey` until all core steps are complete.
+
 ## Symptom: `invalid-manifest`
 Cause:
 - Unknown key or schema mismatch in `skillbase.yml`.
