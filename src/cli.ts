@@ -1426,7 +1426,7 @@ apply:
   return { status: 0, message: "Initialized runwright.yml and updated .gitignore" };
 }
 
-type JourneyStepStatus = "complete" | "pending";
+type JourneyStepStatus = "complete" | "pending" | "blocked";
 
 type JourneyStep = {
   id:
@@ -1518,16 +1518,53 @@ function hasOperationEvent(
   return events.some((event) => event.command === command && (predicate ? predicate(event) : true));
 }
 
+function latestOperationEvent(
+  events: OperationEventRecord[],
+  command: string,
+  predicate?: (event: OperationEventRecord) => boolean
+): OperationEventRecord | undefined {
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i];
+    if (!event) continue;
+    if (event.command !== command) continue;
+    if (predicate && !predicate(event)) continue;
+    return event;
+  }
+  return undefined;
+}
+
 function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
   const manifestRef = resolveManifestFile(cwd);
   const manifestExists = Boolean(manifestRef);
   const skillsExist = hasAnySkillMarkdown(resolve(cwd, "skills"));
   const lockfileExists = existsSync(resolve(cwd, "skillbase.lock.json"));
   const events = readOperationEventRecords(cwd);
-  const scanCompleted = hasOperationEvent(events, "scan", (event) => event.status === 0 || event.status === 2 || event.status === 30);
-  const dryRunApplyCompleted = hasOperationEvent(events, "apply", (event) => event.mutating === false);
-  const applyCompleted = hasOperationEvent(events, "apply", (event) => event.mutating === true && (event.status === 0 || event.status === 2));
+  const scanEvent = latestOperationEvent(events, "scan");
+  const dryRunApplyEvent = latestOperationEvent(events, "apply", (event) => event.mutating === false);
+  const applyEvent = latestOperationEvent(events, "apply", (event) => event.mutating === true);
   const verifyBundleCompleted = hasOperationEvent(events, "verify-bundle", (event) => event.status === 0);
+
+  const scanStatus: JourneyStepStatus = scanEvent
+    ? scanEvent.status === 30
+      ? "blocked"
+      : scanEvent.status === 0 || scanEvent.status === 2
+        ? "complete"
+        : "pending"
+    : "pending";
+  const dryRunApplyStatus: JourneyStepStatus = dryRunApplyEvent
+    ? dryRunApplyEvent.status === 30
+      ? "blocked"
+      : dryRunApplyEvent.status === 0 || dryRunApplyEvent.status === 2
+        ? "complete"
+        : "pending"
+    : "pending";
+  const applyStatus: JourneyStepStatus = applyEvent
+    ? applyEvent.status === 30
+      ? "blocked"
+      : applyEvent.status === 0 || applyEvent.status === 2
+        ? "complete"
+        : "pending"
+    : "pending";
 
   const steps: JourneyStep[] = [
     {
@@ -1558,28 +1595,34 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
     {
       id: "scan",
       title: "Run safety scan",
-      status: scanCompleted ? "complete" : "pending",
-      details: scanCompleted
-        ? "At least one scan run is recorded in operations log."
-        : "Run scan to surface risky content before apply.",
+      status: scanStatus,
+      details: scanStatus === "complete"
+        ? "Latest scan run is recorded in operations log."
+        : scanStatus === "blocked"
+          ? "Address scan findings, then rerun scan to continue onboarding."
+          : "Run scan to surface risky content before apply.",
       command: "runwright scan --format json"
     },
     {
       id: "dry-run-apply",
       title: "Validate install plan with dry-run",
-      status: dryRunApplyCompleted ? "complete" : "pending",
-      details: dryRunApplyCompleted
-        ? "Dry-run apply evidence recorded."
-        : "Preview operations without filesystem changes.",
+      status: dryRunApplyStatus,
+      details: dryRunApplyStatus === "complete"
+        ? "Successful dry-run apply evidence recorded."
+        : dryRunApplyStatus === "blocked"
+          ? "Dry-run apply was blocked. Resolve scan/policy issues and rerun dry-run."
+          : "Preview operations without filesystem changes.",
       command: "runwright apply --target all --scope project --mode copy --dry-run --json"
     },
     {
       id: "apply",
       title: "Apply to targets",
-      status: applyCompleted ? "complete" : "pending",
-      details: applyCompleted
+      status: applyStatus,
+      details: applyStatus === "complete"
         ? "Successful mutating apply evidence recorded."
-        : "Install resolved skills into your configured targets.",
+        : applyStatus === "blocked"
+          ? "Apply was blocked. Resolve scan/policy issues and rerun apply."
+          : "Install resolved skills into your configured targets.",
       command: "runwright apply --target all --scope project --mode copy --json"
     },
     {
@@ -1599,11 +1642,11 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
   const totalCoreSteps = coreSteps.length;
   const completionPercent = Math.floor((completedCoreSteps / Math.max(totalCoreSteps, 1)) * 100);
 
-  const nextPending = coreSteps.find((step) => step.status === "pending");
-  const nextAction = nextPending
+  const nextActionStep = coreSteps.find((step) => step.status === "blocked") ?? coreSteps.find((step) => step.status === "pending");
+  const nextAction = nextActionStep
     ? {
-        command: nextPending.command,
-        reason: nextPending.details
+        command: nextActionStep.command,
+        reason: nextActionStep.details
       }
     : {
         command:
@@ -1636,11 +1679,11 @@ function renderJourneyText(payload: JourneyPayload): string {
   ];
 
   for (const [index, step] of payload.steps.entries()) {
-    const marker = step.status === "complete" ? "[done]" : "[todo]";
+    const marker = step.status === "complete" ? "[done]" : step.status === "blocked" ? "[blocked]" : "[todo]";
     const optionalSuffix = step.optional ? " (optional)" : "";
     lines.push(`${marker} ${index + 1}. ${step.title}${optionalSuffix}`);
     lines.push(`      ${step.details}`);
-    if (step.status === "pending") lines.push(`      Run: ${step.command}`);
+    if (step.status === "pending" || step.status === "blocked") lines.push(`      Run: ${step.command}`);
   }
 
   lines.push("", "Next best action:", `  ${payload.nextAction.command}`, `  Why: ${payload.nextAction.reason}`, "", "Guides:");

@@ -2,21 +2,21 @@
 
 ## Core Journeys
 - [ ] Happy-path user journeys are coherent end-to-end.
-- [ ] Key failure states are handled with clear recovery guidance.
-- [ ] User-facing copy is clear and actionable.
+- [x] Key failure states are handled with clear recovery guidance.
+- [x] User-facing copy is clear and actionable.
 
 ## Onboarding
-- [ ] First-run onboarding is implemented.
-- [ ] Empty states are implemented.
-- [ ] Progressive disclosure is implemented (clear next action).
+- [x] First-run onboarding is implemented.
+- [x] Empty states are implemented.
+- [x] Progressive disclosure is implemented (clear next action).
 
 ## Help
-- [ ] In-app help/tooltips are implemented (CLI help/journey guidance).
+- [x] In-app help/tooltips are implemented (CLI help/journey guidance).
 - [ ] Minimal docs/help page exists and is linked from primary docs.
 
 ## Quality Gates
 - [ ] Critical logic has automated tests.
-- [ ] Key UX flows have automated tests.
+- [x] Key UX flows have automated tests.
 - [ ] `pnpm lint` passes.
 - [ ] `pnpm typecheck` passes.
 - [ ] `pnpm test` passes.

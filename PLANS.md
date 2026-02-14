@@ -34,7 +34,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 ## Progress
 - [x] M0: Baseline repo audit and quality gate (`pnpm verify`) completed.
 - [x] M1: Create steering artifacts and release checklist scaffolding.
-- [ ] M2: Harden onboarding/help UX for first-run + key failure guidance (tests first).
+- [x] M2: Harden onboarding/help UX for first-run + key failure guidance (tests first).
 - [ ] M3: Close docs gaps (README deploy/env vars + minimal docs/help landing page).
 - [ ] M4: Final checklist reconciliation, open questions capture, and release verification run.
 
@@ -42,6 +42,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - Repo already has broad automated coverage (240 tests) and strong CI workflows.
 - `journey` command already provides progressive next-action guidance and docs links.
 - Help and error guidance UX tests already exist and are passing.
+- `journey` previously treated blocked scan/dry-run attempts as complete; this hid failure recovery paths. Added blocked-state handling and tests.
 
 ## Decision Log
 - 2026-02-14: Treat CLI output as product UX surface; prioritize copy clarity and recovery guidance over structural refactors.
