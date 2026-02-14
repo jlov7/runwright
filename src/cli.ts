@@ -112,19 +112,138 @@ class CliError extends Error {
   }
 }
 
-function usage() {
+type CommandHelpEntry = {
+  summary: string;
+  usage: string[];
+  examples: string[];
+};
+
+const COMMAND_HELP: Record<string, CommandHelpEntry> = {
+  init: {
+    summary: "Create starter manifest and baseline ignore rules.",
+    usage: ["skillbase init [--json]"],
+    examples: ["skillbase init", "skillbase init --json"]
+  },
+  apply: {
+    summary: "Install resolved skills into target tools (safe by default with scanning).",
+    usage: [
+      "skillbase apply [--mode link|copy|mirror] [--target codex|claude-code|cursor|all]",
+      "               [--scope global|project] [--dry-run] [--json] [--no-scan]",
+      "               [--scan-security off|warn|fail] [--fix] [--frozen-lockfile]",
+      "               [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: [
+      "skillbase apply --target all --scope project --mode copy --dry-run --json",
+      "skillbase apply --target codex --scope project --mode copy",
+      "skillbase apply --frozen-lockfile --target all --mode copy --json"
+    ]
+  },
+  doctor: {
+    summary: "Diagnose and optionally fix safe local install issues.",
+    usage: ["skillbase doctor [--fix] [--json] [--target ...] [--scope ...]"],
+    examples: ["skillbase doctor", "skillbase doctor --fix --json"]
+  },
+  scan: {
+    summary: "Run lint and security checks on resolved skills.",
+    usage: [
+      "skillbase scan [--lint-only] [--security off|warn|fail] [--format text|json|sarif]",
+      "               [--policy-decisions-out <path>] [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: [
+      "skillbase scan --format json",
+      "skillbase scan --security fail --format sarif",
+      "skillbase scan --policy-decisions-out reports/policy-decisions.jsonl --format json"
+    ]
+  },
+  policy: {
+    summary: "Check manifest scan-policy exceptions and expiry health.",
+    usage: ["skillbase policy check [--format text|json] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
+    examples: ["skillbase policy check", "skillbase policy check --json"]
+  },
+  list: {
+    summary: "List resolved skills and effective target install paths.",
+    usage: ["skillbase list [--json] [--target ...] [--scope ...] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
+    examples: ["skillbase list --json", "skillbase list --target codex --scope project --json"]
+  },
+  update: {
+    summary: "Resolve sources and write deterministic lockfile.",
+    usage: ["skillbase update [--frozen-lockfile] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
+    examples: ["skillbase update --json", "skillbase update --frozen-lockfile --json"]
+  },
+  export: {
+    summary: "Package manifest, lockfile, and skills into a verifiable bundle.",
+    usage: [
+      "skillbase export [--out <bundle.zip>] [--sign-key <path>] [--sign-private-key <path>]",
+      "                 [--deterministic] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: [
+      "skillbase export --out skillbase-release.zip --deterministic --json",
+      "skillbase export --out skillbase-release.zip --sign-private-key private.pem --deterministic --json"
+    ]
+  },
+  "verify-bundle": {
+    summary: "Verify bundle integrity and optional signature requirements.",
+    usage: [
+      "skillbase verify-bundle --bundle <bundle.zip> [--sign-key <path>] [--sign-public-key <path>]",
+      "                        [--require-signature] [--json]"
+    ],
+    examples: [
+      "skillbase verify-bundle --bundle skillbase-release.zip --json",
+      "skillbase verify-bundle --bundle skillbase-release.zip --sign-public-key public.pem --require-signature --json"
+    ]
+  }
+};
+
+function usage(command?: string) {
+  if (command) {
+    const entry = COMMAND_HELP[command];
+    if (!entry) {
+      console.log(`Unknown help topic: ${command}\n`);
+      usage();
+      return;
+    }
+    console.log(
+      [
+        `skillbase ${command}`,
+        "",
+        entry.summary,
+        "",
+        "Usage:",
+        ...entry.usage.map((line) => `  ${line}`),
+        "",
+        "Examples:",
+        ...entry.examples.map((line) => `  ${line}`),
+        ""
+      ].join("\n")
+    );
+    return;
+  }
+
   console.log(`skillbase
 
-Usage:
+Policy-first manifest manager for agent skills.
+
+Start here:
+  1) skillbase init
+  2) skillbase update --json
+  3) skillbase scan --format json
+  4) skillbase apply --target all --scope project --mode copy --dry-run --json
+
+Core commands:
   skillbase init
-  skillbase apply [--mode link|copy|mirror] [--target codex|claude-code|cursor|all] [--scope global|project] [--dry-run] [--json] [--no-scan] [--scan-security off|warn|fail] [--fix] [--refresh-sources] [--remote-cache-ttl <seconds>]
-  skillbase doctor [--fix] [--json] [--target ...] [--scope ...]
-  skillbase scan [--lint-only] [--security off|warn|fail] [--format text|json|sarif] [--policy-decisions-out <path>] [--refresh-sources] [--remote-cache-ttl <seconds>]
-  skillbase policy check [--format text|json] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]
-  skillbase list [--json] [--target ...] [--scope ...] [--refresh-sources] [--remote-cache-ttl <seconds>]
-  skillbase update [--frozen-lockfile] [--refresh-sources] [--remote-cache-ttl <seconds>]
-  skillbase export [--out <bundle.zip>] [--sign-key <path>] [--sign-private-key <path>] [--deterministic] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]
-  skillbase verify-bundle --bundle <bundle.zip> [--sign-key <path>] [--sign-public-key <path>] [--require-signature] [--json]
+  skillbase apply
+  skillbase doctor
+  skillbase scan
+  skillbase policy check
+  skillbase list
+  skillbase update
+  skillbase export
+  skillbase verify-bundle
+
+Help:
+  skillbase help
+  skillbase help <command>
+  skillbase <command> --help
 `);
 }
 
@@ -2074,8 +2193,18 @@ function runVerifyBundle(args: ParsedArgs, cwd: string): {
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
   const cmd = parsed.command;
+  const commandFlagHelp = getBooleanFlag(parsed, "help") || getBooleanFlag(parsed, "h");
   if (!cmd || cmd === "-h" || cmd === "--help") {
     usage();
+    process.exit(0);
+  }
+  if (cmd === "help") {
+    const topic = parsed.positionals[0];
+    usage(topic);
+    process.exit(topic && !COMMAND_HELP[topic] ? 1 : 0);
+  }
+  if (commandFlagHelp) {
+    usage(cmd);
     process.exit(0);
   }
 
