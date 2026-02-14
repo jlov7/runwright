@@ -3,6 +3,21 @@
 ## Mission
 Ship a production-ready v1 with coherent end-to-end CLI journeys, strong quality gates, and release evidence.
 
+## Gap Loop (Strict)
+1. Run baseline evidence collection with `pnpm doctor`.
+2. Read `RELEASE_GATES.md` and compare each gate against fresh artifacts.
+3. Update `GAPS.md` with any failing/missing evidence as prioritized P0/P1/P2 gaps.
+4. Pick the highest-priority unblocked gap and implement the smallest safe fix.
+5. Run targeted checks first, then rerun `pnpm doctor`.
+6. Update `GAPS.md` statuses and evidence links/commands.
+7. Commit one logical change.
+8. Repeat until stop conditions are met.
+
+## Gap Loop Stop Conditions
+- Stop only when all `RELEASE_GATES.md` gates are satisfied with fresh evidence from `reports/doctor/doctor.json` and latest branch CI is green.
+- If product decisions are missing, log them in `QUESTIONS.md`, mark the affected gap as blocked, and continue on remaining unblocked gaps.
+- Never stop after planning alone. Planning artifacts without implementation and verification are incomplete.
+
 ## Scope Rules
 - Do only what is required for v1 release readiness.
 - Keep changes small and reviewable.
