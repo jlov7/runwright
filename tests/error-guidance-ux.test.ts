@@ -39,6 +39,7 @@ describe("error guidance UX", () => {
     expect(result.stderr).toContain("Unknown command: updat");
     expect(result.stderr).toContain("Did you mean: runwright update");
     expect(result.stderr).toContain("runwright help");
+    expect(result.stderr).toContain("runwright journey");
   });
 
   it("returns nonzero and suggests nearest command for unknown --help topics", () => {
@@ -47,6 +48,7 @@ describe("error guidance UX", () => {
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("Unknown help topic: updat");
     expect(result.stdout).toContain("Did you mean: runwright help update");
+    expect(result.stdout).toContain("Run `runwright help` to list supported commands.");
   });
 
   it("includes a recovery next step for missing manifest errors", () => {
@@ -57,5 +59,7 @@ describe("error guidance UX", () => {
     expect(result.stderr).toContain("Next:");
     expect(result.stderr).toContain("runwright init");
     expect(result.stderr).toContain("runwright journey");
+    expect(result.stderr).toContain("Help:");
+    expect(result.stderr).toContain("docs/help/troubleshooting.md");
   });
 });

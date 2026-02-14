@@ -19,10 +19,13 @@ describe("help UX", () => {
     const result = runCli(["help"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Start here:");
+    expect(result.stdout).toContain("First success moment:");
+    expect(result.stdout).toContain("Core loop after first success:");
     expect(result.stdout).toContain("runwright init");
     expect(result.stdout).toContain("runwright journey");
     expect(result.stdout).toContain("runwright help <command>");
     expect(result.stdout).toContain("docs/help/README.md");
+    expect(result.stdout).toContain("docs/help/troubleshooting.md");
   });
 
   it("supports command-scoped help via --help", () => {

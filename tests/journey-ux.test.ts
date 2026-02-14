@@ -39,6 +39,8 @@ describe("journey UX", () => {
     expect(result.stdout).toContain("Runwright Onboarding Journey");
     expect(result.stdout).toContain("Next best action");
     expect(result.stdout).toContain("runwright init");
+    expect(result.stdout).toContain("Empty state: no manifest found");
+    expect(result.stdout).toContain("Help: runwright help init");
   });
 
   it("recommends scan after lockfile exists but no scan evidence", () => {
@@ -61,6 +63,7 @@ describe("journey UX", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Next best action");
     expect(result.stdout).toContain("runwright scan --format json");
+    expect(result.stdout).toContain("Help: runwright help scan");
   });
 
   it("supports machine-readable journey output", () => {
@@ -103,7 +106,7 @@ describe("journey UX", () => {
     expect(result.stdout).toContain("[blocked]");
     expect(result.stdout).toContain("Run safety scan");
     expect(result.stdout).toContain("runwright scan --format json");
-    expect(result.stdout).toContain("Address scan findings");
+    expect(result.stdout).toContain("Resolve risky content, then rerun scan");
   });
 
   it("does not mark failed dry-run apply as complete", () => {
@@ -130,5 +133,40 @@ describe("journey UX", () => {
     expect(result.stdout).toContain("Validate install plan with dry-run");
     expect(result.stdout).toContain("[blocked]");
     expect(result.stdout).toContain("runwright apply --target all --scope project --mode copy --dry-run --json");
+    expect(result.stdout).toContain("Help: runwright help apply");
+  });
+
+  it("celebrates first success and recommends the core loop once onboarding is complete", () => {
+    const projectDir = makeTempDir("skillbase-journey-first-success-");
+
+    const init = runCli(["init"], projectDir);
+    expect(init.status).toBe(0);
+
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+
+    const update = runCli(["update", "--json"], projectDir);
+    expect(update.status).toBe(0);
+
+    const scan = runCli(["scan", "--format", "json"], projectDir);
+    expect(scan.status).toBe(0);
+
+    const dryRunApply = runCli(
+      ["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--dry-run", "--json"],
+      projectDir
+    );
+    expect(dryRunApply.status).toBe(0);
+
+    const apply = runCli(["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--json"], projectDir);
+    expect(apply.status).toBe(0);
+
+    const result = runCli(["journey"], projectDir);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("First success: skills were installed");
+    expect(result.stdout).toContain("runwright update --json && runwright scan --format json && runwright apply");
   });
 });

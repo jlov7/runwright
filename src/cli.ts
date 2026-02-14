@@ -242,19 +242,30 @@ function suggestCommand(rawInput: string, candidates: string[]): string | undefi
 
 function renderUnknownHelpTopic(topic: string): string {
   const suggestion = suggestCommand(topic, Object.keys(COMMAND_HELP));
-  if (!suggestion) return `Unknown help topic: ${topic}`;
-  return [`Unknown help topic: ${topic}`, `Did you mean: runwright help ${suggestion}`].join("\n");
+  if (!suggestion) {
+    return [`Unknown help topic: ${topic}`, "Run `runwright help` to list supported commands."].join("\n");
+  }
+  return [
+    `Unknown help topic: ${topic}`,
+    `Did you mean: runwright help ${suggestion}`,
+    "Run `runwright help` to list supported commands."
+  ].join("\n");
 }
 
 function renderUnknownCommandMessage(command: string): string {
   const suggestion = suggestCommand(command, Object.keys(COMMAND_HELP));
   if (!suggestion) {
-    return [`Unknown command: ${command}`, "Run `runwright help` to see available commands."].join("\n");
+    return [
+      `Unknown command: ${command}`,
+      "Run `runwright help` to see available commands.",
+      "Need guided onboarding? Run `runwright journey`."
+    ].join("\n");
   }
   return [
     `Unknown command: ${command}`,
     `Did you mean: runwright ${suggestion}`,
-    "Run `runwright help` to see available commands."
+    "Run `runwright help` to see available commands.",
+    "Need guided onboarding? Run `runwright journey`."
   ].join("\n");
 }
 
@@ -294,8 +305,17 @@ function formatCliErrorGuidance(error: CliError, failedCommand?: string): string
       break;
   }
 
-  if (hints.length === 0) return error.message;
-  return `${error.message}\n\nNext:\n${hints.map((hint) => `  ${hint}`).join("\n")}`;
+  const helpLines = [helpForCommand, "docs/help/troubleshooting.md"];
+  if (hints.length === 0) return `${error.message}\n\nHelp:\n${helpLines.map((line) => `  ${line}`).join("\n")}`;
+  return [
+    error.message,
+    "",
+    "Next:",
+    ...hints.map((hint) => `  ${hint}`),
+    "",
+    "Help:",
+    ...helpLines.map((line) => `  ${line}`)
+  ].join("\n");
 }
 
 function usage(command?: string): boolean {
@@ -334,6 +354,12 @@ Start here:
   4) runwright scan --format json
   5) runwright apply --target all --scope project --mode copy --dry-run --json
 
+First success moment:
+  runwright apply --target all --scope project --mode copy --json
+
+Core loop after first success:
+  Edit skill -> runwright update --json -> runwright scan --format json -> runwright apply --target all --scope project --mode copy --json
+
 Core commands:
   runwright init
   runwright journey
@@ -347,12 +373,14 @@ Core commands:
   runwright verify-bundle
 
 Help:
+  runwright journey
   runwright help
   runwright help <command>
   runwright <command> --help
 
 Docs:
   docs/help/README.md
+  docs/help/troubleshooting.md
 `);
   return true;
 }
@@ -1426,7 +1454,7 @@ apply:
     if (!nextLines.includes(entry)) nextLines.push(entry);
   }
   writeFileSync(gitIgnorePath, `${nextLines.filter((line) => line.length > 0).join("\n")}\n`, "utf8");
-  return { status: 0, message: "Initialized runwright.yml and updated .gitignore" };
+  return { status: 0, message: "Initialized runwright.yml and updated .gitignore. Next: runwright journey" };
 }
 
 type JourneyStepStatus = "complete" | "pending" | "blocked";
@@ -1576,14 +1604,16 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       status: manifestExists ? "complete" : "pending",
       details: manifestExists
         ? `${manifestRef?.filename ?? "manifest"} detected.`
-        : "Create a baseline manifest for deterministic setup.",
+        : "Empty state: no manifest found. Initialize once to unlock the guided setup flow.",
       command: "runwright init"
     },
     {
       id: "skills",
       title: "Add at least one skill",
       status: skillsExist ? "complete" : "pending",
-      details: skillsExist ? "Found at least one SKILL.md under skills/." : "Define one skill so update/scan/apply can produce useful output.",
+      details: skillsExist
+        ? "Found at least one SKILL.md under skills/."
+        : "Empty state: no SKILL.md found under skills/. Add one skill to unlock your first successful apply.",
       command: "mkdir -p skills/<skill-name> && create skills/<skill-name>/SKILL.md"
     },
     {
@@ -1602,7 +1632,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       details: scanStatus === "complete"
         ? "Latest scan run is recorded in operations log."
         : scanStatus === "blocked"
-          ? "Address scan findings, then rerun scan to continue onboarding."
+          ? "Scan is blocked on findings. Resolve risky content, then rerun scan."
           : "Run scan to surface risky content before apply.",
       command: "runwright scan --format json"
     },
@@ -1611,7 +1641,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       title: "Validate install plan with dry-run",
       status: dryRunApplyStatus,
       details: dryRunApplyStatus === "complete"
-        ? "Successful dry-run apply evidence recorded."
+        ? "Dry-run apply succeeded. Your install plan is ready for a real apply."
         : dryRunApplyStatus === "blocked"
           ? "Dry-run apply was blocked. Resolve scan/policy issues and rerun dry-run."
           : "Preview operations without filesystem changes.",
@@ -1622,10 +1652,10 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       title: "Apply to targets",
       status: applyStatus,
       details: applyStatus === "complete"
-        ? "Successful mutating apply evidence recorded."
+        ? "First success: skills were installed to your targets. Keep the update -> scan -> apply loop for every change."
         : applyStatus === "blocked"
           ? "Apply was blocked. Resolve scan/policy issues and rerun apply."
-          : "Install resolved skills into your configured targets.",
+          : "Install resolved skills into your configured targets to complete onboarding.",
       command: "runwright apply --target all --scope project --mode copy --json"
     },
     {
@@ -1634,7 +1664,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       status: verifyBundleCompleted ? "complete" : "pending",
       details: verifyBundleCompleted
         ? "Bundle verification succeeded at least once."
-        : "Optional release assurance step for distribution workflows.",
+        : "Optional release assurance step once the core loop is healthy.",
       command: "runwright export --out runwright-release.zip --deterministic --json && runwright verify-bundle --bundle runwright-release.zip --json",
       optional: true
     }
@@ -1653,8 +1683,8 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       }
     : {
         command:
-          "runwright policy check --json && runwright export --out runwright-release.zip --deterministic --json",
-        reason: "Core onboarding is complete. Harden policy posture and produce a verifiable release bundle."
+          "runwright update --json && runwright scan --format json && runwright apply --target all --scope project --mode copy --json",
+        reason: "Core onboarding is complete. Stay release-ready by running the update -> scan -> apply loop after each skill change."
       };
 
   return {
@@ -1686,7 +1716,19 @@ function renderJourneyText(payload: JourneyPayload): string {
     const optionalSuffix = step.optional ? " (optional)" : "";
     lines.push(`${marker} ${index + 1}. ${step.title}${optionalSuffix}`);
     lines.push(`      ${step.details}`);
-    if (step.status === "pending" || step.status === "blocked") lines.push(`      Run: ${step.command}`);
+    if (step.status === "pending" || step.status === "blocked") {
+      lines.push(`      Run: ${step.command}`);
+      const helpTipByStep: Record<JourneyStep["id"], string> = {
+        manifest: "runwright help init",
+        skills: "docs/getting-started/non-technical-onboarding.md",
+        lockfile: "runwright help update",
+        scan: "runwright help scan",
+        "dry-run-apply": "runwright help apply",
+        apply: "runwright help apply",
+        "verify-bundle": "runwright help verify-bundle"
+      };
+      lines.push(`      Help: ${helpTipByStep[step.id]}`);
+    }
   }
 
   lines.push("", "Next best action:", `  ${payload.nextAction.command}`, `  Why: ${payload.nextAction.reason}`, "", "Guides:");
