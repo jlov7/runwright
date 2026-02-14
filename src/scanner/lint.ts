@@ -11,7 +11,7 @@ type LintIssue = {
 const MAX_SKILL_MD_BYTES = 256 * 1024;
 
 function extractFrontmatter(raw: string): string | null {
-  const match = raw.match(/^---\n([\s\S]*?)\n---(?:\n|$)/);
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
   return match?.[1] ?? null;
 }
 

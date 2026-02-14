@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import { basename, extname, join, relative } from "node:path";
 
 export type SecurityRuleId =
   | "remote-shell-curl-pipe"
@@ -91,7 +91,7 @@ export function scanSkillDir(path: string): { ok: boolean; findings: SecurityFin
   const findings: SecurityFinding[] = [];
   for (const filePath of walkFiles(path)) {
     const extension = extname(filePath).toLowerCase();
-    const baseName = filePath.split("/").pop() ?? "";
+    const baseName = basename(filePath);
     if (baseName !== "SKILL.md" && !TEXT_EXTENSIONS.has(extension)) continue;
 
     const raw = readFileSync(filePath, "utf8");
@@ -101,7 +101,7 @@ export function scanSkillDir(path: string): { ok: boolean; findings: SecurityFin
           id: risk.id,
           severity: risk.severity,
           message: risk.message,
-          file: relative(path, filePath) || filePath
+          file: (relative(path, filePath) || filePath).replaceAll("\\", "/")
         });
       }
     }

@@ -43,13 +43,15 @@ export type ShipGateRunner = (command: string, args: string[], cwd: string) => {
   stderr: string;
 };
 
+const PNPM_COMMAND = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
 export const DEFAULT_SHIP_GATE_STAGES: ShipGateStage[] = [
-  { id: "verify", command: "pnpm", args: ["run", "verify"] },
-  { id: "mutation", command: "pnpm", args: ["run", "test:mutation"] },
-  { id: "fuzz-differential", command: "pnpm", args: ["run", "test:fuzz-differential"] },
-  { id: "audit", command: "pnpm", args: ["run", "audit:deps"] },
-  { id: "sbom", command: "pnpm", args: ["run", "sbom:generate"] },
-  { id: "release-verify-local", command: "pnpm", args: ["run", "release:verify-local"] }
+  { id: "verify", command: PNPM_COMMAND, args: ["run", "verify"] },
+  { id: "mutation", command: PNPM_COMMAND, args: ["run", "test:mutation"] },
+  { id: "fuzz-differential", command: PNPM_COMMAND, args: ["run", "test:fuzz-differential"] },
+  { id: "audit", command: PNPM_COMMAND, args: ["run", "audit:deps"] },
+  { id: "sbom", command: PNPM_COMMAND, args: ["run", "sbom:generate"] },
+  { id: "release-verify-local", command: PNPM_COMMAND, args: ["run", "release:verify-local"] }
 ];
 
 export function selectShipGateStages(

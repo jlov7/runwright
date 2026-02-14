@@ -40,7 +40,7 @@ export function materializeSkillsToStore(
       if (!existsSync(destination)) {
         cpSync(unit.skillPath, destination, { recursive: true, force: false, dereference: false });
       }
-      return { name: basename(unit.skillName), digest, path: destination };
+      return { name: basename(unit.skillName), digest, path: destination.replaceAll("\\", "/") };
     });
 
     output.push({
