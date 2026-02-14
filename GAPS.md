@@ -3,9 +3,15 @@
 ## P0
 
 ### P0-001: Missing executable doctor gate
-- Evidence: No `pnpm doctor` command or consolidated `reports/doctor/doctor.json` artifact exists.
+- Evidence: `pnpm run doctor` now writes `reports/doctor/doctor.json` with all checks passing (`overall.ok: true`, generated `2026-02-14T16:04:02.937Z`).
 - Impacted journey: Release manager sign-off and repeatable release verification.
 - Fix strategy: Add `scripts/doctor.ts`, add `doctor` package script, emit machine-readable gate results.
+- Status: Done
+
+### P0-003: Latest-head CI evidence missing
+- Evidence: New local commits (`ed754d7`, `77dc41c`) have no remote CI evidence yet.
+- Impacted journey: Final release sign-off on current release branch head.
+- Fix strategy: Push branch head, wait for `CI` and `CodeQL` to succeed, then record run IDs in docs.
 - Status: Open
 
 ### P0-002: Release gate definitions not formalized

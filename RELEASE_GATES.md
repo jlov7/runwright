@@ -1,7 +1,7 @@
 # Release Gates (v1)
 
 ## How to use
-- Run `pnpm doctor` to collect local evidence into `reports/doctor/doctor.json`.
+- Run `pnpm run doctor` to collect local evidence into `reports/doctor/doctor.json`.
 - Confirm branch CI status is green for latest commit (`CI` and `CodeQL`).
 - Mark a gate pass only when required evidence is present and current.
 
@@ -9,7 +9,7 @@
 - Requirement: lint, typecheck, and build all pass.
 - Evidence:
   - `reports/doctor/doctor.json` includes successful `lint`, `typecheck`, and `build` checks.
-  - Local command: `pnpm doctor`
+  - Local command: `pnpm run doctor`
 
 ## Gate RG-002: Critical Logic & UX Flow Tests
 - Requirement: test suite passes including key journey/help/error guidance flows.

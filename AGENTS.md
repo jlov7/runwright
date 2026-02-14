@@ -4,7 +4,7 @@
 Ship a production-ready v1 with coherent end-to-end CLI journeys, strong quality gates, and release evidence.
 
 ## Gap Loop (Strict)
-1. Run baseline evidence collection with `pnpm doctor`.
+1. Run baseline evidence collection with `pnpm run doctor`.
 2. Read `RELEASE_GATES.md` and compare each gate against fresh artifacts.
 3. Update `GAPS.md` with any failing/missing evidence as prioritized P0/P1/P2 gaps.
 4. Pick the highest-priority unblocked gap and implement the smallest safe fix.
