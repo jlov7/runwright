@@ -21,7 +21,7 @@
 - [x] `pnpm typecheck` passes.
 - [x] `pnpm test` passes.
 - [x] `pnpm build` passes.
-- [ ] CI is green for required checks.
+- [x] CI is green for required checks.
 
 ## Accessibility Basics
 - [x] Primary flows are keyboard-only navigable (CLI-first interactions).

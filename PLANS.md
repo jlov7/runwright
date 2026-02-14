@@ -43,10 +43,13 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - `journey` command already provides progressive next-action guidance and docs links.
 - Help and error guidance UX tests already exist and are passing.
 - `journey` previously treated blocked scan/dry-run attempts as complete; this hid failure recovery paths. Added blocked-state handling and tests.
+- Windows CI surfaced two nondeterministic checks (`resolver.benchmark` timing strictness and soak script runner portability) that required deterministic hardening.
 
 ## Decision Log
 - 2026-02-14: Treat CLI output as product UX surface; prioritize copy clarity and recovery guidance over structural refactors.
 - 2026-02-14: Keep milestone edits small to avoid broad regression risk before release.
+- 2026-02-14: Stabilize script-level CI tests by adding explicit deterministic test hooks instead of relying on live `pnpm audit` behavior in test assertions.
+- 2026-02-14: Execute soak runs via `node + tsx` directly rather than shelling through `pnpm` to avoid Windows command resolution variance.
 
 ## Outcomes & Retrospective
 - Done:
@@ -55,7 +58,8 @@ Runwright already has strong policy, testing, and release-integrity foundations.
   - Added help landing page and linked it from CLI help + README.
   - Hardened README with setup/run/test/release/env-var sections.
   - Ran full verification repeatedly (`pnpm verify`) and final `pnpm ship:gate`.
+  - Confirmed remote CI + CodeQL are green on commit `358fffc` (`CI` run `22019975631`, `CodeQL` run `22019975630`).
 - Not done:
-  - Live CI status confirmation from remote GitHub checks in this session.
+  - None for v1 definition-of-done gates.
 - Lessons:
   - Journey guidance should treat failure states as first-class statuses, not just completion markers.
