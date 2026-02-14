@@ -16,6 +16,7 @@ Ship a production-ready v1 with coherent end-to-end CLI journeys, strong quality
 ## Gap Loop Stop Conditions
 - Stop only when all `RELEASE_GATES.md` gates are satisfied with fresh evidence from `reports/doctor/doctor.json` and latest branch CI is green.
 - If product decisions are missing, log them in `QUESTIONS.md`, mark the affected gap as blocked, and continue on remaining unblocked gaps.
+- If external platform incidents block CI (for example step-less GitHub job startup failures), log incident evidence in `QUESTIONS.md`, mark the gap blocked in `GAPS.md`, and continue all non-blocked local work.
 - Never stop after planning alone. Planning artifacts without implementation and verification are incomplete.
 
 ## Scope Rules

@@ -17,3 +17,9 @@
 - Why it matters: `RELEASE_CHECKLIST.md` includes a CI-green requirement that is not directly verifiable offline.
 - Current assumption: Remote GitHub checks are required for final sign-off and local gates are preconditions.
 - Status: Resolved (2026-02-14) via successful latest-head runs (`CI` `22020438502`, `CodeQL` `22020438501`) on commit `669df6d`.
+
+## Q4: Handling external CI platform startup failures
+- Question: When GitHub Actions fails before any step executes (`steps: []` across jobs), should release sign-off allow the last known-good CI head plus fresh local doctor evidence?
+- Why it matters: Latest commit `9a9d5c1` is blocked by platform-level startup failures (`CI` run `22020736688`, `CodeQL` run `22020736679`) with no code-level failure signal.
+- Current assumption: Treat this as an external platform blocker; continue local gap loop and anchor release evidence to the last known-good CI head until service recovers.
+- Status: Open

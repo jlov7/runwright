@@ -14,6 +14,12 @@
 - Fix strategy: Push branch head, wait for `CI` and `CodeQL` to succeed, then record run IDs in docs.
 - Status: Done
 
+### P0-004: External GitHub Actions startup instability on latest head
+- Evidence: Latest head `9a9d5c1` fails immediately in both workflows with zero executed steps (`CI` run `22020736688`, `CodeQL` run `22020736679`, all failed jobs show `steps: []`).
+- Impacted journey: Final CI gate sign-off on most recent commit.
+- Fix strategy: Retry once service stabilizes; keep release evidence anchored to last known-good CI head (`669df6d`) plus fresh local doctor artifacts.
+- Status: Blocked (external platform)
+
 ### P0-002: Release gate definitions not formalized
 - Evidence: No dedicated release gate document with explicit evidence requirements.
 - Impacted journey: Go/no-go release decision and audit trail.
