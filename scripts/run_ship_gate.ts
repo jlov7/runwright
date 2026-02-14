@@ -18,6 +18,15 @@ type ParsedArgs = {
   minMutationScore: number;
 };
 
+function parseMockStatus(raw: string | undefined): number | null {
+  if (typeof raw === "undefined") return null;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error("RUNWRIGHT_SHIP_GATE_MOCK_STATUS must be a non-negative integer");
+  }
+  return parsed;
+}
+
 function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
     outDir: "reports/quality",
@@ -68,6 +77,7 @@ function writeJson(path: string, payload: unknown): void {
 function main(): void {
   const args = parseArgs(process.argv);
   const outDir = resolve(args.outDir);
+  const mockStatus = parseMockStatus(process.env.RUNWRIGHT_SHIP_GATE_MOCK_STATUS);
   mkdirSync(outDir, { recursive: true });
 
   const selectedStages = selectShipGateStages(DEFAULT_SHIP_GATE_STAGES, {
@@ -76,6 +86,13 @@ function main(): void {
   });
 
   const runCommand: ShipGateRunner = (command, commandArgs, cwd) => {
+    if (typeof mockStatus === "number") {
+      return {
+        status: mockStatus,
+        stdout: `[mock] ${command} ${commandArgs.join(" ")}`,
+        stderr: ""
+      };
+    }
     const result = spawnSync(command, commandArgs, { cwd, encoding: "utf8" });
     return {
       status: result.status ?? 1,

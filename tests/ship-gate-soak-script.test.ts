@@ -22,7 +22,10 @@ describe("ship gate soak script", () => {
     const result = runTsxScript({
       scriptRelativePath: "scripts/soak_ship_gate.ts",
       args: ["--iterations", "2", "--only", "audit", "--out-dir", outDir],
-      cwd: process.cwd()
+      cwd: process.cwd(),
+      envOverrides: {
+        RUNWRIGHT_SHIP_GATE_MOCK_STATUS: "0"
+      }
     });
     expect(result.status).toBe(0);
 
