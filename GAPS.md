@@ -9,7 +9,7 @@
 - Status: Done
 
 ### P0-003: Latest-head CI evidence missing
-- Evidence: Latest head `0c484ac` is green in GitHub Actions (`CI` run `22020307401`, `CodeQL` run `22020307402`) and local doctor evidence is fresh (`reports/doctor/doctor.json`, generated `2026-02-14T16:14:02.943Z`, `overall.ok: true`).
+- Evidence: Latest head `669df6d` is green in GitHub Actions (`CI` run `22020438502`, `CodeQL` run `22020438501`) and local doctor evidence is fresh (`reports/doctor/doctor.json`, generated `2026-02-14T16:25:29.080Z`, `overall.ok: true`).
 - Impacted journey: Final release sign-off on current release branch head.
 - Fix strategy: Push branch head, wait for `CI` and `CodeQL` to succeed, then record run IDs in docs.
 - Status: Done

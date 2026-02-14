@@ -16,4 +16,4 @@
 - Question: Should release sign-off require explicit verification of current GitHub Actions run status, or is local `pnpm verify` + `pnpm ship:gate` sufficient for v1 sign-off?
 - Why it matters: `RELEASE_CHECKLIST.md` includes a CI-green requirement that is not directly verifiable offline.
 - Current assumption: Remote GitHub checks are required for final sign-off and local gates are preconditions.
-- Status: Resolved (2026-02-14) via successful `CI` run `22019975631` and `CodeQL` run `22019975630` on commit `358fffc`.
+- Status: Resolved (2026-02-14) via successful latest-head runs (`CI` `22020438502`, `CodeQL` `22020438501`) on commit `669df6d`.
