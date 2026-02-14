@@ -35,8 +35,8 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - [x] M0: Baseline repo audit and quality gate (`pnpm verify`) completed.
 - [x] M1: Create steering artifacts and release checklist scaffolding.
 - [x] M2: Harden onboarding/help UX for first-run + key failure guidance (tests first).
-- [ ] M3: Close docs gaps (README deploy/env vars + minimal docs/help landing page).
-- [ ] M4: Final checklist reconciliation, open questions capture, and release verification run.
+- [x] M3: Close docs gaps (README deploy/env vars + minimal docs/help landing page).
+- [x] M4: Final checklist reconciliation, open questions capture, and release verification run.
 
 ## Surprises & Discoveries
 - Repo already has broad automated coverage (240 tests) and strong CI workflows.
@@ -49,4 +49,13 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - 2026-02-14: Keep milestone edits small to avoid broad regression risk before release.
 
 ## Outcomes & Retrospective
-Pending completion.
+- Done:
+  - Added repo steering artifacts (`AGENTS.md`, `PLANS.md`, `RELEASE_CHECKLIST.md`, `QUESTIONS.md`).
+  - Fixed onboarding journey state logic for blocked scan/apply failures with regression tests.
+  - Added help landing page and linked it from CLI help + README.
+  - Hardened README with setup/run/test/release/env-var sections.
+  - Ran full verification repeatedly (`pnpm verify`) and final `pnpm ship:gate`.
+- Not done:
+  - Live CI status confirmation from remote GitHub checks in this session.
+- Lessons:
+  - Journey guidance should treat failure states as first-class statuses, not just completion markers.

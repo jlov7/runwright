@@ -11,3 +11,9 @@
 - Why it matters: Determines required env vars and release runbook defaults.
 - Current assumption: Keep both modes documented, recommend ed25519 for production releases.
 - Status: Open
+
+## Q3: CI status confirmation source of truth
+- Question: Should release sign-off require explicit verification of current GitHub Actions run status, or is local `pnpm verify` + `pnpm ship:gate` sufficient for v1 sign-off?
+- Why it matters: `RELEASE_CHECKLIST.md` includes a CI-green requirement that is not directly verifiable offline.
+- Current assumption: Treat remote GitHub required checks as final sign-off gate outside this local session.
+- Status: Open
