@@ -9,10 +9,10 @@
 - Status: Done
 
 ### P0-003: Latest-head CI evidence missing
-- Evidence: New local commits (`ed754d7`, `77dc41c`) have no remote CI evidence yet.
+- Evidence: Latest head `0c484ac` is green in GitHub Actions (`CI` run `22020307401`, `CodeQL` run `22020307402`) and local doctor evidence is fresh (`reports/doctor/doctor.json`, generated `2026-02-14T16:14:02.943Z`, `overall.ok: true`).
 - Impacted journey: Final release sign-off on current release branch head.
 - Fix strategy: Push branch head, wait for `CI` and `CodeQL` to succeed, then record run IDs in docs.
-- Status: Open
+- Status: Done
 
 ### P0-002: Release gate definitions not formalized
 - Evidence: No dedicated release gate document with explicit evidence requirements.
