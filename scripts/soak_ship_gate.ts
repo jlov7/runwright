@@ -41,7 +41,10 @@ type SoakReport = {
   }>;
 };
 
-const PNPM_COMMAND = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const PROJECT_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const NODE_COMMAND = process.execPath;
+const TSX_CLI_PATH = resolve(PROJECT_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
+const RUN_SHIP_GATE_SCRIPT = resolve(PROJECT_ROOT, "scripts", "run_ship_gate.ts");
 
 function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
@@ -184,7 +187,7 @@ function digest(value: unknown): string {
 }
 
 function runShipGateIteration(iterationOutDir: string, args: ParsedArgs): number {
-  const commandArgs = ["tsx", "scripts/run_ship_gate.ts", "--out-dir", iterationOutDir];
+  const commandArgs = [TSX_CLI_PATH, RUN_SHIP_GATE_SCRIPT, "--out-dir", iterationOutDir];
   for (const stage of args.only) {
     commandArgs.push("--only", stage);
   }
@@ -195,7 +198,7 @@ function runShipGateIteration(iterationOutDir: string, args: ParsedArgs): number
     commandArgs.push("--min-mutation-score", String(args.minMutationScore));
   }
 
-  const result = spawnSync(PNPM_COMMAND, commandArgs, {
+  const result = spawnSync(NODE_COMMAND, commandArgs, {
     cwd: process.cwd(),
     encoding: "utf8"
   });

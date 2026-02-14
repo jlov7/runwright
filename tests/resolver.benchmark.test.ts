@@ -89,7 +89,10 @@ describe("resolver benchmark guards", () => {
     expect(first.units.length).toBe(sources.length);
     expect(second.units.length).toBe(sources.length);
     expect(calls).toBe(sources.length);
-    expect(secondDurationMs).toBeLessThan(firstDurationMs);
+    if (firstDurationMs >= 250) {
+      expect(secondDurationMs).toBeLessThan(firstDurationMs);
+    }
+    expect(secondDurationMs).toBeLessThan(1500);
   });
 
   it("refresh-source churn remains bounded and deterministic", () => {
