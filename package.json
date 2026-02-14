@@ -21,6 +21,7 @@
     "sbom:generate": "mkdir -p reports/sbom && cdxgen -t npm -o reports/sbom/bom.json .",
     "scorecard:generate": "pnpm tsx scripts/generate_quality_scorecard.ts",
     "quality:evidence:verify": "pnpm tsx scripts/verify_quality_evidence.ts",
+    "doctor": "pnpm tsx scripts/doctor.ts",
     "ship:gate": "pnpm tsx scripts/run_ship_gate.ts",
     "ship:soak": "pnpm tsx scripts/soak_ship_gate.ts",
     "release:verify-local": "bash scripts/verify_release_artifact.sh",

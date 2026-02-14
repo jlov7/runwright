@@ -1,0 +1,182 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+type DoctorCheckId = "lint" | "typecheck" | "test" | "build" | "audit:deps";
+
+type DoctorCheck = {
+  id: DoctorCheckId;
+  command: string;
+  args: string[];
+};
+
+type DoctorCheckResult = {
+  id: DoctorCheckId;
+  command: string;
+  args: string[];
+  status: number;
+  ok: boolean;
+  durationMs: number;
+  stdout: string;
+  stderr: string;
+};
+
+type DoctorReport = {
+  schemaVersion: "1.0";
+  generatedAt: string;
+  cwd: string;
+  overall: {
+    ok: boolean;
+    succeeded: number;
+    failed: number;
+    total: number;
+    totalDurationMs: number;
+  };
+  checks: DoctorCheckResult[];
+};
+
+type ParsedArgs = {
+  out: string;
+  only: string[];
+  skip: string[];
+};
+
+const PNPM_COMMAND = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
+const DEFAULT_CHECKS: DoctorCheck[] = [
+  { id: "lint", command: PNPM_COMMAND, args: ["run", "lint"] },
+  { id: "typecheck", command: PNPM_COMMAND, args: ["run", "typecheck"] },
+  { id: "test", command: PNPM_COMMAND, args: ["run", "test"] },
+  { id: "build", command: PNPM_COMMAND, args: ["run", "build"] },
+  { id: "audit:deps", command: PNPM_COMMAND, args: ["run", "audit:deps"] }
+];
+
+function parseArgs(argv: string[]): ParsedArgs {
+  const parsed: ParsedArgs = {
+    out: "reports/doctor/doctor.json",
+    only: [],
+    skip: []
+  };
+
+  for (let index = 2; index < argv.length; index += 1) {
+    const token = argv[index] ?? "";
+    if (token === "--out") {
+      parsed.out = argv[index + 1] ?? parsed.out;
+      index += 1;
+      continue;
+    }
+    if (token === "--only") {
+      const value = (argv[index + 1] ?? "").trim();
+      if (value.length > 0) parsed.only.push(value);
+      index += 1;
+      continue;
+    }
+    if (token === "--skip") {
+      const value = (argv[index + 1] ?? "").trim();
+      if (value.length > 0) parsed.skip.push(value);
+      index += 1;
+    }
+  }
+
+  return parsed;
+}
+
+function parseMockStatus(raw: string | undefined): number | null {
+  if (typeof raw === "undefined") return null;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error("RUNWRIGHT_DOCTOR_MOCK_STATUS must be a non-negative integer");
+  }
+  return parsed;
+}
+
+function selectChecks(checks: DoctorCheck[], args: ParsedArgs): DoctorCheck[] {
+  const known = new Set(checks.map((check) => check.id));
+  for (const value of [...args.only, ...args.skip]) {
+    if (!known.has(value as DoctorCheckId)) throw new Error(`Unknown doctor check '${value}'`);
+  }
+
+  let selected = [...checks];
+  if (args.only.length > 0) {
+    const allow = new Set(args.only);
+    selected = selected.filter((check) => allow.has(check.id));
+  }
+  if (args.skip.length > 0) {
+    const deny = new Set(args.skip);
+    selected = selected.filter((check) => !deny.has(check.id));
+  }
+  return selected;
+}
+
+function runCheck(check: DoctorCheck, mockStatus: number | null): DoctorCheckResult {
+  const startedAt = Date.now();
+  if (typeof mockStatus === "number") {
+    return {
+      id: check.id,
+      command: check.command,
+      args: check.args,
+      status: mockStatus,
+      ok: mockStatus === 0,
+      durationMs: Date.now() - startedAt,
+      stdout: `[mock] ${check.command} ${check.args.join(" ")}`,
+      stderr: ""
+    };
+  }
+
+  const result = spawnSync(check.command, check.args, {
+    cwd: process.cwd(),
+    encoding: "utf8"
+  });
+
+  const status = result.status ?? 1;
+  return {
+    id: check.id,
+    command: check.command,
+    args: check.args,
+    status,
+    ok: status === 0,
+    durationMs: Date.now() - startedAt,
+    stdout: result.stdout,
+    stderr: result.stderr
+  };
+}
+
+function writeJson(path: string, payload: unknown): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+}
+
+function main(): void {
+  const args = parseArgs(process.argv);
+  const checks = selectChecks(DEFAULT_CHECKS, args);
+  const mockStatus = parseMockStatus(process.env.RUNWRIGHT_DOCTOR_MOCK_STATUS);
+
+  const runStartedAt = Date.now();
+  const results = checks.map((check) => runCheck(check, mockStatus));
+
+  const succeeded = results.filter((result) => result.ok).length;
+  const failed = results.length - succeeded;
+  const report: DoctorReport = {
+    schemaVersion: "1.0",
+    generatedAt: new Date().toISOString(),
+    cwd: process.cwd(),
+    overall: {
+      ok: failed === 0,
+      succeeded,
+      failed,
+      total: results.length,
+      totalDurationMs: Date.now() - runStartedAt
+    },
+    checks: results
+  };
+
+  const outPath = resolve(args.out);
+  writeJson(outPath, report);
+  process.stdout.write(`${outPath}\n`);
+  if (!report.overall.ok) process.exit(1);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
