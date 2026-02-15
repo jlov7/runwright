@@ -84,6 +84,8 @@ Local release verification:
 
 ```bash
 pnpm release:verify-local
+pnpm release:attestation:generate -- --artifact .release/project/skillbase-release.zip --private-key .release/keys/private.pem --out .release/project/skillbase-release.attestation.json
+pnpm release:attestation:verify -- --attestation .release/project/skillbase-release.attestation.json --artifact .release/project/skillbase-release.zip --public-key .release/keys/public.pem --out .release/project/skillbase-release.attestation.local.verify.json
 pnpm release:artifact-manifest:generate
 pnpm release:artifact-manifest:verify
 ```
@@ -134,6 +136,8 @@ Compatibility note:
 | Install to targets | `runwright apply --target all --scope project --mode copy --json` |
 | Package release bundle | `runwright export --out runwright-release.zip --deterministic --json` |
 | Verify release bundle | `runwright verify-bundle --bundle runwright-release.zip --json` |
+| Generate release attestation | `pnpm release:attestation:generate -- --artifact runwright-release.zip --private-key private.pem --out release.attestation.json` |
+| Verify release attestation | `pnpm release:attestation:verify -- --attestation release.attestation.json --artifact runwright-release.zip --public-key public.pem --out release.attestation.verify.json` |
 
 ## Start Here By Role
 

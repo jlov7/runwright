@@ -60,3 +60,10 @@
 - Evidence:
   - GitHub `CI` workflow status = success on latest commit.
   - GitHub `CodeQL` workflow status = success on latest commit.
+
+## Gate RG-008: Release Provenance & Attestation
+- Requirement: release bundle provenance includes signed local attestation and successful verification.
+- Evidence:
+  - `pnpm release:attestation:generate -- --artifact <bundle.zip> --private-key <private.pem> --out <attestation.json>`
+  - `pnpm release:attestation:verify -- --attestation <attestation.json> --artifact <bundle.zip> --public-key <public.pem> --out <attestation.verify.json>`
+  - CI workflow `release-verify.yml` includes both `release:attestation:generate` and `release:attestation:verify`.

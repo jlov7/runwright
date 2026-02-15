@@ -28,5 +28,5 @@
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
 - Why it matters: `pnpm install` currently fails with `ENOTFOUND registry.npmjs.org`, preventing `pnpm run doctor` and all local release gate evidence.
-- Latest verification attempt (2026-02-15): `pnpm run doctor` failed due to missing `tsx`; `pnpm install` failed with `ENOTFOUND registry.npmjs.org`.
-- Status: Open
+- Resolution (2026-02-15): Environment connectivity recovered; `pnpm install`, `pnpm verify`, `pnpm run doctor`, and `pnpm release:verify-local` all executed successfully.
+- Status: Resolved
