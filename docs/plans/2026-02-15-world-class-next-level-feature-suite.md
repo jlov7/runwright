@@ -28,11 +28,11 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 - [x] Add integration tests for mission happy-path and action execution.
 
 ### NX2: Autonomous Remediation Engine v2
-- [ ] Add remediation risk scoring and deterministic priority ordering.
-- [ ] Add `fix --autopilot` flow with risk threshold guardrails.
-- [ ] Add structured preview metadata for planned changes.
-- [ ] Block unsafe auto-apply and return explicit recovery guidance.
-- [ ] Add integration tests for autopilot apply and blocked high-risk cases.
+- [x] Add remediation risk scoring and deterministic priority ordering.
+- [x] Add `fix --autopilot` flow with risk threshold guardrails.
+- [x] Add structured preview metadata for planned changes.
+- [x] Block unsafe auto-apply and return explicit recovery guidance.
+- [x] Add integration tests for autopilot apply and blocked high-risk cases.
 
 ### NX3: Continuous Drift Daemon + Alerting
 - [ ] Extend watch mode with persisted state (`lastCycle`, `status`, counters).
@@ -72,5 +72,5 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: NX2 Autonomous Remediation Engine v2
+- Current phase: NX3 Continuous Drift Daemon + Alerting
 - Completion target: all six features implemented + verified + tracked

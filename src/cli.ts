@@ -97,11 +97,14 @@ type FixActionType =
   | "resolve-policy-denies"
   | "verify-trusted-sources";
 
+type FixRiskLevel = "low" | "medium" | "high";
+
 type FixAction = {
   type: FixActionType;
   message: string;
   reversible: boolean;
   target: string;
+  risk: FixRiskLevel;
 };
 
 type ParsedArgs = {
@@ -228,9 +231,14 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   fix: {
     summary: "Plan and optionally apply safe remediations for policy/scan findings.",
     usage: [
-      "runwright fix [--plan] [--apply] [--json] [--rule-pack <path>] [--refresh-sources] [--remote-cache-ttl <seconds>]"
+      "runwright fix [--plan] [--apply] [--autopilot] [--max-risk low|medium|high]",
+      "             [--json] [--rule-pack <path>] [--refresh-sources] [--remote-cache-ttl <seconds>]"
     ],
-    examples: ["runwright fix --plan --json", "runwright fix --apply --rule-pack team-policy.json --json"]
+    examples: [
+      "runwright fix --plan --json",
+      "runwright fix --autopilot --max-risk medium --json",
+      "runwright fix --apply --rule-pack team-policy.json --json"
+    ]
   },
   list: {
     summary: "List resolved skills and effective target install paths.",
@@ -557,6 +565,8 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
   fix: {
     plan: "boolean",
     apply: "boolean",
+    autopilot: "boolean",
+    "max-risk": "string",
     json: "boolean",
     "rule-pack": "string",
     "refresh-sources": "boolean",
@@ -728,6 +738,12 @@ function parsePolicyFormat(raw: string | undefined, fallback: PolicyFormat): Pol
   throw new CliError(`Invalid format: ${raw}`, 1, "invalid-format");
 }
 
+function parseFixRisk(raw: string | undefined, fallback: FixRiskLevel): FixRiskLevel {
+  if (!raw) return fallback;
+  if (raw === "low" || raw === "medium" || raw === "high") return raw;
+  throw new CliError(`Invalid fix risk level: ${raw}`, 1, "invalid-argument");
+}
+
 function validateSemanticFlags(args: ParsedArgs): void {
   const command = args.command;
   if (!command) return;
@@ -768,6 +784,7 @@ function validateSemanticFlags(args: ParsedArgs): void {
   }
 
   if (command === "fix") {
+    parseFixRisk(getStringFlag(args, "max-risk"), "medium");
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
     return;
   }
@@ -3089,7 +3106,8 @@ function buildFixActions(input: {
       type: "update-lockfile",
       message: "Generate deterministic lockfile for reproducible installs.",
       reversible: true,
-      target: "skillbase.lock.json"
+      target: "skillbase.lock.json",
+      risk: "low"
     });
   }
   if (input.scan.highFindings > 0 || input.scan.mediumFindings > 0) {
@@ -3097,7 +3115,8 @@ function buildFixActions(input: {
       type: "address-security-findings",
       message: "Review and resolve security findings reported by scan.",
       reversible: false,
-      target: "skills/*/SKILL.md"
+      target: "skills/*/SKILL.md",
+      risk: "high"
     });
   }
   if (input.unresolvedAllowlistEntries > 0) {
@@ -3105,7 +3124,8 @@ function buildFixActions(input: {
       type: "resolve-allowlist-entries",
       message: "Update or remove expired/unresolved allowlist entries.",
       reversible: true,
-      target: "runwright.yml"
+      target: "runwright.yml",
+      risk: "low"
     });
   }
   if (input.deniedPolicies > 0) {
@@ -3113,7 +3133,8 @@ function buildFixActions(input: {
       type: "resolve-policy-denies",
       message: "Policy deny rules matched; manual policy remediation is required.",
       reversible: false,
-      target: "defaults.policy.rules"
+      target: "defaults.policy.rules",
+      risk: "high"
     });
   }
   if (input.trustSummary.untrustedSources > 0) {
@@ -3121,7 +3142,8 @@ function buildFixActions(input: {
       type: "verify-trusted-sources",
       message: "One or more sources are untrusted. Refresh source signatures and trust keys.",
       reversible: false,
-      target: "defaults.trust"
+      target: "defaults.trust",
+      risk: "medium"
     });
   }
   return actions;
@@ -3134,6 +3156,11 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   rolledBack: boolean;
   actions: FixAction[];
   trust: { summary: TrustSummary };
+  autopilot: {
+    enabled: boolean;
+    maxRisk: FixRiskLevel;
+    blockedActions: Array<{ type: FixActionType; risk: FixRiskLevel }>;
+  };
   summary: {
     highFindings: number;
     mediumFindings: number;
@@ -3143,10 +3170,16 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
 } {
   const explicitPlan = getBooleanFlag(args, "plan");
   const explicitApply = getBooleanFlag(args, "apply");
+  const autopilotEnabled = getBooleanFlag(args, "autopilot");
   if (explicitPlan && explicitApply) {
     throw new CliError("Choose only one fix mode: --plan or --apply", 1, "invalid-argument");
   }
-  const mode: "plan" | "apply" = explicitApply ? "apply" : "plan";
+  if (autopilotEnabled && explicitPlan) {
+    throw new CliError("Autopilot mode cannot be combined with --plan", 1, "invalid-argument");
+  }
+  const mode: "plan" | "apply" = explicitApply || autopilotEnabled ? "apply" : "plan";
+  const maxRisk = parseFixRisk(getStringFlag(args, "max-risk"), "medium");
+  const riskRank: Record<FixRiskLevel, number> = { low: 1, medium: 2, high: 3 };
   const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
   const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
   const scanPolicy = normalizeScanPolicy(manifest);
@@ -3179,13 +3212,35 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
     unresolvedAllowlistEntries,
     deniedPolicies,
     lockfileExists
-  });
+  }).sort((left, right) => riskRank[right.risk] - riskRank[left.risk] || left.type.localeCompare(right.type));
+  const blockedActions = autopilotEnabled
+    ? actions
+        .filter((action) => riskRank[action.risk] > riskRank[maxRisk])
+        .map((action) => ({ type: action.type, risk: action.risk }))
+    : [];
   const summary = {
     highFindings: scan.highFindings,
     mediumFindings: scan.mediumFindings,
     unresolvedAllowlistEntries,
     deniedPolicies
   };
+
+  if (autopilotEnabled && blockedActions.length > 0) {
+    return {
+      status: 30,
+      mode: "apply",
+      applied: false,
+      rolledBack: false,
+      actions,
+      trust: { summary: trustSummary },
+      autopilot: {
+        enabled: true,
+        maxRisk,
+        blockedActions
+      },
+      summary
+    };
+  }
 
   if (mode === "plan") {
     return {
@@ -3195,6 +3250,11 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
       rolledBack: false,
       actions,
       trust: { summary: trustSummary },
+      autopilot: {
+        enabled: false,
+        maxRisk,
+        blockedActions: []
+      },
       summary
     };
   }
@@ -3226,6 +3286,11 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
       rolledBack: false,
       actions,
       trust: { summary: trustSummary },
+      autopilot: {
+        enabled: autopilotEnabled,
+        maxRisk,
+        blockedActions
+      },
       summary
     };
   } catch {
@@ -3240,6 +3305,11 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
       rolledBack: true,
       actions,
       trust: { summary: trustSummary },
+      autopilot: {
+        enabled: autopilotEnabled,
+        maxRisk,
+        blockedActions
+      },
       summary
     };
   }
