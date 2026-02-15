@@ -70,3 +70,37 @@ Runwright already has strong policy, testing, and release-integrity foundations.
   - None for v1 definition-of-done gates.
 - Lessons:
   - Journey guidance should treat failure states as first-class statuses, not just completion markers.
+
+---
+
+# ExecPlan: Five-star Post-v1 Pass
+
+## Purpose / Big Picture
+Move beyond v1 “release-ready” into a five-star quality bar by removing remaining friction points that reduce trust, usability, and automation reliability.
+
+## Approach
+- Use a repeated gap-driven loop with explicit quality categories (UX clarity, reliability, operability, performance/safety confidence).
+- Execute only high-impact, low-risk increments with tests.
+- Keep each increment under 5 files and commit after verification.
+
+## Quality Categories (Five-star target)
+- Onboarding Delight: zero-confusion first run and idempotent setup.
+- Reliability at Edges: deterministic behavior across environments/timezones and repeated invocations.
+- Operator Experience: fast diagnosis with actionable errors/help for scripts and humans.
+- Trust Signals: journey/progress reflects current state, not stale history.
+
+## Progress
+- [x] FSP-0: Define five-star categories and prioritized TODO list.
+- [ ] FSP-1: Make `init` idempotent-success UX (repeat runs stay green with clear next step).
+- [ ] FSP-2: Add explicit `--help` UX for release scripts (`doctor`, `quality evidence verifier`).
+- [ ] FSP-3: Final evidence pass (`pnpm verify`, `pnpm doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`) and backlog reconciliation.
+
+## Risks
+- Exit-code changes may affect downstream scripts; mitigate with focused regression tests and explicit messaging.
+- Script parser hardening may break undocumented usage; mitigate with friendly `--help`/errors.
+
+## Validation Gates
+- Targeted tests per increment.
+- Full gate after each milestone: `pnpm verify`.
+- Evidence gate: `pnpm run doctor` and `pnpm quality:evidence:verify`.
+- Final release-hardening gate: `pnpm ship:gate`.
