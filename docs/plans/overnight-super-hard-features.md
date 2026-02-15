@@ -35,11 +35,11 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 - [x] Add integration tests for interrupted apply recovery.
 
 ### F3: Policy-as-Code Rule Packs
-- [ ] Add external policy pack input format (JSON rules file) and parser.
-- [ ] Merge manifest rules + external pack deterministically.
-- [ ] Evaluate rule packs with trace output and conflict-safe ordering.
-- [ ] Add CLI UX/docs for running policy checks with a pack.
-- [ ] Add tests for deterministic merges, deny/warn decisions, invalid pack errors.
+- [x] Add external policy pack input format (JSON rules file) and parser.
+- [x] Merge manifest rules + external pack deterministically.
+- [x] Evaluate rule packs with trace output and conflict-safe ordering.
+- [x] Add CLI UX/docs for running policy checks with a pack.
+- [x] Add tests for deterministic merges, deny/warn decisions, invalid pack errors.
 
 ### F4: Interactive Remediation Flow
 - [ ] Add guided remediation command with non-interactive fallback.
@@ -70,5 +70,5 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: F3 policy-as-code rule packs
+- Current phase: F4 interactive remediation flow
 - Completion target: all six features implemented + verified locally

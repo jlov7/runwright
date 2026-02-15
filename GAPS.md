@@ -64,6 +64,12 @@
 
 ## P1
 
+### P1-013: No external policy-as-code pack ingestion path
+- Evidence: Policy rules could only be defined in manifest defaults, preventing team-level shared rule packs with deterministic overrides.
+- Impacted journey: Policy governance portability and centralized compliance workflows.
+- Fix strategy: Add JSON rule pack parser/validator, deterministic merge with manifest rules, and CLI support via `--rule-pack`.
+- Status: Done
+
 ### P1-012: Apply transactions lacked crash-recovery workflow
 - Evidence: interrupted filesystem apply operations had no first-class recovery command, leaving operators to manually inspect `.skillbase` state.
 - Impacted journey: Core apply reliability, operator trust, and incident recovery speed.
