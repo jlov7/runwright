@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluateQualityEvidence } from "../src/quality/evidence.js";
+import { DEFAULT_SHIP_GATE_STAGES } from "../src/quality/ship-gate.js";
 
 type ParsedArgs = {
   scorecardPath: string;
@@ -13,9 +14,13 @@ type ParsedArgs = {
   outPath: string;
 };
 
+const DEFAULT_SCORECARD_PATH = "reports/quality/ship-gate.scorecard.json";
+const DEFAULT_REQUIRED_CHECKS = DEFAULT_SHIP_GATE_STAGES.map((stage) => stage.id);
+
 function parseArgs(argv: string[]): ParsedArgs {
+  let requireChecksExplicitlySet = false;
   const parsed: ParsedArgs = {
-    scorecardPath: "reports/quality/ship-gate.scorecard.json",
+    scorecardPath: DEFAULT_SCORECARD_PATH,
     requireChecks: [],
     requireScorecardPass: true,
     outPath: "reports/quality/evidence-verification.json"
@@ -46,7 +51,10 @@ function parseArgs(argv: string[]): ParsedArgs {
     }
     if (token === "--require-check") {
       const name = (argv[index + 1] ?? "").trim();
-      if (name.length > 0) parsed.requireChecks.push(name);
+      if (name.length > 0) {
+        parsed.requireChecks.push(name);
+        requireChecksExplicitlySet = true;
+      }
       index += 1;
       continue;
     }
@@ -60,12 +68,24 @@ function parseArgs(argv: string[]): ParsedArgs {
     }
   }
 
+  if (!requireChecksExplicitlySet && parsed.scorecardPath === DEFAULT_SCORECARD_PATH) {
+    parsed.requireChecks = DEFAULT_REQUIRED_CHECKS;
+  }
+
   return parsed;
 }
 
 function readJson(path: string): unknown {
-  const raw = readFileSync(path, "utf8");
-  return JSON.parse(raw) as unknown;
+  try {
+    const raw = readFileSync(path, "utf8");
+    return JSON.parse(raw) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Unable to read JSON file '${path}': ${message}\n` +
+      "Run `pnpm ship:gate` first or pass an explicit --scorecard path."
+    );
+  }
 }
 
 function main(): void {
@@ -92,5 +112,11 @@ function main(): void {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main();
+  try {
+    main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`${message}\n`);
+    process.exit(1);
+  }
 }

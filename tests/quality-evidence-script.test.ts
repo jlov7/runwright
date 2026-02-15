@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { DEFAULT_SHIP_GATE_STAGES } from "../src/quality/ship-gate.js";
 import { runTsxScript } from "./harness/runTsxScript.js";
 
 const tempDirs: string[] = [];
@@ -27,7 +28,10 @@ describe("quality evidence verifier script", () => {
     mkdirSync(reportsDir, { recursive: true });
     writeFileSync(
       scorecardPath,
-      JSON.stringify({ overall: { pass: true }, checks: [{ name: "verify", result: "success" }] }),
+      JSON.stringify({
+        overall: { pass: true },
+        checks: DEFAULT_SHIP_GATE_STAGES.map((stage) => ({ name: stage.id, result: "success" }))
+      }),
       "utf8"
     );
 
@@ -40,6 +44,20 @@ describe("quality evidence verifier script", () => {
     expect(result.status).toBe(0);
     const summary = JSON.parse(readFileSync(outPath, "utf8")) as { ok: boolean };
     expect(summary.ok).toBe(true);
+  });
+
+  it("fails with actionable guidance when default scorecard is missing", () => {
+    const dir = makeTempDir("skillbase-quality-evidence-missing-scorecard-");
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/verify_quality_evidence.ts",
+      args: [],
+      cwd: dir
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Run `pnpm ship:gate` first");
+    expect(result.stderr).toContain("ship-gate.scorecard.json");
   });
 
   it("succeeds and writes verification output when evidence passes", () => {
