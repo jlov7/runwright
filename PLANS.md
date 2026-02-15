@@ -91,9 +91,9 @@ Move beyond v1 “release-ready” into a five-star quality bar by removing rema
 
 ## Progress
 - [x] FSP-0: Define five-star categories and prioritized TODO list.
-- [ ] FSP-1: Make `init` idempotent-success UX (repeat runs stay green with clear next step).
-- [ ] FSP-2: Add explicit `--help` UX for release scripts (`doctor`, `quality evidence verifier`).
-- [ ] FSP-3: Final evidence pass (`pnpm verify`, `pnpm doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`) and backlog reconciliation.
+- [x] FSP-1: Make `init` idempotent-success UX (repeat runs stay green with clear next step).
+- [x] FSP-2: Add explicit `--help` UX for release scripts (`doctor`, `quality evidence verifier`).
+- [x] FSP-3: Final evidence pass (`pnpm verify`, `pnpm doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`) and backlog reconciliation.
 
 ## Risks
 - Exit-code changes may affect downstream scripts; mitigate with focused regression tests and explicit messaging.

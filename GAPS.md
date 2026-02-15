@@ -58,6 +58,12 @@
 
 ## P1
 
+### P1-010: Release scripts lacked built-in usage/help guidance
+- Evidence: `scripts/doctor.ts` and `scripts/verify_quality_evidence.ts` previously returned parser errors for `--help` requests instead of self-service usage output.
+- Impacted journey: Operator onboarding and CI/debug troubleshooting speed.
+- Fix strategy: Add explicit `--help`/`-h` usage renderers and cover behavior in script tests.
+- Status: Done
+
 ### P1-009: `init` re-runs exited nonzero and looked like failures
 - Evidence: running `runwright init` in an already initialized workspace returned status `2`, creating unnecessary friction for non-technical users and CI wrappers expecting idempotent setup.
 - Impacted journey: First-run onboarding retries and automation reliability.
