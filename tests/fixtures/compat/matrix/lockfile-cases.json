@@ -14,6 +14,7 @@
   {
     "name": "v2-unsupported",
     "file": "lockfile/v2-unsupported.skillbase.lock.json",
-    "expect": "error"
+    "expect": "success",
+    "expectedFile": "lockfile/v2-unsupported.expected.json"
   }
 ]

@@ -4,7 +4,7 @@
   "title": "Skillbase Update JSON Output",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "status", "lockfileVerified", "sources", "skills"],
+  "required": ["schemaVersion", "status", "lockfileVerified", "sources", "skills", "trust"],
   "properties": {
     "schemaVersion": { "type": "string", "const": "1.0" },
     "status": { "type": "integer", "minimum": 0 },
@@ -13,6 +13,24 @@
     "lockfileVerified": { "type": "boolean" },
     "lockfile": { "type": "string" },
     "sources": { "type": "integer", "minimum": 0 },
-    "skills": { "type": "integer", "minimum": 0 }
+    "skills": { "type": "integer", "minimum": 0 },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["totalSources", "verifiedSources", "untrustedSources", "requiredSources"],
+          "properties": {
+            "totalSources": { "type": "integer", "minimum": 0 },
+            "verifiedSources": { "type": "integer", "minimum": 0 },
+            "untrustedSources": { "type": "integer", "minimum": 0 },
+            "requiredSources": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
   }
 }

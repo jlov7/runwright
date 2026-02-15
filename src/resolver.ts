@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import type { SkillbaseManifest } from "./manifest.js";
+import { verifySourceSignature } from "./trust/signature.js";
 
 export type SkillUnit = {
   source: string;
@@ -14,6 +15,18 @@ export type SourceMetadata = {
   type: "local" | "github" | "skills.sh";
   resolvedRef: "local" | "commit" | "tag";
   resolvedValue?: string;
+  integrity?: {
+    transportDigest: string;
+    trusted: boolean;
+    verifiedAt: string;
+    required: boolean;
+    verificationError?: string;
+    signature?: {
+      keyId: string;
+      algorithm: "ed25519";
+      value: string;
+    };
+  };
 };
 
 export type ResolutionResult = {
@@ -27,6 +40,12 @@ export type RemoteResolution = {
   resolvedRef: "commit" | "tag";
   resolvedValue: string;
   forcedPick?: string;
+  transportDigest?: string;
+  signature?: {
+    keyId: string;
+    algorithm: "ed25519";
+    value: string;
+  };
 };
 
 export type RemoteResolver = (source: string, cwd: string) => RemoteResolution;
@@ -35,6 +54,140 @@ type ResolverCacheEntry = {
   fetchedAt: string;
   resolution: RemoteResolution;
 };
+
+const SHA256_DIGEST_REGEX = /^sha256:[a-f0-9]{64}$/;
+
+export class TrustVerificationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TrustVerificationError";
+  }
+}
+
+function walkFiles(rootPath: string): string[] {
+  const output: string[] = [];
+  const queue = [rootPath];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (!current) continue;
+    const entries = readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (entry.name === ".git" || entry.name === "node_modules") continue;
+      const fullPath = join(current, entry.name);
+      if (entry.isDirectory()) queue.push(fullPath);
+      else if (entry.isFile()) output.push(fullPath);
+    }
+  }
+  return output.sort((left, right) => left.localeCompare(right));
+}
+
+function computeTransportDigest(rootPath: string): string {
+  const hash = createHash("sha256");
+  for (const filePath of walkFiles(rootPath)) {
+    const rel = relative(rootPath, filePath).replaceAll("\\", "/");
+    hash.update(`path:${rel}\n`);
+    hash.update(readFileSync(filePath));
+    hash.update("\n");
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
+
+type TrustRule = NonNullable<NonNullable<NonNullable<SkillbaseManifest["defaults"]>["trust"]>["rules"]>[number];
+
+function resolveTrustRule(manifest: SkillbaseManifest, source: string): TrustRule | undefined {
+  return manifest.defaults?.trust?.rules?.find((rule) => rule.source === source);
+}
+
+function resolveSourceIntegrity(
+  manifest: SkillbaseManifest,
+  source: string,
+  remote: RemoteResolution
+): SourceMetadata["integrity"] | undefined {
+  const trustConfig = manifest.defaults?.trust;
+  const trustMode = trustConfig?.mode ?? "off";
+  const hasSignature = Boolean(remote.signature);
+  if (trustMode === "off" && !hasSignature) return undefined;
+
+  const transportDigest = remote.transportDigest ?? computeTransportDigest(remote.rootPath);
+  if (!SHA256_DIGEST_REGEX.test(transportDigest)) {
+    throw new Error(`Invalid transport digest for ${source}`);
+  }
+  const rule = resolveTrustRule(manifest, source);
+  const required = trustMode === "required" || (rule?.requiredSignatures ?? 0) > 0;
+  const trustedKeys = new Map((trustConfig?.keys ?? []).map((key) => [key.id, key.publicKey]));
+  const allowedKeyIds = rule?.keyIds && rule.keyIds.length > 0 ? new Set(rule.keyIds) : undefined;
+  const verifiedAt = new Date().toISOString();
+
+  if (!remote.signature) {
+    if (required) throw new TrustVerificationError(`Trust verification failed for ${source}: signature is required`);
+    return {
+      transportDigest,
+      trusted: false,
+      verifiedAt,
+      required,
+      verificationError: "missing signature"
+    };
+  }
+
+  const signature = remote.signature;
+  if (allowedKeyIds && !allowedKeyIds.has(signature.keyId)) {
+    if (required) {
+      throw new TrustVerificationError(`Trust verification failed for ${source}: key '${signature.keyId}' is not allowed`);
+    }
+    return {
+      transportDigest,
+      trusted: false,
+      verifiedAt,
+      required,
+      verificationError: `key '${signature.keyId}' is not allowed`,
+      signature
+    };
+  }
+
+  const publicKeyPem = trustedKeys.get(signature.keyId);
+  if (!publicKeyPem) {
+    if (required) {
+      throw new TrustVerificationError(`Trust verification failed for ${source}: unknown key '${signature.keyId}'`);
+    }
+    return {
+      transportDigest,
+      trusted: false,
+      verifiedAt,
+      required,
+      verificationError: `unknown key '${signature.keyId}'`,
+      signature
+    };
+  }
+
+  const verified = verifySourceSignature({
+    digest: transportDigest,
+    algorithm: signature.algorithm,
+    keyId: signature.keyId,
+    signature: signature.value,
+    publicKeyPem
+  });
+  if (!verified.ok) {
+    if (required) {
+      throw new TrustVerificationError(`Trust verification failed for ${source}: ${verified.reason}`);
+    }
+    return {
+      transportDigest,
+      trusted: false,
+      verifiedAt,
+      required,
+      verificationError: verified.reason,
+      signature
+    };
+  }
+
+  return {
+    transportDigest,
+    trusted: true,
+    verifiedAt,
+    required,
+    signature
+  };
+}
 
 function cacheFilenameForSource(source: string): string {
   const sanitized = source.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 120) || "source";
@@ -158,6 +311,20 @@ function validateRemoteResolutionForSource(source: string, cwd: string, resoluti
   if (typeof resolution.rootPath !== "string" || resolution.rootPath.trim().length === 0) {
     throw new Error(`Resolved remote root path is invalid for ${source}`);
   }
+  if (resolution.transportDigest !== undefined && !SHA256_DIGEST_REGEX.test(resolution.transportDigest)) {
+    throw new Error(`Resolved remote transport digest is invalid for ${source}`);
+  }
+  if (resolution.signature) {
+    if (typeof resolution.signature.keyId !== "string" || resolution.signature.keyId.trim().length === 0) {
+      throw new Error(`Resolved signature key id is invalid for ${source}`);
+    }
+    if (resolution.signature.algorithm !== "ed25519") {
+      throw new Error(`Resolved signature algorithm is invalid for ${source}`);
+    }
+    if (typeof resolution.signature.value !== "string" || resolution.signature.value.trim().length === 0) {
+      throw new Error(`Resolved signature value is invalid for ${source}`);
+    }
+  }
   const rootPath = resolve(resolution.rootPath);
   if (resolution.type !== expected.type) {
     throw new Error(`Resolved remote source type mismatch for ${source}`);
@@ -175,7 +342,9 @@ function validateRemoteResolutionForSource(source: string, cwd: string, resoluti
     type: resolution.type,
     resolvedRef: resolution.resolvedRef,
     resolvedValue: resolution.resolvedValue,
-    ...(resolution.forcedPick ? { forcedPick: resolution.forcedPick } : {})
+    ...(resolution.forcedPick ? { forcedPick: resolution.forcedPick } : {}),
+    ...(resolution.transportDigest ? { transportDigest: resolution.transportDigest } : {}),
+    ...(resolution.signature ? { signature: resolution.signature } : {})
   };
 }
 
@@ -275,10 +444,12 @@ export function resolveSkillUnits(
 
     const effectivePicks = ref.pick && ref.pick.length > 0 ? ref.pick : remote.forcedPick ? [remote.forcedPick] : undefined;
     const dirs = collectSkillDirs(remote.rootPath, effectivePicks);
+    const integrity = resolveSourceIntegrity(manifest, ref.source, remote);
     sourceMetadata[ref.source] = {
       type: remote.type,
       resolvedRef: remote.resolvedRef,
-      resolvedValue: remote.resolvedValue
+      resolvedValue: remote.resolvedValue,
+      ...(integrity ? { integrity } : {})
     };
     for (const dir of dirs) {
       const key = `${ref.source}::${dir}`;

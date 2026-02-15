@@ -18,6 +18,9 @@ function isValidSecurityRuleId(value: string): boolean {
 }
 
 const SeverityOverrideValue = z.enum(["high", "medium"]);
+const TrustMode = z.enum(["off", "optional", "required"]);
+const TrustAlgorithm = z.enum(["ed25519"]);
+const PolicyAction = z.enum(["allow", "warn", "deny"]);
 
 const ScanAllowlistEntrySchema = z
   .object({
@@ -74,6 +77,70 @@ const DefaultsSchema = z
             }
           }),
         allowlist: z.array(ScanAllowlistEntrySchema).optional()
+      })
+      .optional(),
+    trust: z
+      .object({
+        mode: TrustMode.optional(),
+        keys: z
+          .array(
+            z
+              .object({
+                id: z.string().min(1),
+                algorithm: TrustAlgorithm,
+                publicKey: z.string().min(1)
+              })
+              .strict()
+          )
+          .optional()
+          .refine((keys) => (keys ? new Set(keys.map((key) => key.id)).size === keys.length : true), {
+            message: "trust keys must have unique ids"
+          }),
+        rules: z
+          .array(
+            z
+              .object({
+                source: z.string().refine(isValidSource, {
+                  message: "source must be owner/repo, https://skills.sh/... or local:<path>"
+                }),
+                requiredSignatures: z.number().int().min(1).optional(),
+                keyIds: z
+                  .array(z.string().min(1))
+                  .optional()
+                  .refine((ids) => (ids ? new Set(ids).size === ids.length : true), {
+                    message: "keyIds entries must be unique"
+                  })
+              })
+              .strict()
+          )
+          .optional()
+      }),
+    policy: z
+      .object({
+        rules: z
+          .array(
+            z
+              .object({
+                id: z.string().min(1),
+                description: z.string().min(1).optional(),
+                when: z
+                  .object({
+                    hasUntrustedSources: z.boolean().optional(),
+                    minHighFindings: z.number().int().min(0).optional(),
+                    minMediumFindings: z.number().int().min(0).optional(),
+                    hasExpiredAllowlist: z.boolean().optional(),
+                    hasUnresolvedAllowlist: z.boolean().optional()
+                  })
+                  .strict(),
+                action: PolicyAction,
+                message: z.string().min(1)
+              })
+              .strict()
+          )
+          .optional()
+          .refine((rules) => (rules ? new Set(rules.map((rule) => rule.id)).size === rules.length : true), {
+            message: "policy rules must have unique ids"
+          })
       })
       .optional()
   })
@@ -150,6 +217,20 @@ const ManifestSchema = z
           message: `apply.useSkillsets references missing skillset '${skillset}'`,
           path: ["apply", "useSkillsets"]
         });
+      }
+    }
+
+    const configuredTrustKeyIds = new Set((manifest.defaults?.trust?.keys ?? []).map((key) => key.id));
+    for (const [ruleIndex, rule] of (manifest.defaults?.trust?.rules ?? []).entries()) {
+      if (!rule.keyIds) continue;
+      for (const keyId of rule.keyIds) {
+        if (!configuredTrustKeyIds.has(keyId)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `defaults.trust.rules[${ruleIndex}] references unknown key id '${keyId}'`,
+            path: ["defaults", "trust", "rules", ruleIndex, "keyIds"]
+          });
+        }
       }
     }
   });

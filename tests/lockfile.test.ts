@@ -119,6 +119,22 @@ describe("lockfile", () => {
     expect(indexA).toBeLessThan(indexB);
   });
 
+  it("builds lockfile version 2 with integrity support", () => {
+    const lockfile = buildLockfileFromSources(
+      [
+        {
+          source: "local:./skills",
+          type: "local",
+          resolvedRef: "local",
+          skills: [{ name: "demo", digest: VALID_DIGEST_A, path: "/tmp/demo" }]
+        }
+      ],
+      "2026-02-13T00:00:00.000Z"
+    );
+
+    expect(lockfile.version).toBe(2);
+  });
+
   it("round-trips read and write", () => {
     const lockPath = join(makeTempDir("skillbase-lockfile-roundtrip-"), "skillbase.lock.json");
     const lockfile = buildLockfileFromSources(
@@ -169,6 +185,38 @@ describe("lockfile", () => {
     expect(loaded.sources["https://skills.sh/acme/bundle"]?.type).toBe("skills.sh");
     expect(loaded.sources["https://skills.sh/acme/bundle"]?.resolved.ref).toBe("tag");
     expect(Object.keys(loaded.sources["https://skills.sh/acme/bundle"]?.skills ?? {})).toEqual(["skills-sh"]);
+  });
+
+  it("round-trips lockfile source integrity metadata", () => {
+    const lockPath = join(makeTempDir("skillbase-lockfile-trust-roundtrip-"), "skillbase.lock.json");
+    const lockfile = buildLockfileFromSources(
+      [
+        {
+          source: "acme/secure",
+          type: "github",
+          resolvedRef: "commit",
+          resolvedValue: "deadbeef",
+          integrity: {
+            transportDigest: VALID_DIGEST_C,
+            trusted: true,
+            verifiedAt: "2026-02-15T00:00:00.000Z",
+            signature: {
+              keyId: "release-key",
+              algorithm: "ed25519",
+              value: Buffer.from("sig").toString("base64")
+            }
+          },
+          skills: [{ name: "secure-skill", digest: VALID_DIGEST_A, path: "/tmp/secure-skill" }]
+        }
+      ],
+      "2026-02-13T00:00:00.000Z"
+    );
+
+    writeLockfile(lockPath, lockfile);
+    const loaded = readLockfile(lockPath);
+    expect(loaded.sources["acme/secure"]?.integrity?.trusted).toBe(true);
+    expect(loaded.sources["acme/secure"]?.integrity?.signature?.keyId).toBe("release-key");
+    expect(loaded.sources["acme/secure"]?.integrity?.transportDigest).toBe(VALID_DIGEST_C);
   });
 
   it("rejects lockfile with invalid digest format", () => {

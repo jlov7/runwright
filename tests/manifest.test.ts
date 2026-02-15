@@ -169,6 +169,90 @@ defaults:
     ]);
   });
 
+  it("accepts defaults.trust with keys and source rules", () => {
+    const raw = `
+version: 1
+defaults:
+  trust:
+    mode: required
+    keys:
+      - id: release-key
+        algorithm: ed25519
+        publicKey: |
+          -----BEGIN PUBLIC KEY-----
+          MCowBQYDK2VwAyEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          -----END PUBLIC KEY-----
+    rules:
+      - source: acme/repo
+        requiredSignatures: 1
+        keyIds: [release-key]
+skillsets:
+  base:
+    skills:
+      - source: acme/repo
+apply:
+  useSkillsets: [base]
+`;
+    const manifest = parseManifest(raw, { filename: "runwright.yml" });
+    expect(manifest.defaults?.trust?.mode).toBe("required");
+    expect(manifest.defaults?.trust?.keys?.[0]?.id).toBe("release-key");
+    expect(manifest.defaults?.trust?.rules?.[0]?.source).toBe("acme/repo");
+  });
+
+  it("rejects defaults.trust rules referencing unknown key ids", () => {
+    const raw = `
+version: 1
+defaults:
+  trust:
+    mode: required
+    keys:
+      - id: release-key
+        algorithm: ed25519
+        publicKey: test
+    rules:
+      - source: acme/repo
+        requiredSignatures: 1
+        keyIds: [missing-key]
+`;
+    expect(() => parseManifest(raw, { filename: "runwright.yml" })).toThrow(/keyIds/);
+  });
+
+  it("accepts defaults.policy rules", () => {
+    const raw = `
+version: 1
+defaults:
+  policy:
+    rules:
+      - id: deny-unresolved
+        when:
+          hasUnresolvedAllowlist: true
+        action: deny
+        message: Resolve allowlist entries before release.
+`;
+    const manifest = parseManifest(raw, { filename: "runwright.yml" });
+    expect(manifest.defaults?.policy?.rules?.[0]?.id).toBe("deny-unresolved");
+  });
+
+  it("rejects duplicate defaults.policy rule ids", () => {
+    const raw = `
+version: 1
+defaults:
+  policy:
+    rules:
+      - id: duplicate
+        when:
+          hasUnresolvedAllowlist: true
+        action: deny
+        message: one
+      - id: duplicate
+        when:
+          hasExpiredAllowlist: true
+        action: warn
+        message: two
+`;
+    expect(() => parseManifest(raw, { filename: "runwright.yml" })).toThrow(/policy rules must have unique ids/);
+  });
+
   it("rejects invalid defaults.scan.severityOverrides rule IDs", () => {
     const raw = `
 version: 1

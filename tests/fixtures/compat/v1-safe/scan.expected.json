@@ -7,6 +7,14 @@
     "severityOverrides": {},
     "allowlist": []
   },
+  "trust": {
+    "summary": {
+      "totalSources": 1,
+      "verifiedSources": 0,
+      "untrustedSources": 0,
+      "requiredSources": 0
+    }
+  },
   "summary": {
     "skills": 1,
     "lintIssues": 0,

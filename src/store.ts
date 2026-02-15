@@ -49,6 +49,7 @@ export function materializeSkillsToStore(
       resolvedRef: sourceMeta.resolvedRef,
       resolvedValue:
         sourceMeta.resolvedValue ?? sourceDigest(skills.map((skill) => ({ name: skill.name, digest: skill.digest }))),
+      ...(sourceMeta.integrity ? { integrity: sourceMeta.integrity } : {}),
       skills
     });
   }

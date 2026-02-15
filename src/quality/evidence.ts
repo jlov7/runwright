@@ -11,6 +11,7 @@ export type QualityEvidenceInput = {
   mutationReport?: unknown;
   minMutationScore?: number;
   sbom?: unknown;
+  policyExplain?: unknown;
 };
 
 export type QualityEvidenceCheck = {
@@ -144,6 +145,31 @@ function sbomCheck(sbom: unknown): { check: QualityEvidenceCheck; components: nu
   };
 }
 
+function policyExplainCheck(policyExplain: unknown): QualityEvidenceCheck {
+  const record = asRecord(policyExplain);
+  if (!record) {
+    return { name: "policy.explain.valid", ok: false, detail: "policy explain artifact is not an object" };
+  }
+
+  const schemaOk = record.schemaVersion === "1.0";
+  const policyRecord = asRecord(record.policy);
+  const trace = policyRecord?.trace;
+  const traceOk = Array.isArray(trace);
+
+  if (!schemaOk) {
+    return {
+      name: "policy.explain.valid",
+      ok: false,
+      detail: `schemaVersion is ${String(record.schemaVersion ?? "unknown")}`
+    };
+  }
+  if (!traceOk) {
+    return { name: "policy.explain.valid", ok: false, detail: "policy.trace is missing or not an array" };
+  }
+
+  return { name: "policy.explain.valid", ok: true, detail: "policy explain includes trace output" };
+}
+
 export function evaluateQualityEvidence(input: QualityEvidenceInput): QualityEvidenceSummary {
   const checks: QualityEvidenceCheck[] = [];
   checks.push(...scorecardChecks(input.scorecard, input.requiredChecks, input.requireScorecardPass));
@@ -172,6 +198,10 @@ export function evaluateQualityEvidence(input: QualityEvidenceInput): QualityEvi
     const sbomResult = sbomCheck(input.sbom);
     checks.push(sbomResult.check);
     sbomComponents = sbomResult.components;
+  }
+
+  if (input.policyExplain !== undefined) {
+    checks.push(policyExplainCheck(input.policyExplain));
   }
 
   const ok = checks.every((check) => check.ok);

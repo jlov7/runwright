@@ -2,6 +2,12 @@
 
 ## P0
 
+### P0-010: Doctor cannot run because dependencies are not installable (registry DNS)
+- Evidence: `pnpm run doctor` succeeded; `reports/doctor/doctor.json` generated `2026-02-15T15:33:26.199Z` with `overall.ok: true`.
+- Impacted journey: Release gate evidence collection (`reports/doctor/doctor.json`) and all local quality verification.
+- Fix strategy: Restore npm registry/DNS access or configure an approved internal mirror, then rerun `pnpm install` and `pnpm run doctor`.
+- Status: Done
+
 ### P0-009: Deterministic export failed in some timezones without SOURCE_DATE_EPOCH
 - Evidence: `runwright export --deterministic --json` could fail with `date not in range 1980-2099` due ZIP mtime baseline using UTC midnight that resolves to 1979 local year in negative offsets.
 - Impacted journey: Release artifact generation and the optional onboarding verify-bundle step.

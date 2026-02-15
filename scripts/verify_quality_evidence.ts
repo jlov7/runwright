@@ -9,6 +9,7 @@ type ParsedArgs = {
   mutationReportPath?: string;
   minMutationScore?: number;
   sbomPath?: string;
+  policyExplainPath?: string;
   requireChecks: string[];
   requireScorecardPass: boolean;
   outPath: string;
@@ -32,6 +33,7 @@ function renderUsage(): string {
     "  --mutation-report <path>    Optional mutation report JSON path",
     "  --min-mutation-score <num>  Optional minimum mutation score threshold",
     "  --sbom <path>               Optional SBOM JSON path",
+    "  --policy-explain <path>     Optional policy explain JSON path",
     "  --out <path>                Output verification JSON path (default: reports/quality/evidence-verification.json)",
     "  --help, -h                  Show this help message"
   ].join("\n");
@@ -77,6 +79,11 @@ function parseArgs(argv: string[]): ParsedArgs {
     }
     if (token === "--sbom") {
       parsed.sbomPath = readRequiredArgValue(argv, index, "--sbom");
+      index += 1;
+      continue;
+    }
+    if (token === "--policy-explain") {
+      parsed.policyExplainPath = readRequiredArgValue(argv, index, "--policy-explain");
       index += 1;
       continue;
     }
@@ -131,6 +138,7 @@ function main(): void {
   const scorecard = readJson(resolve(args.scorecardPath));
   const mutationReport = args.mutationReportPath ? readJson(resolve(args.mutationReportPath)) : undefined;
   const sbom = args.sbomPath ? readJson(resolve(args.sbomPath)) : undefined;
+  const policyExplain = args.policyExplainPath ? readJson(resolve(args.policyExplainPath)) : undefined;
 
   const summary = evaluateQualityEvidence({
     scorecard,
@@ -138,7 +146,8 @@ function main(): void {
     requireScorecardPass: args.requireScorecardPass,
     mutationReport,
     minMutationScore: args.minMutationScore,
-    sbom
+    sbom,
+    policyExplain
   });
 
   const outPath = resolve(args.outPath);

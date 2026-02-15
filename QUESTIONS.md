@@ -24,3 +24,9 @@
 - Latest verification attempt (2026-02-15): Workflow history still shows latest reruns failing with zero executed steps; affected job IDs include `63641142163`, `63641142175`, `63641142179`, and `63641142329`.
 - Current assumption: Treat this as an external platform blocker; continue local gap loop and anchor release evidence to the last known-good CI head until service recovers.
 - Status: Open
+
+## Q5: npm registry/DNS access for dependency installs
+- Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
+- Why it matters: `pnpm install` currently fails with `ENOTFOUND registry.npmjs.org`, preventing `pnpm run doctor` and all local release gate evidence.
+- Latest verification attempt (2026-02-15): `pnpm run doctor` failed due to missing `tsx`; `pnpm install` failed with `ENOTFOUND registry.npmjs.org`.
+- Status: Open

@@ -7,6 +7,7 @@
   "required": [
     "schemaVersion",
     "policy",
+    "trust",
     "summary",
     "issues",
     "findings",
@@ -14,6 +15,24 @@
   ],
   "properties": {
     "schemaVersion": { "type": "string", "const": "1.0" },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["totalSources", "verifiedSources", "untrustedSources", "requiredSources"],
+          "properties": {
+            "totalSources": { "type": "integer", "minimum": 0 },
+            "verifiedSources": { "type": "integer", "minimum": 0 },
+            "untrustedSources": { "type": "integer", "minimum": 0 },
+            "requiredSources": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
     "policy": {
       "type": "object",
       "additionalProperties": false,

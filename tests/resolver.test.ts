@@ -1,6 +1,7 @@
 import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { generateKeyPairSync, sign as signData } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseManifest } from "../src/manifest.js";
 import { resolveSkillUnits } from "../src/resolver.js";
@@ -73,6 +74,104 @@ describe("resolver", () => {
       resolvedRef: "commit",
       resolvedValue: "abc123"
     });
+  });
+
+  it("fails required trust verification when remote signature is missing", () => {
+    const projectDir = makeTempDir("skillbase-resolver-required-trust-");
+    const remoteRoot = remoteStoreRoot(projectDir, "github", "acme", "repo", "abc123");
+    mkdirSync(join(remoteRoot, "skill-a"), { recursive: true });
+    writeFileSync(join(remoteRoot, "skill-a", "SKILL.md"), "---\nname: skill-a\ndescription: a\n---\n", "utf8");
+
+    const manifest = parseManifest(
+      [
+        "version: 1",
+        "defaults:",
+        "  trust:",
+        "    mode: required",
+        "    keys:",
+        "      - id: release-key",
+        "        algorithm: ed25519",
+        "        publicKey: fake",
+        "skillsets:",
+        "  base:",
+        "    skills:",
+        "      - source: acme/repo",
+        "apply:",
+        "  useSkillsets: [base]",
+        ""
+      ].join("\n"),
+      { filename: "runwright.yml" }
+    );
+
+    expect(() =>
+      resolveSkillUnits(manifest, projectDir, {
+        remoteResolver: () => ({
+          rootPath: remoteRoot,
+          type: "github",
+          resolvedRef: "commit",
+          resolvedValue: "abc123"
+        })
+      })
+    ).toThrow(/signature/i);
+  });
+
+  it("marks remote source trusted when signature verifies", () => {
+    const projectDir = makeTempDir("skillbase-resolver-trusted-");
+    const remoteRoot = remoteStoreRoot(projectDir, "github", "acme", "repo", "trusted-sha");
+    mkdirSync(join(remoteRoot, "skill-a"), { recursive: true });
+    writeFileSync(join(remoteRoot, "skill-a", "SKILL.md"), "---\nname: skill-a\ndescription: a\n---\n", "utf8");
+
+    const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+    const transportDigest = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const signature = signData(null, Buffer.from(transportDigest, "utf8"), privateKey).toString("base64");
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
+
+    const manifest = parseManifest(
+      [
+        "version: 1",
+        "defaults:",
+        "  trust:",
+        "    mode: required",
+        "    keys:",
+        "      - id: release-key",
+        "        algorithm: ed25519",
+        "        publicKey: |",
+        ...publicKeyPem
+          .split("\n")
+          .filter((line) => line.length > 0)
+          .map((line) => `          ${line}`),
+        "    rules:",
+        "      - source: acme/repo",
+        "        requiredSignatures: 1",
+        "        keyIds: [release-key]",
+        "skillsets:",
+        "  base:",
+        "    skills:",
+        "      - source: acme/repo",
+        "apply:",
+        "  useSkillsets: [base]",
+        ""
+      ].join("\n"),
+      { filename: "runwright.yml" }
+    );
+
+    const result = resolveSkillUnits(manifest, projectDir, {
+      remoteResolver: () => ({
+        rootPath: remoteRoot,
+        type: "github",
+        resolvedRef: "commit",
+        resolvedValue: "trusted-sha",
+        transportDigest,
+        signature: {
+          keyId: "release-key",
+          algorithm: "ed25519",
+          value: signature
+        }
+      })
+    });
+
+    expect(result.sourceMetadata["acme/repo"]?.integrity?.trusted).toBe(true);
+    expect(result.sourceMetadata["acme/repo"]?.integrity?.signature?.keyId).toBe("release-key");
   });
 
   it("uses forced pick from remote resolver when manifest pick is absent", () => {

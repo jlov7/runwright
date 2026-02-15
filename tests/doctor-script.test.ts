@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -59,6 +59,57 @@ describe("doctor script", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Missing value for --out");
+  });
+
+  it("writes policy explain artifact when manifest exists", () => {
+    const dir = makeTempDir("runwright-doctor-policy-");
+    mkdirSync(join(dir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(dir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(dir, "runwright.yml"),
+      [
+        "version: 1",
+        "defaults:",
+        "  policy:",
+        "    rules:",
+        "      - id: warn-clean",
+        "        when:",
+        "          hasUntrustedSources: false",
+        "        action: warn",
+        "        message: clean trust state",
+        "skillsets:",
+        "  base:",
+        "    skills:",
+        "      - source: local:./skills",
+        "apply:",
+        "  useSkillsets: [base]",
+        ""
+      ].join("\n"),
+      "utf8"
+    );
+
+    const outPath = join(dir, "doctor.json");
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/doctor.ts",
+      args: ["--out", outPath, "--only", "policy:explain"],
+      cwd: dir
+    });
+
+    expect(result.status).toBe(0);
+    const report = JSON.parse(readFileSync(outPath, "utf8")) as {
+      checks: Array<{ id: string; ok: boolean; status: number }>;
+    };
+    expect(report.checks[0]?.id).toBe("policy:explain");
+    expect(report.checks[0]?.ok).toBe(true);
+    expect(report.checks[0]?.status).toBe(0);
+    const explainPath = join(dir, "reports", "policy", "policy-explain.json");
+    expect(existsSync(explainPath)).toBe(true);
+    const explain = JSON.parse(readFileSync(explainPath, "utf8")) as { policy?: { trace?: unknown[] } };
+    expect(Array.isArray(explain.policy?.trace)).toBe(true);
   });
 
   it("fails on unknown arguments", () => {

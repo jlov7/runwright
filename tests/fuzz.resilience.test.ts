@@ -73,7 +73,7 @@ describe("fuzz resilience", () => {
       writeFileSync(lockfilePath, randomText(rng, 0, 700), "utf8");
       try {
         const lockfile = readLockfile(lockfilePath);
-        expect(lockfile.version).toBe(1);
+        expect([1, 2]).toContain(lockfile.version);
         expect(typeof lockfile.generatedAt).toBe("string");
       } catch (error) {
         expect(error).toBeInstanceOf(Error);

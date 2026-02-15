@@ -4,7 +4,7 @@
   "title": "Skillbase Apply JSON Output",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "status", "dryRun", "scanned", "operations", "summary"],
+  "required": ["schemaVersion", "status", "dryRun", "scanned", "operations", "summary", "trustSummary"],
   "properties": {
     "schemaVersion": { "type": "string", "const": "1.0" },
     "status": { "type": "integer", "minimum": 0 },
@@ -36,6 +36,17 @@
         "highFindings": { "type": "integer", "minimum": 0 },
         "mediumFindings": { "type": "integer", "minimum": 0 },
         "suppressedFindings": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "trustSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalSources", "verifiedSources", "untrustedSources", "requiredSources"],
+      "properties": {
+        "totalSources": { "type": "integer", "minimum": 0 },
+        "verifiedSources": { "type": "integer", "minimum": 0 },
+        "untrustedSources": { "type": "integer", "minimum": 0 },
+        "requiredSources": { "type": "integer", "minimum": 0 }
       }
     }
   }

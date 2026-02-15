@@ -21,6 +21,7 @@ Runwright gives teams one reproducible path to:
 - scan for risky instructions before install
 - apply consistently across tools and machines
 - export and verify release bundles with integrity checks
+- verify signed sources with explicit trust policies
 
 ## Why Teams Use It
 
@@ -59,6 +60,8 @@ pnpm tsx src/cli.ts help
 pnpm tsx src/cli.ts journey
 pnpm tsx src/cli.ts update --json
 pnpm tsx src/cli.ts scan --format json
+pnpm tsx src/cli.ts policy check --explain --json
+pnpm tsx src/cli.ts fix --plan --json
 pnpm tsx src/cli.ts apply --target all --scope project --mode copy --dry-run --json
 ```
 
@@ -125,6 +128,8 @@ Compatibility note:
 | Create starter manifest | `runwright init` |
 | Resolve and lock sources | `runwright update --json` |
 | Run lint/security checks | `runwright scan --format json` |
+| Explain policy decisions | `runwright policy check --explain --json` |
+| Plan safe remediations | `runwright fix --plan --json` |
 | Validate install plan | `runwright apply --dry-run --json` |
 | Install to targets | `runwright apply --target all --scope project --mode copy --json` |
 | Package release bundle | `runwright export --out runwright-release.zip --deterministic --json` |

@@ -1,9 +1,9 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-type DoctorCheckId = "lint" | "typecheck" | "test" | "build" | "audit:deps";
+type DoctorCheckId = "lint" | "typecheck" | "test" | "build" | "audit:deps" | "policy:explain";
 
 type DoctorCheck = {
   id: DoctorCheckId;
@@ -43,13 +43,24 @@ type ParsedArgs = {
 };
 
 const PNPM_COMMAND = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const NODE_COMMAND = process.execPath;
+const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const TSX_CLI_PATH = resolve(PROJECT_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
+const RUNWRIGHT_CLI_PATH = resolve(PROJECT_ROOT, "src", "cli.ts");
+const MANIFEST_FILENAMES = ["runwright.yml", "runwright.json", "skillbase.yml", "skillbase.json"];
+const POLICY_EXPLAIN_ARTIFACT = "reports/policy/policy-explain.json";
 
 const DEFAULT_CHECKS: DoctorCheck[] = [
   { id: "lint", command: PNPM_COMMAND, args: ["run", "lint"] },
   { id: "typecheck", command: PNPM_COMMAND, args: ["run", "typecheck"] },
   { id: "test", command: PNPM_COMMAND, args: ["run", "test"] },
   { id: "build", command: PNPM_COMMAND, args: ["run", "build"] },
-  { id: "audit:deps", command: PNPM_COMMAND, args: ["run", "audit:deps"] }
+  { id: "audit:deps", command: PNPM_COMMAND, args: ["run", "audit:deps"] },
+  {
+    id: "policy:explain",
+    command: NODE_COMMAND,
+    args: [TSX_CLI_PATH, RUNWRIGHT_CLI_PATH, "policy", "check", "--explain", "--json"]
+  }
 ];
 
 function hasHelpFlag(argv: string[]): boolean {
@@ -120,6 +131,10 @@ function parseMockStatus(raw: string | undefined): number | null {
   return parsed;
 }
 
+function manifestExists(cwd: string): boolean {
+  return MANIFEST_FILENAMES.some((filename) => existsSync(resolve(cwd, filename)));
+}
+
 function selectChecks(checks: DoctorCheck[], args: ParsedArgs): DoctorCheck[] {
   const known = new Set(checks.map((check) => check.id));
   for (const value of [...args.only, ...args.skip]) {
@@ -176,6 +191,73 @@ function writeJson(path: string, payload: unknown): void {
   writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 }
 
+function runPolicyExplainCheck(check: DoctorCheck, mockStatus: number | null, cwd: string): DoctorCheckResult {
+  const startedAt = Date.now();
+  if (!manifestExists(cwd)) {
+    return {
+      id: check.id,
+      command: check.command,
+      args: check.args,
+      status: 0,
+      ok: true,
+      durationMs: Date.now() - startedAt,
+      stdout: "Skipped policy:explain (no manifest found)",
+      stderr: ""
+    };
+  }
+
+  if (typeof mockStatus === "number") {
+    return {
+      id: check.id,
+      command: check.command,
+      args: check.args,
+      status: mockStatus,
+      ok: mockStatus === 0,
+      durationMs: Date.now() - startedAt,
+      stdout: `[mock] ${check.command} ${check.args.join(" ")}`,
+      stderr: ""
+    };
+  }
+
+  const result = spawnSync(check.command, check.args, {
+    cwd,
+    encoding: "utf8"
+  });
+  const status = result.status ?? 1;
+  const stdout = result.stdout;
+  const stderr = result.stderr;
+
+  let payload: unknown | null = null;
+  let parseError: string | null = null;
+  if (stdout.trim().length > 0) {
+    try {
+      payload = JSON.parse(stdout) as unknown;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      parseError = `Unable to parse policy explain JSON: ${message}`;
+    }
+  } else {
+    parseError = "Policy explain command returned empty output";
+  }
+
+  if (payload) {
+    const outPath = resolve(cwd, POLICY_EXPLAIN_ARTIFACT);
+    writeJson(outPath, payload);
+  }
+
+  const combinedStderr = parseError ? [stderr, parseError].filter(Boolean).join("\n") : stderr;
+  return {
+    id: check.id,
+    command: check.command,
+    args: check.args,
+    status,
+    ok: status === 0 && !parseError,
+    durationMs: Date.now() - startedAt,
+    stdout,
+    stderr: combinedStderr
+  };
+}
+
 function main(): void {
   if (hasHelpFlag(process.argv)) {
     process.stdout.write(`${renderUsage()}\n`);
@@ -187,7 +269,9 @@ function main(): void {
   const mockStatus = parseMockStatus(process.env.RUNWRIGHT_DOCTOR_MOCK_STATUS);
 
   const runStartedAt = Date.now();
-  const results = checks.map((check) => runCheck(check, mockStatus));
+  const results = checks.map((check) =>
+    check.id === "policy:explain" ? runPolicyExplainCheck(check, mockStatus, process.cwd()) : runCheck(check, mockStatus)
+  );
 
   const succeeded = results.filter((result) => result.ok).length;
   const failed = results.length - succeeded;

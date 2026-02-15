@@ -23,6 +23,24 @@ const LockfileSkillSchema = z
   })
   .strict();
 
+const LockfileIntegritySchema = z
+  .object({
+    transportDigest: z.string().regex(SHA256_DIGEST_REGEX, "transportDigest must be sha256:<64 hex chars>"),
+    trusted: z.boolean(),
+    verifiedAt: z.string().refine(isValidTimestamp, "verifiedAt must be a valid timestamp"),
+    required: z.boolean().optional(),
+    verificationError: z.string().min(1).optional(),
+    signature: z
+      .object({
+        keyId: z.string().min(1),
+        algorithm: z.literal("ed25519"),
+        value: z.string().min(1)
+      })
+      .strict()
+      .optional()
+  })
+  .strict();
+
 const LockfileSourceSchema = z
   .object({
     type: z.enum(["local", "github", "skills.sh"]),
@@ -32,7 +50,8 @@ const LockfileSourceSchema = z
         value: z.string().min(1)
       })
       .strict(),
-    skills: z.record(z.string().min(1), LockfileSkillSchema)
+    skills: z.record(z.string().min(1), LockfileSkillSchema),
+    integrity: LockfileIntegritySchema.optional()
   })
   .strict()
   .superRefine((source, ctx) => {
@@ -58,7 +77,7 @@ const LockfileSourceSchema = z
 
 const LockfileSchema = z
   .object({
-    version: z.literal(1),
+    version: z.union([z.literal(1), z.literal(2)]),
     generatedAt: z.string().refine(isValidTimestamp, "generatedAt must be a valid timestamp"),
     sources: z.record(z.string().min(1), LockfileSourceSchema)
   })
@@ -119,6 +138,7 @@ export type ResolvedSourceForLockfile = {
   type: "local" | "github" | "skills.sh";
   resolvedRef: "local" | "commit" | "tag";
   resolvedValue?: string;
+  integrity?: z.infer<typeof LockfileIntegritySchema>;
   skills: Array<{ name: string; digest: string; path: string }>;
 };
 
@@ -187,11 +207,12 @@ export function buildLockfileFromSources(
     sourceMap[sourceEntry.source] = {
       type: sourceEntry.type,
       resolved: { ref: sourceEntry.resolvedRef, value: sourceEntry.resolvedValue ?? sourceEntry.resolvedRef },
-      skills: skillsMap
+      skills: skillsMap,
+      ...(sourceEntry.integrity ? { integrity: sourceEntry.integrity } : {})
     };
   }
 
-  return { version: 1, generatedAt, sources: sourceMap };
+  return { version: 2, generatedAt, sources: sourceMap };
 }
 
 export function writeLockfile(lockPath: string, lockfile: SkillbaseLockfile): void {

@@ -38,9 +38,11 @@ import {
   writeLockfile
 } from "./lockfile.js";
 import { parseManifest, type SkillbaseManifest } from "./manifest.js";
+import { evaluatePolicyRules } from "./policy/engine.js";
+import type { PolicyContext } from "./policy/types.js";
 import { lintSkillDir } from "./scanner/lint.js";
 import { scanSkillDir, type SecurityRuleId } from "./scanner/security.js";
-import { resolveSkillUnits, type SkillUnit } from "./resolver.js";
+import { TrustVerificationError, resolveSkillUnits, type SkillUnit } from "./resolver.js";
 import { materializeSkillsToStore } from "./store.js";
 
 type TargetName = "codex" | "claude-code" | "cursor";
@@ -57,6 +59,13 @@ type ScanPolicyConfig = {
   allowRuleIds: SecurityRuleId[];
   severityOverrides: Partial<Record<SecurityRuleId, FindingSeverity>>;
   allowlist: ScanPolicyAllowlistEntry[];
+};
+
+type TrustSummary = {
+  totalSources: number;
+  verifiedSources: number;
+  untrustedSources: number;
+  requiredSources: number;
 };
 
 type ApplyOperation = {
@@ -77,6 +86,20 @@ type DoctorIssue = {
   type: "broken-symlink" | "invalid-skill" | "duplicate-skill";
   message: string;
   path?: string;
+};
+
+type FixActionType =
+  | "update-lockfile"
+  | "address-security-findings"
+  | "resolve-allowlist-entries"
+  | "resolve-policy-denies"
+  | "verify-trusted-sources";
+
+type FixAction = {
+  type: FixActionType;
+  message: string;
+  reversible: boolean;
+  target: string;
 };
 
 type ParsedArgs = {
@@ -164,8 +187,16 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   },
   policy: {
     summary: "Check manifest scan-policy exceptions and expiry health.",
-    usage: ["runwright policy check [--format text|json] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
-    examples: ["runwright policy check", "runwright policy check --json"]
+    usage: [
+      "runwright policy check [--format text|json] [--json] [--explain]",
+      "                      [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: ["runwright policy check", "runwright policy check --explain --json"]
+  },
+  fix: {
+    summary: "Plan and optionally apply safe remediations for policy/scan findings.",
+    usage: ["runwright fix [--plan] [--apply] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
+    examples: ["runwright fix --plan --json", "runwright fix --apply --json"]
   },
   list: {
     summary: "List resolved skills and effective target install paths.",
@@ -295,6 +326,13 @@ function formatCliErrorGuidance(error: CliError, failedCommand?: string): string
       }
       hints.push("Check source refs in runwright.yml (legacy skillbase.yml is also supported).");
       break;
+    case "trust-verification-failed": {
+      const refreshTarget =
+        failedCommand && COMMAND_HELP[failedCommand] ? `runwright ${failedCommand}` : "runwright scan";
+      hints.push("Review defaults.trust keys and rules in runwright.yml.");
+      hints.push(`${refreshTarget} --refresh-sources`);
+      break;
+    }
     case "bundle-verification-failed":
     case "invalid-bundle-manifest":
     case "invalid-bundle-archive":
@@ -367,6 +405,7 @@ Core commands:
   runwright doctor
   runwright scan
   runwright policy check
+  runwright fix
   runwright list
   runwright update
   runwright export
@@ -435,7 +474,8 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "refresh-sources": "boolean",
     "remote-cache-ttl": "string"
   },
-  policy: { format: "string", json: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
+  policy: { format: "string", json: "boolean", explain: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
+  fix: { plan: "boolean", apply: "boolean", json: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
   list: { json: "boolean", target: "string", scope: "string", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
   update: { "frozen-lockfile": "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string", json: "boolean" },
   export: {
@@ -619,6 +659,11 @@ function validateSemanticFlags(args: ParsedArgs): void {
     return;
   }
 
+  if (command === "fix") {
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
   if (command === "list") {
     parseTargets(getStringFlag(args, "target"));
     parseScope(getStringFlag(args, "scope"), "project");
@@ -659,10 +704,40 @@ function resolveSkillUnitsForArgs(
   try {
     return resolveSkillUnits(manifest, cwd, resolverOptionsFromArgs(args));
   } catch (error) {
+    if (
+      error instanceof TrustVerificationError ||
+      (error instanceof Error && error.message.startsWith("Trust verification failed"))
+    ) {
+      throw new CliError(error.message, 12, "trust-verification-failed");
+    }
     if (error instanceof CliError) throw error;
     const message = error instanceof Error ? error.message : String(error);
     throw new CliError(`Source resolution failed: ${message}`, 1, "source-resolution-failed");
   }
+}
+
+function summarizeTrustFromSourceMetadata(
+  sourceMetadata: ReturnType<typeof resolveSkillUnits>["sourceMetadata"]
+): TrustSummary {
+  const entries = Object.values(sourceMetadata);
+  const withIntegrity = entries.filter((entry) => entry.integrity !== undefined);
+  return {
+    totalSources: entries.length,
+    verifiedSources: withIntegrity.filter((entry) => entry.integrity?.trusted === true).length,
+    untrustedSources: withIntegrity.filter((entry) => entry.integrity?.trusted === false).length,
+    requiredSources: withIntegrity.filter((entry) => entry.integrity?.required === true).length
+  };
+}
+
+function summarizeTrustFromLockfile(lockfile: SkillbaseLockfile): TrustSummary {
+  const entries = Object.values(lockfile.sources);
+  const withIntegrity = entries.filter((entry) => entry.integrity !== undefined);
+  return {
+    totalSources: entries.length,
+    verifiedSources: withIntegrity.filter((entry) => entry.integrity?.trusted === true).length,
+    untrustedSources: withIntegrity.filter((entry) => entry.integrity?.trusted === false).length,
+    requiredSources: withIntegrity.filter((entry) => entry.integrity?.required === true).length
+  };
 }
 
 function writeJson(value: unknown): void {
@@ -1923,6 +1998,7 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   scanned: boolean;
   operations: ApplyOperation[];
   summary: { lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
+  trustSummary: TrustSummary;
   lockfileVerified?: boolean;
   reason?: string;
 } {
@@ -1958,6 +2034,7 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   }
   let lockfileVerified = false;
   let skillUnits: SkillUnit[];
+  let trustSummary: TrustSummary = { totalSources: 0, verifiedSources: 0, untrustedSources: 0, requiredSources: 0 };
   if (frozenLockfile) {
     if (!existsSync(lockPath)) {
       return {
@@ -1973,6 +2050,7 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
           mediumFindings: 0,
           suppressedFindings: 0
         },
+        trustSummary,
         lockfileVerified: false
       };
     }
@@ -1993,6 +2071,7 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
           mediumFindings: 0,
           suppressedFindings: 0
         },
+        trustSummary,
         lockfileVerified: false
       };
     }
@@ -2011,13 +2090,17 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
           mediumFindings: 0,
           suppressedFindings: 0
         },
+        trustSummary,
         lockfileVerified: false
       };
     }
     skillUnits = resolveSkillUnitsFromLockfile(lockfile);
+    trustSummary = summarizeTrustFromLockfile(lockfile);
     lockfileVerified = true;
   } else {
-    skillUnits = resolveSkillUnitsForArgs(manifest, cwd, args).units;
+    const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
+    skillUnits = resolution.units;
+    trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
   }
   assertNoDuplicateSkillNames(skillUnits);
   const scanPolicy = normalizeScanPolicy(manifest);
@@ -2043,6 +2126,7 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
         mediumFindings: scan.mediumFindings,
         suppressedFindings: scan.suppressedFindings
       },
+      trustSummary,
       lockfileVerified: frozenLockfile ? lockfileVerified : undefined
     };
   }
@@ -2091,6 +2175,7 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
         mediumFindings: scan.mediumFindings,
         suppressedFindings: scan.suppressedFindings
       },
+      trustSummary,
       lockfileVerified: frozenLockfile ? lockfileVerified : undefined
     };
   }
@@ -2106,6 +2191,7 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
       mediumFindings: scan.mediumFindings,
       suppressedFindings: scan.suppressedFindings
     },
+    trustSummary,
     lockfileVerified: frozenLockfile ? lockfileVerified : undefined
   };
 }
@@ -2119,6 +2205,7 @@ function renderApplyText(result: {
   lockfileVerified?: boolean;
   operations: ApplyOperation[];
   summary: { lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
+  trustSummary: TrustSummary;
 }): string {
   const lockfileReasonText: Record<string, string> = {
     "missing-lockfile": "No skillbase.lock.json found for frozen mode.",
@@ -2135,6 +2222,7 @@ function renderApplyText(result: {
     `- Lint issues: ${result.summary.lintIssues}`,
     `- Security findings: high=${result.summary.highFindings}, medium=${result.summary.mediumFindings}`,
     `- Suppressed findings: ${result.summary.suppressedFindings}`,
+    `- Trust summary: verified=${result.trustSummary.verifiedSources}, untrusted=${result.trustSummary.untrustedSources}, required=${result.trustSummary.requiredSources}`,
     ...(typeof result.lockfileVerified === "boolean" ? [`- Lockfile verified: ${result.lockfileVerified ? "yes" : "no"}`] : [])
   ];
 
@@ -2172,6 +2260,52 @@ function renderApplyText(result: {
   return lines.join("\n");
 }
 
+function renderFixText(result: {
+  status: number;
+  mode: "plan" | "apply";
+  applied: boolean;
+  rolledBack: boolean;
+  actions: FixAction[];
+  trust: { summary: TrustSummary };
+  summary: {
+    highFindings: number;
+    mediumFindings: number;
+    unresolvedAllowlistEntries: number;
+    deniedPolicies: number;
+  };
+}): string {
+  const lines = [
+    "Fix Summary",
+    `- Status: ${result.status}`,
+    `- Mode: ${result.mode}`,
+    `- Actions: ${result.actions.length}`,
+    `- Applied: ${result.applied ? "yes" : "no"}`,
+    `- Rolled back: ${result.rolledBack ? "yes" : "no"}`,
+    `- Security findings: high=${result.summary.highFindings}, medium=${result.summary.mediumFindings}`,
+    `- Allowlist unresolved: ${result.summary.unresolvedAllowlistEntries}`,
+    `- Policy denies: ${result.summary.deniedPolicies}`,
+    `- Trust summary: verified=${result.trust.summary.verifiedSources}, untrusted=${result.trust.summary.untrustedSources}`
+  ];
+
+  if (result.actions.length > 0) {
+    lines.push("", "Planned actions:");
+    for (const action of result.actions) {
+      lines.push(`- ${action.type}: ${action.message} (${action.reversible ? "reversible" : "manual"})`);
+    }
+  }
+
+  if (result.mode === "plan") {
+    lines.push("", "Next:", "  runwright fix --apply --json");
+  } else if (result.rolledBack) {
+    lines.push("", "Next:", "  Rollback completed. Resolve blocking issues, then rerun fix.");
+  } else {
+    lines.push("", "Next:", "  runwright update --json", "  runwright scan --format json");
+  }
+
+  lines.push("");
+  return lines.join("\n");
+}
+
 function runScan(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   status: number;
   payload: Record<string, unknown>;
@@ -2180,7 +2314,9 @@ function runScan(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   const security = parseSecurityMode(getStringFlag(args, "security"), "warn");
   const format = parseScanFormat(getStringFlag(args, "format"), getBooleanFlag(args, "json") ? "json" : "text");
   const policyDecisionsOutPath = getStringFlag(args, "policy-decisions-out");
-  const skillUnits = resolveSkillUnitsForArgs(manifest, cwd, args).units;
+  const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
+  const skillUnits = resolution.units;
+  const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
   const scanPolicy = normalizeScanPolicy(manifest);
   const scan = runSkillScans(skillUnits, { lintOnly, security, policy: scanPolicy });
   if (policyDecisionsOutPath) {
@@ -2230,6 +2366,9 @@ function runScan(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
           severityOverrides: scanPolicy.severityOverrides,
           allowlist: scanPolicy.allowlist
         },
+        trust: {
+          summary: trustSummary
+        },
         summary: {
           skills: skillUnits.length,
           lintIssues: scan.lintIssues,
@@ -2253,6 +2392,7 @@ function runScan(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
         `- Lint issues: ${scan.lintIssues}`,
         `- Security findings: high=${scan.highFindings}, medium=${scan.mediumFindings}`,
         `- Suppressed findings: ${scan.suppressedFindings}`,
+        `- Trust summary: verified=${trustSummary.verifiedSources}, untrusted=${trustSummary.untrustedSources}, required=${trustSummary.requiredSources}`,
         "",
         "Next:",
         scan.highFindings > 0 || scan.mediumFindings > 0
@@ -2282,10 +2422,12 @@ function runPolicyCheck(args: ParsedArgs, cwd: string, manifest: SkillbaseManife
   payload: Record<string, unknown>;
 } {
   const format = parsePolicyFormat(getStringFlag(args, "format"), getBooleanFlag(args, "json") ? "json" : "text");
+  const explain = getBooleanFlag(args, "explain");
   const allowlist = manifest.defaults?.scan?.allowlist ?? [];
   const configuredSources = collectConfiguredSources(manifest);
   const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
   const units = resolution.units;
+  const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
   const resolvedSources = new Set(units.map((unit) => unit.source));
   const nowMs = Date.now();
   const unresolved: PolicyCheckIssue[] = [];
@@ -2358,7 +2500,21 @@ function runPolicyCheck(args: ParsedArgs, cwd: string, manifest: SkillbaseManife
     expired,
     unresolved: unresolved.length
   };
-  const status = unresolved.length > 0 ? 2 : 0;
+  const context: PolicyContext = {
+    trust: {
+      untrustedSources: trustSummary.untrustedSources
+    },
+    scan: {
+      highFindings: 0,
+      mediumFindings: 0
+    },
+    allowlist: {
+      expired: summary.expired,
+      unresolved: summary.unresolved
+    }
+  };
+  const policyEvaluation = evaluatePolicyRules(manifest.defaults?.policy?.rules ?? [], context);
+  const status = unresolved.length > 0 || policyEvaluation.summary.deny > 0 ? 2 : 0;
 
   if (format === "json") {
     return {
@@ -2366,17 +2522,203 @@ function runPolicyCheck(args: ParsedArgs, cwd: string, manifest: SkillbaseManife
       payload: {
         schemaVersion: "1.0",
         summary,
-        unresolved
+        unresolved,
+        policy: {
+          summary: policyEvaluation.summary,
+          decisions: policyEvaluation.decisions,
+          ...(explain ? { trace: policyEvaluation.trace } : {})
+        },
+        trust: {
+          summary: trustSummary
+        }
       }
     };
   }
 
+  const textLines = [
+    `policy-check entries=${summary.entries} active=${summary.active} expired=${summary.expired} unresolved=${summary.unresolved}`,
+    `policy-rules allow=${policyEvaluation.summary.allow} warn=${policyEvaluation.summary.warn} deny=${policyEvaluation.summary.deny}`
+  ];
+  if (explain) {
+    textLines.push("", "Policy Decision Trace");
+    for (const trace of policyEvaluation.trace) {
+      textLines.push(
+        `- ${trace.ruleId}: matched=${trace.matched ? "yes" : "no"} action=${trace.action} reason=${trace.reason}`
+      );
+    }
+  }
   return {
     status,
     payload: {
-      text: `policy-check entries=${summary.entries} active=${summary.active} expired=${summary.expired} unresolved=${summary.unresolved}`
+      text: textLines.join("\n")
     }
   };
+}
+
+function buildFixActions(input: {
+  scan: { highFindings: number; mediumFindings: number };
+  trustSummary: TrustSummary;
+  unresolvedAllowlistEntries: number;
+  deniedPolicies: number;
+  lockfileExists: boolean;
+}): FixAction[] {
+  const actions: FixAction[] = [];
+  if (!input.lockfileExists) {
+    actions.push({
+      type: "update-lockfile",
+      message: "Generate deterministic lockfile for reproducible installs.",
+      reversible: true,
+      target: "skillbase.lock.json"
+    });
+  }
+  if (input.scan.highFindings > 0 || input.scan.mediumFindings > 0) {
+    actions.push({
+      type: "address-security-findings",
+      message: "Review and resolve security findings reported by scan.",
+      reversible: false,
+      target: "skills/*/SKILL.md"
+    });
+  }
+  if (input.unresolvedAllowlistEntries > 0) {
+    actions.push({
+      type: "resolve-allowlist-entries",
+      message: "Update or remove expired/unresolved allowlist entries.",
+      reversible: true,
+      target: "runwright.yml"
+    });
+  }
+  if (input.deniedPolicies > 0) {
+    actions.push({
+      type: "resolve-policy-denies",
+      message: "Policy deny rules matched; manual policy remediation is required.",
+      reversible: false,
+      target: "defaults.policy.rules"
+    });
+  }
+  if (input.trustSummary.untrustedSources > 0) {
+    actions.push({
+      type: "verify-trusted-sources",
+      message: "One or more sources are untrusted. Refresh source signatures and trust keys.",
+      reversible: false,
+      target: "defaults.trust"
+    });
+  }
+  return actions;
+}
+
+function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
+  status: number;
+  mode: "plan" | "apply";
+  applied: boolean;
+  rolledBack: boolean;
+  actions: FixAction[];
+  trust: { summary: TrustSummary };
+  summary: {
+    highFindings: number;
+    mediumFindings: number;
+    unresolvedAllowlistEntries: number;
+    deniedPolicies: number;
+  };
+} {
+  const explicitPlan = getBooleanFlag(args, "plan");
+  const explicitApply = getBooleanFlag(args, "apply");
+  if (explicitPlan && explicitApply) {
+    throw new CliError("Choose only one fix mode: --plan or --apply", 1, "invalid-argument");
+  }
+  const mode: "plan" | "apply" = explicitApply ? "apply" : "plan";
+  const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
+  const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
+  const scanPolicy = normalizeScanPolicy(manifest);
+  const scan = runSkillScans(resolution.units, { lintOnly: false, security: "warn", policy: scanPolicy });
+
+  const policyCheck = runPolicyCheck(
+    {
+      command: "policy",
+      flags: new Map<string, string | boolean>([["json", true]]),
+      positionals: ["check"],
+      duplicateFlags: []
+    },
+    cwd,
+    manifest
+  );
+  const policyPayload = policyCheck.payload as {
+    summary?: { unresolved?: number };
+    policy?: { summary?: { deny?: number } };
+  };
+  const unresolvedAllowlistEntries = Number(policyPayload.summary?.unresolved ?? 0);
+  const deniedPolicies = Number(policyPayload.policy?.summary?.deny ?? 0);
+  const lockfilePath = resolve(cwd, "skillbase.lock.json");
+  const lockfileExists = existsSync(lockfilePath);
+  const actions = buildFixActions({
+    scan: { highFindings: scan.highFindings, mediumFindings: scan.mediumFindings },
+    trustSummary,
+    unresolvedAllowlistEntries,
+    deniedPolicies,
+    lockfileExists
+  });
+  const summary = {
+    highFindings: scan.highFindings,
+    mediumFindings: scan.mediumFindings,
+    unresolvedAllowlistEntries,
+    deniedPolicies
+  };
+
+  if (mode === "plan") {
+    return {
+      status: 0,
+      mode,
+      applied: false,
+      rolledBack: false,
+      actions,
+      trust: { summary: trustSummary },
+      summary
+    };
+  }
+
+  const backupRoot = resolve(cwd, ".skillbase", "fix-backups", `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`);
+  const manifestRef = resolveManifestFile(cwd);
+  const backedUpPaths: Array<{ source: string; backup: string }> = [];
+  try {
+    mkdirSync(backupRoot, { recursive: true });
+    for (const sourcePath of [manifestRef?.path, lockfileExists ? lockfilePath : undefined]) {
+      if (!sourcePath || !existsSync(sourcePath)) continue;
+      const backupPath = join(backupRoot, sourcePath.replaceAll(":", "").replaceAll("/", "_"));
+      cpSync(sourcePath, backupPath, { recursive: false });
+      backedUpPaths.push({ source: sourcePath, backup: backupPath });
+    }
+
+    if (process.env.SKILLBASE_FIX_FORCE_FAIL_AFTER_BACKUP === "1") {
+      throw new Error("forced fix failure for rollback validation");
+    }
+
+    const resolvedSources = materializeSkillsToStore(resolution.units, resolution.sourceMetadata, cwd);
+    const lockfile = buildLockfileFromSources(resolvedSources);
+    writeLockfile(lockfilePath, lockfile);
+    rmSync(backupRoot, { recursive: true, force: true });
+    return {
+      status: actions.length > 0 ? 2 : 0,
+      mode,
+      applied: true,
+      rolledBack: false,
+      actions,
+      trust: { summary: trustSummary },
+      summary
+    };
+  } catch {
+    for (const pathEntry of backedUpPaths) {
+      cpSync(pathEntry.backup, pathEntry.source, { force: true });
+    }
+    rmSync(backupRoot, { recursive: true, force: true });
+    return {
+      status: 11,
+      mode,
+      applied: false,
+      rolledBack: true,
+      actions,
+      trust: { summary: trustSummary },
+      summary
+    };
+  }
 }
 
 function runExport(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
@@ -2981,6 +3323,22 @@ async function main() {
     process.exit(policy.status);
   }
 
+  if (cmd === "fix") {
+    const fixResult = runFix(parsed, cwd, manifest);
+    if (jsonOutput) writeJson(withJsonSchemaVersion({ ...fixResult, plan: { actions: fixResult.actions } }));
+    else process.stdout.write(renderFixText(fixResult));
+    recordOperationEvent(cwd, startedAtMs, "fix", fixResult.status, fixResult.applied && !fixResult.rolledBack, {
+      counters: {
+        actions: fixResult.actions.length,
+        highFindings: fixResult.summary.highFindings,
+        mediumFindings: fixResult.summary.mediumFindings,
+        unresolvedAllowlistEntries: fixResult.summary.unresolvedAllowlistEntries,
+        deniedPolicies: fixResult.summary.deniedPolicies
+      }
+    });
+    process.exit(fixResult.status);
+  }
+
   if (cmd === "list") {
     const targets = parseTargets(getStringFlag(parsed, "target"));
     const fallbackScope = (manifest.defaults?.scope ?? "global") as InstallScope;
@@ -3002,6 +3360,7 @@ async function main() {
   if (cmd === "update") {
     const resolution = resolveSkillUnitsForArgs(manifest, cwd, parsed);
     const units = resolution.units;
+    const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
     assertNoDuplicateSkillNames(units);
     const lockPath = resolve(cwd, "skillbase.lock.json");
     let resolvedSources: ReturnType<typeof materializeSkillsToStore>;
@@ -3020,7 +3379,10 @@ async function main() {
             status: 11,
             code: "lockfile-error",
             lockfileVerified: false,
-            reason: "missing-lockfile"
+            reason: "missing-lockfile",
+            trust: {
+              summary: trustSummary
+            }
           })
         );
         recordOperationEvent(cwd, startedAtMs, "update", 11, false, {
@@ -3038,7 +3400,10 @@ async function main() {
             status: 11,
             code: "lockfile-error",
             lockfileVerified: false,
-            reason: "invalid-lockfile"
+            reason: "invalid-lockfile",
+            trust: {
+              summary: trustSummary
+            }
           })
         );
         recordOperationEvent(cwd, startedAtMs, "update", 11, false, {
@@ -3054,7 +3419,10 @@ async function main() {
             status: 11,
             code: "lockfile-error",
             lockfileVerified: false,
-            reason: "lockfile-mismatch"
+            reason: "lockfile-mismatch",
+            trust: {
+              summary: trustSummary
+            }
           })
         );
         recordOperationEvent(cwd, startedAtMs, "update", 11, false, {
@@ -3064,13 +3432,17 @@ async function main() {
         process.exit(11);
       }
       const sourcesCount = Object.keys(existing.sources).length;
+      const frozenTrustSummary = summarizeTrustFromLockfile(existing);
       writeJson(
         withJsonSchemaVersion({
           status: 0,
           lockfile: "skillbase.lock.json",
           lockfileVerified: true,
           sources: sourcesCount,
-          skills: units.length
+          skills: units.length,
+          trust: {
+            summary: frozenTrustSummary
+          }
         })
       );
       recordOperationEvent(cwd, startedAtMs, "update", 0, false, {
@@ -3088,7 +3460,10 @@ async function main() {
         lockfile: "skillbase.lock.json",
         lockfileVerified: false,
         sources: sourcesCount,
-        skills: units.length
+        skills: units.length,
+        trust: {
+          summary: trustSummary
+        }
       })
     );
     recordOperationEvent(cwd, startedAtMs, "update", 0, true, {
@@ -3124,7 +3499,8 @@ main().catch((err) => {
     failedCommand === "doctor" ||
     failedCommand === "apply" ||
     failedCommand === "update" ||
-    failedCommand === "export";
+    failedCommand === "export" ||
+    failedCommand === "fix";
   if (err instanceof CliError) {
     if (isMutatingCommand && failedCommand) {
       recordOperationEvent(process.cwd(), PROCESS_STARTED_AT_MS, failedCommand, err.exitCode, false, {

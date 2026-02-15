@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,6 +24,12 @@ function runCli(args: string[], cwd: string): { status: number; stdout: string; 
     stdout: result.stdout,
     stderr: result.stderr
   };
+}
+
+function cacheFilenameForSource(source: string): string {
+  const sanitized = source.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 120) || "source";
+  const digest = createHash("sha256").update(source).digest("hex").slice(0, 16);
+  return `${sanitized}-${digest}.json`;
 }
 
 afterEach(() => {
@@ -96,5 +103,66 @@ describe("error guidance UX", () => {
     expect(result.stdout).toContain("Bundle Verification Failed");
     expect(result.stdout).toContain("Code: missing-bundle");
     expect(result.stdout).toContain("runwright verify-bundle --bundle <bundle.zip> --json");
+  });
+
+  it("surfaces trust verification failures with recovery guidance", () => {
+    const projectDir = makeTempDir("skillbase-ux-trust-");
+    const source = "acme/repo";
+    const sha = "abc123";
+    const sourceRoot = join(
+      projectDir,
+      ".skillbase",
+      "store",
+      "sources",
+      "github",
+      "acme",
+      "repo",
+      sha
+    );
+    const skillDir = join(sourceRoot, "safe");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, "SKILL.md"), `---\nname: safe\ndescription: safe\n---\n`, "utf8");
+
+    const cacheRoot = join(projectDir, ".skillbase", "store", "source-cache");
+    mkdirSync(cacheRoot, { recursive: true });
+    const cachePath = join(cacheRoot, cacheFilenameForSource(source));
+    writeFileSync(
+      cachePath,
+      JSON.stringify({
+        fetchedAt: new Date().toISOString(),
+        resolution: {
+          rootPath: sourceRoot,
+          type: "github",
+          resolvedRef: "commit",
+          resolvedValue: sha
+        }
+      }),
+      "utf8"
+    );
+
+    writeFileSync(
+      join(projectDir, "runwright.yml"),
+      [
+        "version: 1",
+        "defaults:",
+        "  trust:",
+        "    mode: required",
+        "skillsets:",
+        "  base:",
+        "    skills:",
+        "      - source: acme/repo",
+        "apply:",
+        "  useSkillsets: [base]",
+        ""
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = runCli(["scan"], projectDir);
+    expect(result.status).toBe(12);
+    expect(result.stderr).toContain("Trust verification failed for acme/repo");
+    expect(result.stderr).toContain("Next:");
+    expect(result.stderr).toContain("defaults.trust");
+    expect(result.stderr).toContain("runwright scan --refresh-sources");
   });
 });

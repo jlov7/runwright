@@ -165,4 +165,36 @@ describe("quality evidence verifier script", () => {
     const summary = JSON.parse(readFileSync(outPath, "utf8")) as { ok: boolean };
     expect(summary.ok).toBe(false);
   });
+
+  it("accepts policy explain evidence when provided", () => {
+    const dir = makeTempDir("skillbase-quality-evidence-policy-");
+    const scorecardPath = join(dir, "scorecard.json");
+    const policyPath = join(dir, "policy-explain.json");
+    const outPath = join(dir, "verify.json");
+
+    writeFileSync(
+      scorecardPath,
+      JSON.stringify({ overall: { pass: true }, checks: [{ name: "verify", result: "success" }] }),
+      "utf8"
+    );
+    writeFileSync(
+      policyPath,
+      JSON.stringify({
+        schemaVersion: "1.0",
+        policy: { trace: [] },
+        trust: { summary: { totalSources: 1, verifiedSources: 1, untrustedSources: 0, requiredSources: 1 } }
+      }),
+      "utf8"
+    );
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/verify_quality_evidence.ts",
+      args: ["--scorecard", scorecardPath, "--require-check", "verify", "--policy-explain", policyPath, "--out", outPath],
+      cwd: process.cwd()
+    });
+
+    expect(result.status).toBe(0);
+    const summary = JSON.parse(readFileSync(outPath, "utf8")) as { ok: boolean };
+    expect(summary.ok).toBe(true);
+  });
 });

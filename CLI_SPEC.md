@@ -58,6 +58,7 @@ JSON output includes:
 - findings (with original/effective severity)
 - policy decision traces
 - suppression counts
+- trust summary
 
 ### `runwright policy check`
 Validates scan policy allowlist entries and reports unresolved exceptions.
@@ -66,12 +67,28 @@ Flags:
 - `check` (required subcommand)
 - `--format text|json`
 - `--json`
+- `--explain` (include policy decision trace)
 - `--refresh-sources`
 - `--remote-cache-ttl <seconds>`
 
 Exit codes:
 - 0 policy clean
 - 2 unresolved policy exceptions found
+
+### `runwright fix`
+Plans or applies safe remediation steps for scan/policy/trust issues.
+
+Flags:
+- `--plan` (default)
+- `--apply`
+- `--json`
+- `--refresh-sources`
+- `--remote-cache-ttl <seconds>`
+
+Exit codes:
+- 0 plan generated or apply completed with no remaining actions
+- 2 apply completed but actions remain
+- 11 rollback triggered due to apply failure
 
 ### `runwright list`
 Shows resolved skills by target.
