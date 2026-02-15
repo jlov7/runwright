@@ -52,6 +52,12 @@
 
 ## P1
 
+### P1-007: Doctor script tolerated malformed CLI arguments
+- Evidence: `scripts/doctor.ts` previously accepted unknown flags and missing values, which could silently run unintended checks in automation.
+- Impacted journey: Release gate reproducibility and CI diagnostics.
+- Fix strategy: Enforce strict doctor arg validation and clean top-level error output; add regression tests for malformed args.
+- Status: Done
+
 ### P1-006: Quality evidence script accepted malformed/unknown arguments silently
 - Evidence: `scripts/verify_quality_evidence.ts` previously treated missing flag values and unknown arguments as implicit defaults, producing misleading downstream file-read errors.
 - Impacted journey: CI/release automation diagnostics and operator self-service troubleshooting.

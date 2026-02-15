@@ -46,4 +46,32 @@ describe("doctor script", () => {
     expect(report.checks[0]?.ok).toBe(true);
     expect(report.checks[0]?.status).toBe(0);
   });
+
+  it("fails when a value-bearing flag is missing its value", () => {
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/doctor.ts",
+      args: ["--out"],
+      cwd: process.cwd(),
+      envOverrides: {
+        RUNWRIGHT_DOCTOR_MOCK_STATUS: "0"
+      }
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Missing value for --out");
+  });
+
+  it("fails on unknown arguments", () => {
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/doctor.ts",
+      args: ["--bogus"],
+      cwd: process.cwd(),
+      envOverrides: {
+        RUNWRIGHT_DOCTOR_MOCK_STATUS: "0"
+      }
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Unknown doctor argument '--bogus'");
+  });
 });

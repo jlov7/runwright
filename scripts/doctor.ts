@@ -52,6 +52,14 @@ const DEFAULT_CHECKS: DoctorCheck[] = [
   { id: "audit:deps", command: PNPM_COMMAND, args: ["run", "audit:deps"] }
 ];
 
+function readRequiredArgValue(argv: string[], index: number, flag: string): string {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`Missing value for ${flag}`);
+  }
+  return value;
+}
+
 function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
     out: "reports/doctor/doctor.json",
@@ -62,21 +70,23 @@ function parseArgs(argv: string[]): ParsedArgs {
   for (let index = 2; index < argv.length; index += 1) {
     const token = argv[index] ?? "";
     if (token === "--out") {
-      parsed.out = argv[index + 1] ?? parsed.out;
+      parsed.out = readRequiredArgValue(argv, index, "--out");
       index += 1;
       continue;
     }
     if (token === "--only") {
-      const value = (argv[index + 1] ?? "").trim();
+      const value = readRequiredArgValue(argv, index, "--only").trim();
       if (value.length > 0) parsed.only.push(value);
       index += 1;
       continue;
     }
     if (token === "--skip") {
-      const value = (argv[index + 1] ?? "").trim();
+      const value = readRequiredArgValue(argv, index, "--skip").trim();
       if (value.length > 0) parsed.skip.push(value);
       index += 1;
+      continue;
     }
+    throw new Error(`Unknown doctor argument '${token}'`);
   }
 
   return parsed;
@@ -178,5 +188,11 @@ function main(): void {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main();
+  try {
+    main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`${message}\n`);
+    process.exit(1);
+  }
 }
