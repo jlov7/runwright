@@ -56,11 +56,11 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 - [x] Add integration tests for revoke/rotation planning and enforcement.
 
 ### NX6: Session Replay + Journey Analytics
-- [ ] Add `runwright analytics journey` command.
-- [ ] Compute journey funnel metrics from operation logs (attempts, success rate, failures).
-- [ ] Add replay summaries for last failed flow with concrete recovery commands.
-- [ ] Add persona-oriented score payload (`new-user`, `operator`, `release-manager`).
-- [ ] Add integration tests for analytics payload and replay guidance.
+- [x] Add `runwright analytics journey` command.
+- [x] Compute journey funnel metrics from operation logs (attempts, success rate, failures).
+- [x] Add replay summaries for last failed flow with concrete recovery commands.
+- [x] Add persona-oriented score payload (`new-user`, `operator`, `release-manager`).
+- [x] Add integration tests for analytics payload and replay guidance.
 
 ## Verification Gates
 - Per feature: targeted `vitest` command(s) for touched flows.
@@ -72,5 +72,5 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: NX6 Session Replay + Journey Analytics
-- Completion target: all six features implemented + verified + tracked
+- Current phase: Completed (all six features implemented + verified + tracked)
+- Completion target: Met on 2026-02-15
