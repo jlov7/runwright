@@ -64,6 +64,12 @@
 
 ## P1
 
+### P1-015: No continuous drift watch loop for unattended hygiene
+- Evidence: No `runwright watch` command existed to keep lockfile/scan/apply cycles current as skills and manifests changed.
+- Impacted journey: Ongoing operations reliability and unattended drift remediation workflows.
+- Fix strategy: Add `watch` command with `--once`, debounce dedupe, optional `--apply-safe`, and integration tests covering dry-run/apply behavior.
+- Status: Done
+
 ### P1-014: No guided remediation command for operators
 - Evidence: Recovery required chaining multiple commands manually (`scan`, `policy check`, `fix`) with no single remediation surface.
 - Impacted journey: Failure recovery UX and non-technical operator confidence.

@@ -184,6 +184,14 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     ],
     examples: ["runwright remediate --non-interactive --json", "runwright remediate --apply-safe --json"]
   },
+  watch: {
+    summary: "Continuously watch project drift and run update -> scan -> apply (or dry-run) loops.",
+    usage: [
+      "runwright watch [--once] [--apply-safe] [--debounce-ms <ms>] [--target ...] [--scope ...] [--mode ...] [--json]",
+      "               [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: ["runwright watch --once --json", "runwright watch --apply-safe --target codex --scope project --mode copy"]
+  },
   doctor: {
     summary: "Diagnose and optionally fix safe local install issues.",
     usage: ["runwright doctor [--fix] [--json] [--target ...] [--scope ...]"],
@@ -434,6 +442,7 @@ Core commands:
   runwright apply
   runwright apply-resume
   runwright remediate
+  runwright watch
   runwright doctor
   runwright scan
   runwright policy check
@@ -503,6 +512,17 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "non-interactive": "boolean",
     "apply-safe": "boolean",
     "rule-pack": "string",
+    "refresh-sources": "boolean",
+    "remote-cache-ttl": "string"
+  },
+  watch: {
+    once: "boolean",
+    "apply-safe": "boolean",
+    "debounce-ms": "string",
+    target: "string",
+    scope: "string",
+    mode: "string",
+    json: "boolean",
     "refresh-sources": "boolean",
     "remote-cache-ttl": "string"
   },
@@ -736,6 +756,18 @@ function validateSemanticFlags(args: ParsedArgs): void {
   }
 
   if (command === "remediate") {
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "watch") {
+    parseTargets(getStringFlag(args, "target"));
+    parseScope(getStringFlag(args, "scope"), "project");
+    parseMode(getStringFlag(args, "mode"), "copy");
+    const debounceRaw = getStringFlag(args, "debounce-ms");
+    if (debounceRaw && (!/^(0|[1-9][0-9]*)$/.test(debounceRaw) || Number(debounceRaw) > 600000)) {
+      throw new CliError(`Invalid debounce milliseconds: ${debounceRaw}`, 1, "invalid-argument");
+    }
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
     return;
   }
@@ -3066,6 +3098,161 @@ async function runRemediate(args: ParsedArgs, cwd: string, manifest: SkillbaseMa
   return { ...applyResult, interactive, mode: "apply" };
 }
 
+function buildWatchApplyArgs(args: ParsedArgs, dryRun: boolean): ParsedArgs {
+  const flags = new Map<string, string | boolean>();
+  flags.set("json", true);
+  flags.set("no-scan", true);
+  if (dryRun) flags.set("dry-run", true);
+  const target = getStringFlag(args, "target");
+  const scope = getStringFlag(args, "scope");
+  const mode = getStringFlag(args, "mode");
+  const refreshSources = getBooleanFlag(args, "refresh-sources");
+  const remoteCacheTtl = getStringFlag(args, "remote-cache-ttl");
+  if (target) flags.set("target", target);
+  if (scope) flags.set("scope", scope);
+  if (mode) flags.set("mode", mode);
+  if (refreshSources) flags.set("refresh-sources", true);
+  if (remoteCacheTtl) flags.set("remote-cache-ttl", remoteCacheTtl);
+  return { command: "apply", flags, positionals: [], duplicateFlags: [] };
+}
+
+function buildWatchScanArgs(args: ParsedArgs): ParsedArgs {
+  const flags = new Map<string, string | boolean>();
+  flags.set("json", true);
+  flags.set("format", "json");
+  const refreshSources = getBooleanFlag(args, "refresh-sources");
+  const remoteCacheTtl = getStringFlag(args, "remote-cache-ttl");
+  if (refreshSources) flags.set("refresh-sources", true);
+  if (remoteCacheTtl) flags.set("remote-cache-ttl", remoteCacheTtl);
+  return { command: "scan", flags, positionals: [], duplicateFlags: [] };
+}
+
+function runWatchCycle(
+  args: ParsedArgs,
+  cwd: string
+): {
+  status: number;
+  update: { status: number; lockfile: string; skills: number; sources: number };
+  scan: { status: number; lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
+  apply: { status: number; dryRun: boolean; operations: number };
+} {
+  const manifest = loadManifest(cwd);
+  const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
+  const units = resolution.units;
+  const resolvedSources = materializeSkillsToStore(units, resolution.sourceMetadata, cwd);
+  const lockfile = buildLockfileFromSources(resolvedSources);
+  const lockPath = resolve(cwd, "skillbase.lock.json");
+  writeLockfile(lockPath, lockfile);
+
+  const scanResult = runScan(buildWatchScanArgs(args), cwd, manifest);
+  const scanSummary = scanResult.payload.summary as
+    | { lintIssues?: number; highFindings?: number; mediumFindings?: number; suppressedFindings?: number }
+    | undefined;
+  const applySafe = getBooleanFlag(args, "apply-safe");
+  let applyResult: ReturnType<typeof runApply>;
+  if (applySafe && scanResult.status === 30) {
+    applyResult = {
+      status: 30,
+      dryRun: false,
+      scanned: true,
+      operations: [],
+      summary: {
+        lintIssues: Number(scanSummary?.lintIssues ?? 0),
+        highFindings: Number(scanSummary?.highFindings ?? 0),
+        mediumFindings: Number(scanSummary?.mediumFindings ?? 0),
+        suppressedFindings: Number(scanSummary?.suppressedFindings ?? 0)
+      },
+      trustSummary: summarizeTrustFromSourceMetadata(resolution.sourceMetadata)
+    };
+  } else {
+    applyResult = runApply(buildWatchApplyArgs(args, !applySafe), cwd, manifest);
+  }
+
+  const status = scanResult.status === 30 || applyResult.status === 30
+    ? 30
+    : Math.max(
+        Number(scanResult.status ?? 0),
+        Number(applyResult.status ?? 0)
+      );
+
+  return {
+    status,
+    update: {
+      status: 0,
+      lockfile: "skillbase.lock.json",
+      skills: units.length,
+      sources: Object.keys(lockfile.sources).length
+    },
+    scan: {
+      status: scanResult.status,
+      lintIssues: Number(scanSummary?.lintIssues ?? 0),
+      highFindings: Number(scanSummary?.highFindings ?? 0),
+      mediumFindings: Number(scanSummary?.mediumFindings ?? 0),
+      suppressedFindings: Number(scanSummary?.suppressedFindings ?? 0)
+    },
+    apply: {
+      status: applyResult.status,
+      dryRun: applyResult.dryRun,
+      operations: applyResult.operations.length
+    }
+  };
+}
+
+function watchFingerprint(cwd: string): string {
+  const manifestRef = resolveManifestFile(cwd);
+  const manifestMtime = manifestRef ? latestModifiedTimeMs(manifestRef.path) : 0;
+  const skillsMtime = latestModifiedTimeMs(resolve(cwd, "skills"));
+  const lockfileMtime = latestModifiedTimeMs(resolve(cwd, "skillbase.lock.json"));
+  return `${manifestMtime}:${skillsMtime}:${lockfileMtime}`;
+}
+
+async function runWatch(args: ParsedArgs, cwd: string): Promise<{
+  status: number;
+  mode: "once" | "watch";
+  applySafe: boolean;
+  debounceMs: number;
+  cycles: Array<{
+    status: number;
+    update: { status: number; lockfile: string; skills: number; sources: number };
+    scan: { status: number; lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
+    apply: { status: number; dryRun: boolean; operations: number };
+  }>;
+}> {
+  const applySafe = getBooleanFlag(args, "apply-safe");
+  const once = getBooleanFlag(args, "once");
+  const debounceMs = Number(getStringFlag(args, "debounce-ms") ?? "1500");
+
+  const cycles: Array<{
+    status: number;
+    update: { status: number; lockfile: string; skills: number; sources: number };
+    scan: { status: number; lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
+    apply: { status: number; dryRun: boolean; operations: number };
+  }> = [];
+
+  if (once) {
+    cycles.push(runWatchCycle(args, cwd));
+    return { status: cycles[0]?.status ?? 0, mode: "once", applySafe, debounceMs, cycles };
+  }
+
+  let previousFingerprint = watchFingerprint(cwd);
+  let pendingChangeAtMs = 0;
+
+  while (true) {
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+    const fingerprint = watchFingerprint(cwd);
+    if (fingerprint !== previousFingerprint) {
+      previousFingerprint = fingerprint;
+      pendingChangeAtMs = Date.now();
+      continue;
+    }
+    if (pendingChangeAtMs === 0 || Date.now() - pendingChangeAtMs < debounceMs) continue;
+    const result = runWatchCycle(args, cwd);
+    cycles.push(result);
+    pendingChangeAtMs = 0;
+    previousFingerprint = watchFingerprint(cwd);
+  }
+}
+
 function readRegistryIndex(registryDir: string): RegistryIndex {
   const indexPath = resolve(registryDir, "index.json");
   if (!existsSync(indexPath)) {
@@ -3928,6 +4115,29 @@ async function main() {
 
   const manifest = loadManifest(cwd);
 
+  if (cmd === "watch") {
+    const watchResult = await runWatch(parsed, cwd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(watchResult));
+    else {
+      process.stdout.write(`watch mode=${watchResult.mode} cycles=${watchResult.cycles.length} applySafe=${watchResult.applySafe}\n`);
+      for (const [index, cycle] of watchResult.cycles.entries()) {
+        process.stdout.write(
+          `cycle#${index + 1} status=${cycle.status} scan=${cycle.scan.status} apply=${cycle.apply.status} dryRun=${cycle.apply.dryRun}\n`
+        );
+      }
+    }
+    const latestCycle = watchResult.cycles[watchResult.cycles.length - 1];
+    recordOperationEvent(cwd, startedAtMs, "watch", watchResult.status, latestCycle ? !latestCycle.apply.dryRun : false, {
+      counters: {
+        cycles: watchResult.cycles.length,
+        highFindings: Number(latestCycle?.scan.highFindings ?? 0),
+        mediumFindings: Number(latestCycle?.scan.mediumFindings ?? 0),
+        operations: Number(latestCycle?.apply.operations ?? 0)
+      }
+    });
+    process.exit(watchResult.status);
+  }
+
   if (cmd === "apply") {
     const applyResult = runApply(parsed, cwd, manifest);
     if (jsonOutput) writeJson(withJsonSchemaVersion({ ...applyResult }));
@@ -4173,6 +4383,7 @@ main().catch((err) => {
     failedCommand === "export" ||
     failedCommand === "registry" ||
     failedCommand === "remediate" ||
+    failedCommand === "watch" ||
     failedCommand === "fix";
   if (err instanceof CliError) {
     if (isMutatingCommand && failedCommand) {

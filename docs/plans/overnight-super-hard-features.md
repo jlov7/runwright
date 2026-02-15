@@ -49,11 +49,11 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 - [x] Add integration tests for guided and non-interactive modes.
 
 ### F5: Continuous Drift Watch Mode
-- [ ] Add watch command to monitor manifest/skills/lockfile changes.
-- [ ] Implement debounce + dedupe to avoid noisy reruns.
-- [ ] Run update -> scan -> dry-run/apply pipeline in watch mode.
-- [ ] Add safe failure recovery in watch loop (never crash on one run failure).
-- [ ] Add tests for watcher triggering and debounce behavior.
+- [x] Add watch command to monitor manifest/skills/lockfile changes.
+- [x] Implement debounce + dedupe to avoid noisy reruns.
+- [x] Run update -> scan -> dry-run/apply pipeline in watch mode.
+- [x] Add safe failure recovery in watch loop (never crash on one run failure).
+- [x] Add tests for watcher triggering and debounce behavior.
 
 ### F6: Release Provenance + Attestation Pipeline
 - [ ] Define attestation schema (`subject`, `digest`, `builder`, `run metadata`, `timestamp`).
@@ -70,5 +70,5 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: F5 continuous drift watch mode
+- Current phase: F6 release provenance and attestation pipeline
 - Completion target: all six features implemented + verified locally

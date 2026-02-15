@@ -3148,6 +3148,51 @@ describe("cli integration", () => {
     expect(payload.applied).toBe(true);
   });
 
+  it("watch --once executes update, scan, and dry-run apply cycle", () => {
+    const projectDir = makeTempDir("skillbase-cli-watch-once-dryrun-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  mode: copy\n  scope: project\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+
+    const result = runCli(["watch", "--once", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("once");
+    expect(payload.cycles).toHaveLength(1);
+    expect(payload.cycles[0]?.update.status).toBe(0);
+    expect(payload.cycles[0]?.scan.status).toBe(0);
+    expect(payload.cycles[0]?.apply.dryRun).toBe(true);
+  });
+
+  it("watch --once --apply-safe materializes targets", () => {
+    const projectDir = makeTempDir("skillbase-cli-watch-once-apply-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  mode: copy\n  scope: project\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+
+    const result = runCli(["watch", "--once", "--apply-safe", "--target", "codex", "--scope", "project", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.cycles[0]?.apply.dryRun).toBe(false);
+    expect(existsSync(join(projectDir, ".codex", "skills", "safe", "SKILL.md"))).toBe(true);
+  });
+
   it("verify-bundle --json returns code when --bundle is missing", () => {
     const detachedDir = makeTempDir("skillbase-cli-verify-missing-bundle-");
     const result = runCli(["verify-bundle", "--json"], detachedDir);
