@@ -6,7 +6,7 @@
 - [x] F3 Policy-as-Code Rule Packs
 - [x] F4 Interactive Remediation Flow
 - [x] F5 Continuous Drift Watch Mode
-- [ ] F6 Release Provenance + Attestation Pipeline
+- [x] F6 Release Provenance + Attestation Pipeline
 
 Tracker: `docs/plans/overnight-super-hard-features.md`
 

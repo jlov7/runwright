@@ -64,6 +64,12 @@
 
 ## P1
 
+### P1-016: Missing first-class release attestation generate/verify pipeline
+- Evidence: Release verification relied on bundle signature/checksum plus GitHub attestation download, but there was no deterministic local attestation artifact with schema + signature verification for release evidence sets.
+- Impacted journey: Release provenance confidence and downstream consumer verification portability.
+- Fix strategy: Add signed attestation generation and verification scripts, schema contracts, workflow integration, and regression tests with tamper detection.
+- Status: Done
+
 ### P1-015: No continuous drift watch loop for unattended hygiene
 - Evidence: No `runwright watch` command existed to keep lockfile/scan/apply cycles current as skills and manifests changed.
 - Impacted journey: Ongoing operations reliability and unattended drift remediation workflows.

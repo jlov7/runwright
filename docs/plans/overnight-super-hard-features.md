@@ -56,11 +56,11 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 - [x] Add tests for watcher triggering and debounce behavior.
 
 ### F6: Release Provenance + Attestation Pipeline
-- [ ] Define attestation schema (`subject`, `digest`, `builder`, `run metadata`, `timestamp`).
-- [ ] Generate attestation artifact from export outputs.
-- [ ] Verify attestation integrity + signature.
-- [ ] Add CLI/script UX for attestation generate/verify.
-- [ ] Add tests for valid attestation + tamper detection.
+- [x] Define attestation schema (`subject`, `digest`, `builder`, `run metadata`, `timestamp`).
+- [x] Generate attestation artifact from export outputs.
+- [x] Verify attestation integrity + signature.
+- [x] Add CLI/script UX for attestation generate/verify.
+- [x] Add tests for valid attestation + tamper detection.
 
 ## Verification Gates
 - Targeted: feature-specific test files.
@@ -70,5 +70,5 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: F6 release provenance and attestation pipeline
+- Current phase: complete
 - Completion target: all six features implemented + verified locally
