@@ -1303,6 +1303,27 @@ describe("cli integration", () => {
     expect(bundleManifest.createdAt).toBe(new Date(Number(sourceDateEpoch) * 1000).toISOString());
   });
 
+  it("export --deterministic succeeds without SOURCE_DATE_EPOCH", () => {
+    const projectDir = makeTempDir("skillbase-cli-export-deterministic-default-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    expect(runCli(["update"], projectDir).status).toBe(0);
+
+    const exportPath = join(projectDir, "bundle.zip");
+    const exported = runCli(["export", "--out", exportPath, "--deterministic", "--json"], projectDir);
+    expect(exported.status).toBe(0);
+    expect(existsSync(exportPath)).toBe(true);
+  });
+
   it("export --json rejects invalid SOURCE_DATE_EPOCH", () => {
     const projectDir = makeTempDir("skillbase-cli-export-invalid-source-date-epoch-");
     mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
@@ -1324,6 +1345,30 @@ describe("cli integration", () => {
     const payload = JSON.parse(result.stdout);
     expect(payload.code).toBe("invalid-argument");
     expect(String(payload.error)).toContain("SOURCE_DATE_EPOCH");
+    expect(existsSync(exportPath)).toBe(false);
+  });
+
+  it("export --json rejects SOURCE_DATE_EPOCH values outside ZIP date range", () => {
+    const projectDir = makeTempDir("skillbase-cli-export-source-date-epoch-too-large-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    expect(runCli(["update"], projectDir).status).toBe(0);
+
+    const exportPath = join(projectDir, "bundle.zip");
+    const result = runCli(["export", "--out", exportPath, "--json"], projectDir, { SOURCE_DATE_EPOCH: "7258118400" });
+    expect(result.status).toBe(1);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.code).toBe("invalid-argument");
+    expect(String(payload.error)).toContain("ZIP timestamp range");
     expect(existsSync(exportPath)).toBe(false);
   });
 

@@ -2,6 +2,12 @@
 
 ## P0
 
+### P0-009: Deterministic export failed in some timezones without SOURCE_DATE_EPOCH
+- Evidence: `runwright export --deterministic --json` could fail with `date not in range 1980-2099` due ZIP mtime baseline using UTC midnight that resolves to 1979 local year in negative offsets.
+- Impacted journey: Release artifact generation and the optional onboarding verify-bundle step.
+- Fix strategy: Use local ZIP-safe baseline timestamps, enforce upper-bound SOURCE_DATE_EPOCH validation, and add integration regression tests.
+- Status: Done
+
 ### P0-008: Journey skill scaffolding command still used placeholder redirection syntax
 - Evidence: `runwright journey` step 2 suggested `mkdir -p skills/<skill-name> && touch skills/<skill-name>/SKILL.md`, which shell users cannot copy-paste safely because `<...>` is interpreted as redirection.
 - Impacted journey: First-run onboarding and first success moment for new users.
@@ -51,6 +57,12 @@
 - Status: Done
 
 ## P1
+
+### P1-008: Optional bundle verification step did not expire when project inputs changed
+- Evidence: `runwright journey` could continue showing optional verify-bundle as complete after manifest/skills updates, leaving stale release assurance cues.
+- Impacted journey: Ongoing core loop clarity and release confidence.
+- Fix strategy: Add freshness checks for verify-bundle events and regression tests covering stale transition behavior.
+- Status: Done
 
 ### P1-007: Doctor script tolerated malformed CLI arguments
 - Evidence: `scripts/doctor.ts` previously accepted unknown flags and missing values, which could silently run unintended checks in automation.

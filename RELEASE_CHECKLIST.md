@@ -56,3 +56,5 @@
 - [x] Onboarding journey step 2 now emits a copy-paste-safe skill scaffolding command (`skills/example-skill`) with regression coverage in `tests/journey-ux.test.ts`.
 - [x] `scripts/verify_quality_evidence.ts` now fails fast on unknown flags and missing flag values with explicit messages; coverage added in `tests/quality-evidence-script.test.ts`.
 - [x] `scripts/doctor.ts` now rejects unknown/malformed arguments with explicit errors; coverage added in `tests/doctor-script.test.ts`.
+- [x] `runwright export --deterministic` now succeeds without env var across timezones via ZIP-safe timestamp clamping; edge cases are covered in `tests/cli.integration.test.ts`.
+- [x] Journey optional verify-bundle guidance now expires on project changes and surfaces rerun guidance with coverage in `tests/journey-ux.test.ts`.

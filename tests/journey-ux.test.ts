@@ -172,6 +172,46 @@ describe("journey UX", () => {
     expect(result.stdout).toContain("runwright update --json && runwright scan --format json && runwright apply");
   });
 
+  it("marks optional bundle verification as stale after project inputs change", () => {
+    const projectDir = makeTempDir("skillbase-journey-verify-stale-");
+
+    expect(runCli(["init"], projectDir).status).toBe(0);
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+
+    expect(runCli(["update", "--json"], projectDir).status).toBe(0);
+    expect(runCli(["scan", "--format", "json"], projectDir).status).toBe(0);
+    expect(
+      runCli(["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--dry-run", "--json"], projectDir).status
+    ).toBe(0);
+    expect(runCli(["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--json"], projectDir).status).toBe(0);
+
+    const exportResult = runCli(["export", "--out", "runwright-release.zip", "--deterministic", "--json"], projectDir);
+    expect(exportResult.status).toBe(0);
+    const verifyResult = runCli(["verify-bundle", "--bundle", "runwright-release.zip", "--json"], projectDir);
+    expect(verifyResult.status).toBe(0);
+
+    const afterVerify = runCli(["journey"], projectDir);
+    expect(afterVerify.status).toBe(0);
+    expect(afterVerify.stdout).toContain("[done] 7. Verify release artifact integrity (optional)");
+    expect(afterVerify.stdout).toContain("Bundle verification succeeded for the current project state.");
+
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: changed\n---\n\n# Safe\n`,
+      "utf8"
+    );
+
+    const afterChange = runCli(["journey"], projectDir);
+    expect(afterChange.status).toBe(0);
+    expect(afterChange.stdout).toContain("[todo] 7. Verify release artifact integrity (optional)");
+    expect(afterChange.stdout).toContain("Project inputs changed since last verification");
+  });
+
   it("marks stale journey evidence as pending when skills change after onboarding", () => {
     const projectDir = makeTempDir("skillbase-journey-stale-");
 

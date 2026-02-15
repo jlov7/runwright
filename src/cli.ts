@@ -815,7 +815,8 @@ type BundleManifest = {
 const SHA256_DIGEST_REGEX = /^sha256:[a-f0-9]{64}$/;
 const HEX_64_REGEX = /^[a-f0-9]{64}$/;
 const BASE64_REGEX = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}(?:==)?|[A-Za-z0-9+/]{3}=?)?$/;
-const MIN_ZIP_MTIME_MS = Date.UTC(1980, 0, 1, 0, 0, 0, 0);
+const MIN_ZIP_MTIME_MS = new Date(1980, 0, 1, 0, 0, 0, 0).getTime();
+const MAX_ZIP_MTIME_MS = new Date(2099, 11, 31, 23, 59, 59, 999).getTime();
 
 function publicKeyFingerprint(key: ReturnType<typeof createPublicKey>): string {
   const der = key.export({ type: "spki", format: "der" });
@@ -841,7 +842,15 @@ function resolveSourceDateEpochMs(): number | undefined {
       "invalid-argument"
     );
   }
-  return Math.max(MIN_ZIP_MTIME_MS, seconds * 1000);
+  const epochMs = seconds * 1000;
+  if (epochMs > MAX_ZIP_MTIME_MS) {
+    throw new CliError(
+      "SOURCE_DATE_EPOCH must be within the ZIP timestamp range (1980-01-01 through 2099-12-31)",
+      1,
+      "invalid-argument"
+    );
+  }
+  return Math.max(MIN_ZIP_MTIME_MS, epochMs);
 }
 const MAX_BUNDLE_COMPRESSED_BYTES = 64 * 1024 * 1024;
 const MAX_BUNDLE_UNCOMPRESSED_BYTES = 256 * 1024 * 1024;
@@ -1615,14 +1624,6 @@ function readOperationEventRecords(cwd: string): OperationEventRecord[] {
   return events;
 }
 
-function hasOperationEvent(
-  events: OperationEventRecord[],
-  command: string,
-  predicate?: (event: OperationEventRecord) => boolean
-): boolean {
-  return events.some((event) => event.command === command && (predicate ? predicate(event) : true));
-}
-
 function latestOperationEvent(
   events: OperationEventRecord[],
   command: string,
@@ -1649,7 +1650,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
   const scanEvent = latestOperationEvent(events, "scan");
   const dryRunApplyEvent = latestOperationEvent(events, "apply", (event) => event.mutating === false);
   const applyEvent = latestOperationEvent(events, "apply", (event) => event.mutating === true);
-  const verifyBundleCompleted = hasOperationEvent(events, "verify-bundle", (event) => event.status === 0);
+  const verifyBundleEvent = latestOperationEvent(events, "verify-bundle", (event) => event.status === 0);
 
   const sourceSnapshotMs = Math.max(
     manifestRef ? latestModifiedTimeMs(manifestRef.path) : 0,
@@ -1663,6 +1664,9 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
   );
   const applyFresh = Boolean(
     applyEvent && applyEvent.timestampMs >= Math.max(sourceSnapshotMs, lockfileUpdatedAtMs, scanEvent?.timestampMs ?? 0)
+  );
+  const verifyBundleFresh = Boolean(
+    verifyBundleEvent && verifyBundleEvent.timestampMs >= Math.max(sourceSnapshotMs, lockfileUpdatedAtMs)
   );
 
   const scanStatus: JourneyStepStatus = !scanEvent
@@ -1692,6 +1696,9 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
         : applyEvent.status === 0 || applyEvent.status === 2
           ? "complete"
           : "pending";
+  const verifyBundleStatus: JourneyStepStatus = verifyBundleEvent && verifyBundleFresh && applyStatus === "complete"
+    ? "complete"
+    : "pending";
 
   const steps: JourneyStep[] = [
     {
@@ -1765,10 +1772,14 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
     {
       id: "verify-bundle",
       title: "Verify release artifact integrity",
-      status: verifyBundleCompleted ? "complete" : "pending",
-      details: verifyBundleCompleted
-        ? "Bundle verification succeeded at least once."
-        : "Optional release assurance step once the core loop is healthy.",
+      status: verifyBundleStatus,
+      details: verifyBundleStatus === "complete"
+        ? "Bundle verification succeeded for the current project state."
+        : verifyBundleEvent && !verifyBundleFresh
+          ? "Project inputs changed since last verification. Re-export and verify the bundle again."
+          : applyStatus !== "complete"
+            ? "Optional release assurance step once the core loop is healthy."
+            : "Optional release assurance step ready now that onboarding is complete.",
       command: "runwright export --out runwright-release.zip --deterministic --json && runwright verify-bundle --bundle runwright-release.zip --json",
       optional: true
     }
