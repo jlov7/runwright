@@ -64,6 +64,12 @@
 
 ## P1
 
+### P1-011: Missing team-level signed bundle sync workflow
+- Evidence: No built-in command existed to publish and retrieve signed release bundles from a shared registry location with digest/signature checks.
+- Impacted journey: Team collaboration, release handoff, and trust-preserving artifact reuse.
+- Fix strategy: Add `runwright registry push|pull` with ed25519 signing/verification, registry index persistence, and integration tests.
+- Status: Done
+
 ### P1-010: Release scripts lacked built-in usage/help guidance
 - Evidence: `scripts/doctor.ts` and `scripts/verify_quality_evidence.ts` previously returned parser errors for `--help` requests instead of self-service usage output.
 - Impacted journey: Operator onboarding and CI/debug troubleshooting speed.

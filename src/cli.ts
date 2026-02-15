@@ -219,6 +219,17 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
       "runwright export --out runwright-release.zip --sign-private-key private.pem --deterministic --json"
     ]
   },
+  registry: {
+    summary: "Push and pull signed bundles from a shared team registry directory.",
+    usage: [
+      "runwright registry push --registry-dir <path> --bundle <bundle.zip> --sign-private-key <key.pem> [--source-ref <ref>] [--json]",
+      "runwright registry pull --registry-dir <path> [--artifact-id <id>] --sign-public-key <key.pem> [--out <bundle.zip>] [--json]"
+    ],
+    examples: [
+      "runwright registry push --registry-dir .runwright-registry --bundle runwright-release.zip --sign-private-key release-private.pem --json",
+      "runwright registry pull --registry-dir .runwright-registry --sign-public-key release-public.pem --out synced-bundle.zip --json"
+    ]
+  },
   "verify-bundle": {
     summary: "Verify bundle integrity and optional signature requirements.",
     usage: [
@@ -409,6 +420,7 @@ Core commands:
   runwright list
   runwright update
   runwright export
+  runwright registry
   runwright verify-bundle
 
 Help:
@@ -487,6 +499,16 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "refresh-sources": "boolean",
     "remote-cache-ttl": "string"
   },
+  registry: {
+    "registry-dir": "string",
+    bundle: "string",
+    "artifact-id": "string",
+    out: "string",
+    "source-ref": "string",
+    "sign-private-key": "string",
+    "sign-public-key": "string",
+    json: "boolean"
+  },
   "verify-bundle": {
     bundle: "string",
     "sign-key": "string",
@@ -511,6 +533,11 @@ function validateAllowedFlags(args: ParsedArgs): void {
   if (args.command === "policy") {
     if (args.positionals.length !== 1 || args.positionals[0] !== "check") {
       throw new CliError("policy command requires subcommand: policy check", 1, "invalid-argument");
+    }
+  } else if (args.command === "registry") {
+    const subcommand = args.positionals[0];
+    if (args.positionals.length !== 1 || (subcommand !== "push" && subcommand !== "pull")) {
+      throw new CliError("registry command requires subcommand: registry push|pull", 1, "invalid-argument");
     }
   } else if (args.positionals.length > 0) {
     throw new CliError(
@@ -885,6 +912,26 @@ type BundleManifest = {
     value: string;
     keyId?: string;
   };
+};
+
+type RegistrySignature = {
+  algorithm: "ed25519";
+  keyId: string;
+  value: string;
+};
+
+type RegistryArtifact = {
+  id: string;
+  bundleFile: string;
+  digest: string;
+  publishedAt: string;
+  sourceRef?: string;
+  signature: RegistrySignature;
+};
+
+type RegistryIndex = {
+  schemaVersion: "1.0";
+  artifacts: RegistryArtifact[];
 };
 
 const SHA256_DIGEST_REGEX = /^sha256:[a-f0-9]{64}$/;
@@ -2721,6 +2768,294 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   }
 }
 
+function readRegistryIndex(registryDir: string): RegistryIndex {
+  const indexPath = resolve(registryDir, "index.json");
+  if (!existsSync(indexPath)) {
+    return { schemaVersion: "1.0", artifacts: [] };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(indexPath, "utf8")) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new CliError(`Invalid registry index JSON: ${message}`, 1, "invalid-registry-index");
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new CliError("Invalid registry index: expected object root", 1, "invalid-registry-index");
+  }
+  const root = parsed as Record<string, unknown>;
+  const artifactsRaw = root.artifacts;
+  if (!Array.isArray(artifactsRaw)) {
+    throw new CliError("Invalid registry index: expected artifacts array", 1, "invalid-registry-index");
+  }
+
+  const artifacts: RegistryArtifact[] = [];
+  for (const entry of artifactsRaw) {
+    if (!entry || typeof entry !== "object") {
+      throw new CliError("Invalid registry index: artifact entry must be object", 1, "invalid-registry-index");
+    }
+    const artifact = entry as Record<string, unknown>;
+    const signatureRaw = artifact.signature;
+    if (!signatureRaw || typeof signatureRaw !== "object") {
+      throw new CliError("Invalid registry index: artifact signature missing", 1, "invalid-registry-index");
+    }
+    const signature = signatureRaw as Record<string, unknown>;
+    if (
+      typeof artifact.id !== "string" ||
+      typeof artifact.bundleFile !== "string" ||
+      typeof artifact.digest !== "string" ||
+      typeof artifact.publishedAt !== "string" ||
+      signature.algorithm !== "ed25519" ||
+      typeof signature.keyId !== "string" ||
+      typeof signature.value !== "string"
+    ) {
+      throw new CliError("Invalid registry index: malformed artifact entry", 1, "invalid-registry-index");
+    }
+    artifacts.push({
+      id: artifact.id,
+      bundleFile: artifact.bundleFile,
+      digest: artifact.digest,
+      publishedAt: artifact.publishedAt,
+      ...(typeof artifact.sourceRef === "string" ? { sourceRef: artifact.sourceRef } : {}),
+      signature: {
+        algorithm: "ed25519",
+        keyId: signature.keyId,
+        value: signature.value
+      }
+    });
+  }
+  return { schemaVersion: "1.0", artifacts };
+}
+
+function writeRegistryIndex(registryDir: string, index: RegistryIndex): void {
+  mkdirSync(registryDir, { recursive: true });
+  writeFileSync(resolve(registryDir, "index.json"), `${JSON.stringify(index, null, 2)}\n`, "utf8");
+}
+
+function parseRegistrySubcommand(args: ParsedArgs): "push" | "pull" {
+  const subcommand = args.positionals[0];
+  if (subcommand === "push" || subcommand === "pull") return subcommand;
+  throw new CliError("registry command requires subcommand: registry push|pull", 1, "invalid-argument");
+}
+
+function requireStringFlag(args: ParsedArgs, key: string, message: string): string {
+  const value = getStringFlag(args, key);
+  if (!value || value.trim().length === 0) throw new CliError(message, 1, "invalid-argument");
+  return value;
+}
+
+function runRegistry(args: ParsedArgs, cwd: string): {
+  status: number;
+  subcommand: "push" | "pull";
+  registryDir: string;
+  artifactId?: string;
+  digest?: string;
+  out?: string;
+  signatureVerified?: boolean;
+  code?: string;
+  message: string;
+} {
+  const subcommand = parseRegistrySubcommand(args);
+  const registryDirRaw = requireStringFlag(args, "registry-dir", "registry requires --registry-dir <path>");
+  const registryDir = resolve(cwd, registryDirRaw);
+  const bundlesDir = resolve(registryDir, "bundles");
+
+  if (subcommand === "push") {
+    const bundleFlag = requireStringFlag(args, "bundle", "registry push requires --bundle <bundle.zip>");
+    const privateKeyFlag = requireStringFlag(
+      args,
+      "sign-private-key",
+      "registry push requires --sign-private-key <private-key.pem>"
+    );
+    const sourceRef = getStringFlag(args, "source-ref");
+    const bundlePath = resolve(cwd, bundleFlag);
+    let bundleBytes: Buffer;
+    try {
+      bundleBytes = readFileSync(bundlePath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new CliError(`Unable to read bundle for registry push: ${message}`, 1, "invalid-argument");
+    }
+    const digest = sha256Hex(bundleBytes);
+    const privateKey = readEd25519PrivateKey(cwd, privateKeyFlag);
+    const publicKey = createPublicKey(privateKey);
+    const keyId = publicKeyFingerprint(publicKey);
+    const signature = signData(null, Buffer.from(digest, "utf8"), privateKey).toString("base64");
+    const publishedAt = new Date().toISOString();
+    const artifactIdBase = `${publishedAt.replace(/[-:.TZ]/g, "")}-${digest.slice(7, 19)}`;
+
+    mkdirSync(bundlesDir, { recursive: true });
+    const index = readRegistryIndex(registryDir);
+    let artifactId = artifactIdBase;
+    while (index.artifacts.some((artifact) => artifact.id === artifactId)) {
+      artifactId = `${artifactIdBase}-${Math.random().toString(16).slice(2, 6)}`;
+    }
+    const bundleFile = `bundles/${artifactId}.zip`;
+    writeFileSync(resolve(registryDir, bundleFile), bundleBytes);
+
+    const artifact: RegistryArtifact = {
+      id: artifactId,
+      bundleFile,
+      digest,
+      publishedAt,
+      ...(sourceRef ? { sourceRef } : {}),
+      signature: {
+        algorithm: "ed25519",
+        keyId,
+        value: signature
+      }
+    };
+    const nextArtifacts = [...index.artifacts.filter((entry) => entry.id !== artifact.id), artifact].sort((left, right) => {
+      const byDate = right.publishedAt.localeCompare(left.publishedAt);
+      return byDate !== 0 ? byDate : right.id.localeCompare(left.id);
+    });
+    writeRegistryIndex(registryDir, { schemaVersion: "1.0", artifacts: nextArtifacts });
+
+    return {
+      status: 0,
+      subcommand,
+      registryDir,
+      artifactId,
+      digest,
+      message: `Published ${artifactId} to registry`
+    };
+  }
+
+  const publicKeyFlag = requireStringFlag(args, "sign-public-key", "registry pull requires --sign-public-key <public-key.pem>");
+  const outFlag = getStringFlag(args, "out") ?? "runwright-registry-sync.zip";
+  const outPath = resolve(cwd, outFlag);
+  const artifactIdFlag = getStringFlag(args, "artifact-id");
+  const index = readRegistryIndex(registryDir);
+  if (index.artifacts.length === 0) {
+    return {
+      status: 1,
+      subcommand,
+      registryDir,
+      code: "registry-empty",
+      signatureVerified: false,
+      message: "Registry is empty; nothing to pull."
+    };
+  }
+  const artifact = artifactIdFlag
+    ? index.artifacts.find((entry) => entry.id === artifactIdFlag)
+    : [...index.artifacts].sort((left, right) => {
+        const byDate = right.publishedAt.localeCompare(left.publishedAt);
+        return byDate !== 0 ? byDate : right.id.localeCompare(left.id);
+      })[0];
+  if (!artifact) {
+    return {
+      status: 1,
+      subcommand,
+      registryDir,
+      code: "registry-artifact-not-found",
+      signatureVerified: false,
+      message: `Registry artifact not found: ${artifactIdFlag}`
+    };
+  }
+
+  const bundlePath = resolve(registryDir, artifact.bundleFile);
+  let bundleBytes: Buffer;
+  try {
+    bundleBytes = readFileSync(bundlePath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      status: 1,
+      subcommand,
+      registryDir,
+      artifactId: artifact.id,
+      code: "registry-read-failed",
+      signatureVerified: false,
+      message: `Unable to read registry artifact bundle: ${message}`
+    };
+  }
+  const computedDigest = sha256Hex(bundleBytes);
+  if (computedDigest !== artifact.digest) {
+    return {
+      status: 1,
+      subcommand,
+      registryDir,
+      artifactId: artifact.id,
+      code: "registry-digest-mismatch",
+      signatureVerified: false,
+      message: "Registry artifact digest mismatch."
+    };
+  }
+
+  const publicKey = readEd25519PublicKey(cwd, publicKeyFlag);
+  const expectedKeyId = publicKeyFingerprint(publicKey);
+  if (artifact.signature.keyId !== expectedKeyId) {
+    return {
+      status: 1,
+      subcommand,
+      registryDir,
+      artifactId: artifact.id,
+      code: "registry-signature-failed",
+      signatureVerified: false,
+      message: "Registry signature keyId mismatch."
+    };
+  }
+  const signatureVerified = verifyData(
+    null,
+    Buffer.from(artifact.digest, "utf8"),
+    publicKey,
+    Buffer.from(artifact.signature.value, "base64")
+  );
+  if (!signatureVerified) {
+    return {
+      status: 1,
+      subcommand,
+      registryDir,
+      artifactId: artifact.id,
+      code: "registry-signature-failed",
+      signatureVerified: false,
+      message: "Registry signature verification failed."
+    };
+  }
+
+  writeFileSync(outPath, bundleBytes);
+  return {
+    status: 0,
+    subcommand,
+    registryDir,
+    artifactId: artifact.id,
+    digest: artifact.digest,
+    out: outPath,
+    signatureVerified: true,
+    message: `Pulled ${artifact.id} to ${outPath}`
+  };
+}
+
+function renderRegistryText(result: {
+  status: number;
+  subcommand: "push" | "pull";
+  registryDir: string;
+  artifactId?: string;
+  digest?: string;
+  out?: string;
+  signatureVerified?: boolean;
+  code?: string;
+  message: string;
+}): string {
+  const lines: string[] = [
+    result.status === 0 ? "Registry Sync" : "Registry Sync Failed",
+    `- Subcommand: ${result.subcommand}`,
+    `- Status: ${result.status}`,
+    `- Registry: ${result.registryDir}`,
+    ...(result.artifactId ? [`- Artifact: ${result.artifactId}`] : []),
+    ...(result.digest ? [`- Digest: ${result.digest}`] : []),
+    ...(result.out ? [`- Output: ${result.out}`] : []),
+    ...(typeof result.signatureVerified === "boolean"
+      ? [`- Signature: ${result.signatureVerified ? "verified" : "not verified"}`]
+      : []),
+    ...(result.code ? [`- Code: ${result.code}`] : []),
+    "",
+    result.message
+  ];
+  lines.push("");
+  return lines.join("\n");
+}
+
 function runExport(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   status: number;
   out: string;
@@ -3272,6 +3607,17 @@ async function main() {
     process.exit(result.status);
   }
 
+  if (cmd === "registry") {
+    const result = runRegistry(parsed, cwd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(result));
+    else process.stdout.write(renderRegistryText(result));
+    recordOperationEvent(cwd, startedAtMs, "registry", result.status, result.status === 0, {
+      ...(result.code ? { code: result.code } : {}),
+      counters: { signatureVerified: result.signatureVerified ? 1 : 0 }
+    });
+    process.exit(result.status);
+  }
+
   const manifest = loadManifest(cwd);
 
   if (cmd === "apply") {
@@ -3500,6 +3846,7 @@ main().catch((err) => {
     failedCommand === "apply" ||
     failedCommand === "update" ||
     failedCommand === "export" ||
+    failedCommand === "registry" ||
     failedCommand === "fix";
   if (err instanceof CliError) {
     if (isMutatingCommand && failedCommand) {

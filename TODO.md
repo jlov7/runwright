@@ -1,7 +1,7 @@
 # Five-star TODO (Post-v1)
 
 ## Overnight hard features (execution order)
-- [ ] F1 Team Registry + Signed Sync
+- [x] F1 Team Registry + Signed Sync
 - [ ] F2 Crash-Resumable Apply Engine
 - [ ] F3 Policy-as-Code Rule Packs
 - [ ] F4 Interactive Remediation Flow

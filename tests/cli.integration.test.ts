@@ -1279,6 +1279,117 @@ describe("cli integration", () => {
     expect(payload.integrityOk).toBe(true);
   });
 
+  it("registry push/pull syncs signed bundles end-to-end", () => {
+    const projectDir = makeTempDir("skillbase-cli-registry-sync-");
+    const registryDir = join(projectDir, "team-registry");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+
+    const keys = generateKeyPairSync("ed25519");
+    const privateKeyPath = join(projectDir, "registry-private.pem");
+    const publicKeyPath = join(projectDir, "registry-public.pem");
+    writeFileSync(privateKeyPath, keys.privateKey.export({ type: "pkcs8", format: "pem" }).toString(), "utf8");
+    writeFileSync(publicKeyPath, keys.publicKey.export({ type: "spki", format: "pem" }).toString(), "utf8");
+
+    expect(runCli(["update", "--json"], projectDir).status).toBe(0);
+    const bundlePath = join(projectDir, "release.zip");
+    expect(runCli(["export", "--out", bundlePath, "--deterministic", "--json"], projectDir).status).toBe(0);
+
+    const pushed = runCli(
+      [
+        "registry",
+        "push",
+        "--registry-dir",
+        registryDir,
+        "--bundle",
+        bundlePath,
+        "--sign-private-key",
+        privateKeyPath,
+        "--source-ref",
+        "team/main",
+        "--json"
+      ],
+      projectDir
+    );
+    expect(pushed.status).toBe(0);
+    const pushPayload = JSON.parse(pushed.stdout);
+    expect(pushPayload.artifactId).toEqual(expect.any(String));
+    expect(pushPayload.digest).toEqual(expect.stringMatching(/^sha256:/));
+
+    const pulledBundlePath = join(projectDir, "synced.zip");
+    const pulled = runCli(
+      [
+        "registry",
+        "pull",
+        "--registry-dir",
+        registryDir,
+        "--artifact-id",
+        pushPayload.artifactId,
+        "--sign-public-key",
+        publicKeyPath,
+        "--out",
+        pulledBundlePath,
+        "--json"
+      ],
+      projectDir
+    );
+    expect(pulled.status).toBe(0);
+    const pulledPayload = JSON.parse(pulled.stdout);
+    expect(pulledPayload.signatureVerified).toBe(true);
+    expect(existsSync(pulledBundlePath)).toBe(true);
+    expect(readFileSync(pulledBundlePath).equals(readFileSync(bundlePath))).toBe(true);
+  });
+
+  it("registry pull fails with wrong public key", () => {
+    const projectDir = makeTempDir("skillbase-cli-registry-signature-fail-");
+    const registryDir = join(projectDir, "team-registry");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    expect(runCli(["update", "--json"], projectDir).status).toBe(0);
+    const bundlePath = join(projectDir, "release.zip");
+    expect(runCli(["export", "--out", bundlePath, "--deterministic", "--json"], projectDir).status).toBe(0);
+
+    const signingKeys = generateKeyPairSync("ed25519");
+    const wrongKeys = generateKeyPairSync("ed25519");
+    const privateKeyPath = join(projectDir, "registry-private.pem");
+    const wrongPublicPath = join(projectDir, "wrong-public.pem");
+    writeFileSync(privateKeyPath, signingKeys.privateKey.export({ type: "pkcs8", format: "pem" }).toString(), "utf8");
+    writeFileSync(wrongPublicPath, wrongKeys.publicKey.export({ type: "spki", format: "pem" }).toString(), "utf8");
+
+    const pushed = runCli(
+      ["registry", "push", "--registry-dir", registryDir, "--bundle", bundlePath, "--sign-private-key", privateKeyPath, "--json"],
+      projectDir
+    );
+    expect(pushed.status).toBe(0);
+
+    const pulled = runCli(
+      ["registry", "pull", "--registry-dir", registryDir, "--sign-public-key", wrongPublicPath, "--json"],
+      projectDir
+    );
+    expect(pulled.status).toBe(1);
+    const payload = JSON.parse(pulled.stdout);
+    expect(payload.code).toBe("registry-signature-failed");
+    expect(payload.signatureVerified).toBe(false);
+  });
+
   it("export --deterministic produces byte-identical bundles with fixed SOURCE_DATE_EPOCH", () => {
     const projectDir = makeTempDir("skillbase-cli-export-deterministic-");
     mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });

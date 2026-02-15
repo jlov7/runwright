@@ -21,11 +21,11 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 ## Exhaustive Task Matrix
 
 ### F1: Team Registry + Signed Sync
-- [ ] Define registry artifact schema (`bundle path`, `digest`, `signature`, `publishedAt`, `sourceRef`).
-- [ ] Add signed registry push command path.
-- [ ] Add signed registry pull command path with digest+signature verification.
-- [ ] Add error UX for missing keys, bad signatures, stale/unknown artifacts.
-- [ ] Add integration tests for push/pull happy path and signature failure.
+- [x] Define registry artifact schema (`bundle path`, `digest`, `signature`, `publishedAt`, `sourceRef`).
+- [x] Add signed registry push command path.
+- [x] Add signed registry pull command path with digest+signature verification.
+- [x] Add error UX for missing keys, bad signatures, stale/unknown artifacts.
+- [x] Add integration tests for push/pull happy path and signature failure.
 
 ### F2: Crash-Resumable Apply Engine
 - [ ] Define apply journal schema (`phase`, `target`, `backupDir`, `stagingDir`, `timestamp`).
@@ -70,5 +70,5 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: F1 scaffolding
+- Current phase: F2 crash-resume apply journal
 - Completion target: all six features implemented + verified locally
