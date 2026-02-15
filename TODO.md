@@ -1,27 +1,14 @@
 # Five-star TODO (Post-v1)
 
-## P0 (Highest impact)
-- [x] Make `runwright init` idempotent-success:
-  - second run exits `0`
-  - copy explains existing setup and next step
-  - operation event mutating flag remains accurate
+## Overnight hard features (execution order)
+- [ ] F1 Team Registry + Signed Sync
+- [ ] F2 Crash-Resumable Apply Engine
+- [ ] F3 Policy-as-Code Rule Packs
+- [ ] F4 Interactive Remediation Flow
+- [ ] F5 Continuous Drift Watch Mode
+- [ ] F6 Release Provenance + Attestation Pipeline
 
-- [x] Add script-level help for operator workflows:
-  - `scripts/doctor.ts --help`
-  - `scripts/verify_quality_evidence.ts --help`
-  - include usage and examples, keep strict arg validation
-
-## P1 (High impact)
-- [x] Re-run full quality/evidence gates and confirm artifacts:
-  - `pnpm verify`
-  - `pnpm run doctor`
-  - `pnpm quality:evidence:verify`
-  - `pnpm ship:gate`
-
-- [x] Reconcile docs/backlog with final state:
-  - `GAPS.md`
-  - `RELEASE_CHECKLIST.md`
-  - `PLANS.md` progress
+Tracker: `docs/plans/overnight-super-hard-features.md`
 
 ## P0 (Overnight next-level build)
 - [ ] Execute full triple-feature plan from `docs/plans/2026-02-15-next-level-feature-suite.md`
