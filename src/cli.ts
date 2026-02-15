@@ -25,6 +25,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { claudeAdapter } from "./adapters/claude.js";
 import { codexAdapter } from "./adapters/codex.js";
@@ -174,6 +175,14 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     summary: "Recover from interrupted apply transactions using the persisted apply journal.",
     usage: ["runwright apply-resume [--json]"],
     examples: ["runwright apply-resume", "runwright apply-resume --json"]
+  },
+  remediate: {
+    summary: "Guide remediation actions from scan/policy/doctor signals, with optional safe apply.",
+    usage: [
+      "runwright remediate [--json] [--non-interactive] [--apply-safe] [--rule-pack <path>]",
+      "                   [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: ["runwright remediate --non-interactive --json", "runwright remediate --apply-safe --json"]
   },
   doctor: {
     summary: "Diagnose and optionally fix safe local install issues.",
@@ -424,6 +433,7 @@ Core commands:
   runwright journey
   runwright apply
   runwright apply-resume
+  runwright remediate
   runwright doctor
   runwright scan
   runwright policy check
@@ -488,6 +498,14 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "frozen-lockfile": "boolean"
   },
   "apply-resume": { json: "boolean" },
+  remediate: {
+    json: "boolean",
+    "non-interactive": "boolean",
+    "apply-safe": "boolean",
+    "rule-pack": "string",
+    "refresh-sources": "boolean",
+    "remote-cache-ttl": "string"
+  },
   doctor: { fix: "boolean", json: "boolean", target: "string", scope: "string" },
   scan: {
     "lint-only": "boolean",
@@ -713,6 +731,11 @@ function validateSemanticFlags(args: ParsedArgs): void {
   }
 
   if (command === "fix") {
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "remediate") {
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
     return;
   }
@@ -2953,6 +2976,96 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   }
 }
 
+async function runRemediate(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): Promise<{
+  status: number;
+  mode: "plan" | "apply";
+  interactive: boolean;
+  applied: boolean;
+  rolledBack: boolean;
+  actions: FixAction[];
+  trust: { summary: TrustSummary };
+  summary: {
+    highFindings: number;
+    mediumFindings: number;
+    unresolvedAllowlistEntries: number;
+    deniedPolicies: number;
+  };
+}> {
+  const sharedFlags = new Map<string, string | boolean>();
+  const rulePack = getStringFlag(args, "rule-pack");
+  const remoteCacheTtl = getStringFlag(args, "remote-cache-ttl");
+  if (rulePack) sharedFlags.set("rule-pack", rulePack);
+  if (remoteCacheTtl) sharedFlags.set("remote-cache-ttl", remoteCacheTtl);
+  if (getBooleanFlag(args, "refresh-sources")) sharedFlags.set("refresh-sources", true);
+  sharedFlags.set("json", true);
+
+  const planFlags = new Map(sharedFlags);
+  planFlags.set("plan", true);
+  const planResult = runFix(
+    {
+      command: "fix",
+      flags: planFlags,
+      positionals: [],
+      duplicateFlags: []
+    },
+    cwd,
+    manifest
+  );
+
+  const applySafe = getBooleanFlag(args, "apply-safe");
+  const interactive = !getBooleanFlag(args, "non-interactive") && process.stdin.isTTY && process.stdout.isTTY;
+  if (!applySafe) {
+    return { ...planResult, interactive, mode: "plan" };
+  }
+
+  if (!interactive) {
+    const applyFlags = new Map(sharedFlags);
+    applyFlags.set("apply", true);
+    const applyResult = runFix(
+      {
+        command: "fix",
+        flags: applyFlags,
+        positionals: [],
+        duplicateFlags: []
+      },
+      cwd,
+      manifest
+    );
+    return { ...applyResult, interactive, mode: "apply" };
+  }
+
+  const terminal = createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  try {
+    process.stdout.write("Remediation candidates:\n");
+    for (const [index, action] of planResult.actions.entries()) {
+      process.stdout.write(`  ${index + 1}. ${action.type}: ${action.message}\n`);
+    }
+    const answer = (await terminal.question("Apply safe remediation now? [y/N]: ")).trim().toLowerCase();
+    if (answer !== "y" && answer !== "yes") {
+      return { ...planResult, interactive, mode: "plan" };
+    }
+  } finally {
+    terminal.close();
+  }
+
+  const applyFlags = new Map(sharedFlags);
+  applyFlags.set("apply", true);
+  const applyResult = runFix(
+    {
+      command: "fix",
+      flags: applyFlags,
+      positionals: [],
+      duplicateFlags: []
+    },
+    cwd,
+    manifest
+  );
+  return { ...applyResult, interactive, mode: "apply" };
+}
+
 function readRegistryIndex(registryDir: string): RegistryIndex {
   const indexPath = resolve(registryDir, "index.json");
   if (!existsSync(indexPath)) {
@@ -3864,6 +3977,22 @@ async function main() {
     process.exit(policy.status);
   }
 
+  if (cmd === "remediate") {
+    const remediateResult = await runRemediate(parsed, cwd, manifest);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(remediateResult));
+    else process.stdout.write(renderFixText(remediateResult));
+    recordOperationEvent(cwd, startedAtMs, "remediate", remediateResult.status, remediateResult.applied && !remediateResult.rolledBack, {
+      counters: {
+        actions: remediateResult.actions.length,
+        highFindings: remediateResult.summary.highFindings,
+        mediumFindings: remediateResult.summary.mediumFindings,
+        unresolvedAllowlistEntries: remediateResult.summary.unresolvedAllowlistEntries,
+        deniedPolicies: remediateResult.summary.deniedPolicies
+      }
+    });
+    process.exit(remediateResult.status);
+  }
+
   if (cmd === "fix") {
     const fixResult = runFix(parsed, cwd, manifest);
     if (jsonOutput) writeJson(withJsonSchemaVersion({ ...fixResult, plan: { actions: fixResult.actions } }));
@@ -4043,6 +4172,7 @@ main().catch((err) => {
     failedCommand === "update" ||
     failedCommand === "export" ||
     failedCommand === "registry" ||
+    failedCommand === "remediate" ||
     failedCommand === "fix";
   if (err instanceof CliError) {
     if (isMutatingCommand && failedCommand) {
