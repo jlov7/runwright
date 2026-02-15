@@ -169,6 +169,11 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     ],
     examples: ["runwright mission --json", "runwright mission --action scan --json"]
   },
+  analytics: {
+    summary: "Replay user journeys and compute persona-oriented operational scorecards.",
+    usage: ["runwright analytics journey [--json]"],
+    examples: ["runwright analytics journey --json"]
+  },
   apply: {
     summary: "Install resolved skills into target tools (safe by default with scanning).",
     usage: [
@@ -480,6 +485,7 @@ Core commands:
   runwright init
   runwright journey
   runwright mission
+  runwright analytics journey
   runwright apply
   runwright apply-resume
   runwright remediate
@@ -536,6 +542,7 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
   init: { json: "boolean" },
   journey: { json: "boolean" },
   mission: { action: "string", json: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
+  analytics: { json: "boolean" },
   apply: {
     mode: "string",
     target: "string",
@@ -658,6 +665,11 @@ function validateAllowedFlags(args: ParsedArgs): void {
     const subcommand = args.positionals[0];
     if (args.positionals.length !== 1 || (subcommand !== "push" && subcommand !== "pull")) {
       throw new CliError("registry command requires subcommand: registry push|pull", 1, "invalid-argument");
+    }
+  } else if (args.command === "analytics") {
+    const subcommand = args.positionals[0];
+    if (args.positionals.length !== 1 || subcommand !== "journey") {
+      throw new CliError("analytics command requires subcommand: analytics journey", 1, "invalid-argument");
     }
   } else if (args.command === "trust") {
     const subcommand = args.positionals[0];
@@ -2512,6 +2524,102 @@ function renderMissionText(payload: MissionPayload): string {
 
   if (payload.action) {
     lines.push("", "Action run:", `  ${payload.action.command} -> status=${payload.action.status}`);
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+function runAnalyticsJourney(cwd: string): {
+  status: number;
+  mode: "journey";
+  funnel: { attempts: number; successfulRuns: number; failedRuns: number; blockedRuns: number };
+  replay: {
+    lastFailed: { command: string; status: number; code?: string; timestampMs: number } | null;
+    recentFlow: Array<{ command: string; status: number; timestampMs: number }>;
+    recommendedRecoveryCommand: string;
+  };
+  personaScores: { newUser: number; operator: number; releaseManager: number };
+} {
+  const events = readOperationEventRecords(cwd);
+  const successfulRuns = events.filter((event) => event.status === 0 || event.status === 2).length;
+  const failedEvents = events.filter((event) => event.status !== 0 && event.status !== 2);
+  const blockedRuns = events.filter((event) => event.status === 30).length;
+  const lastFailed = failedEvents.length > 0 ? failedEvents[failedEvents.length - 1] : undefined;
+  const journey = runJourney(cwd).payload;
+  const verifySuccess = events.some((event) => event.command === "verify-bundle" && event.status === 0);
+  const recoveryByCommand: Record<string, string> = {
+    init: "runwright init",
+    update: "runwright update --json",
+    scan: "runwright scan --format json",
+    apply: "runwright scan --format json && runwright apply --target all --scope project --mode copy --json",
+    "verify-bundle": "runwright verify-bundle --bundle <bundle.zip> --json",
+    registry: "runwright registry pull --registry-dir <path> --sign-public-key <key.pem> --json",
+    trust: "runwright trust status --json"
+  };
+  const recommendedRecoveryCommand = lastFailed ? (recoveryByCommand[lastFailed.command] ?? "runwright journey") : journey.nextAction.command;
+
+  const clampScore = (value: number): number => Math.max(0, Math.min(10, Math.round(value)));
+  const newUser = clampScore(3 + journey.summary.completionPercent / 15 + (successfulRuns > 0 ? 1 : 0));
+  const operator = clampScore(3 + Math.min(successfulRuns, 5) - Math.min(failedEvents.length, 4) + (blockedRuns > 0 ? 1 : 0));
+  const releaseManager = clampScore(3 + (verifySuccess ? 4 : 0) + (events.some((event) => event.command === "export") ? 2 : 0));
+
+  return {
+    status: 0,
+    mode: "journey",
+    funnel: {
+      attempts: events.length,
+      successfulRuns,
+      failedRuns: failedEvents.length,
+      blockedRuns
+    },
+    replay: {
+      lastFailed: lastFailed
+        ? {
+            command: lastFailed.command,
+            status: lastFailed.status,
+            ...(lastFailed.code ? { code: lastFailed.code } : {}),
+            timestampMs: lastFailed.timestampMs
+          }
+        : null,
+      recentFlow: events.slice(-5).map((event) => ({
+        command: event.command,
+        status: event.status,
+        timestampMs: event.timestampMs
+      })),
+      recommendedRecoveryCommand
+    },
+    personaScores: {
+      newUser,
+      operator,
+      releaseManager
+    }
+  };
+}
+
+function renderAnalyticsJourneyText(payload: {
+  mode: "journey";
+  funnel: { attempts: number; successfulRuns: number; failedRuns: number; blockedRuns: number };
+  replay: {
+    lastFailed: { command: string; status: number; timestampMs: number } | null;
+    recommendedRecoveryCommand: string;
+  };
+  personaScores: { newUser: number; operator: number; releaseManager: number };
+}): string {
+  const lines = [
+    "Journey Analytics",
+    "",
+    `Funnel: attempts=${payload.funnel.attempts} success=${payload.funnel.successfulRuns} failed=${payload.funnel.failedRuns} blocked=${payload.funnel.blockedRuns}`,
+    `Persona scores: new-user=${payload.personaScores.newUser}/10 operator=${payload.personaScores.operator}/10 release-manager=${payload.personaScores.releaseManager}/10`,
+    "",
+    "Replay:"
+  ];
+  if (payload.replay.lastFailed) {
+    lines.push(
+      `  Last failed command: ${payload.replay.lastFailed.command} (status=${payload.replay.lastFailed.status})`,
+      `  Recovery: ${payload.replay.recommendedRecoveryCommand}`
+    );
+  } else {
+    lines.push("  No failed command recorded in operation history.");
   }
   lines.push("");
   return lines.join("\n");
@@ -4874,6 +4982,21 @@ async function main() {
       }
     });
     process.exit(result.status);
+  }
+
+  if (cmd === "analytics") {
+    const analytics = runAnalyticsJourney(cwd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(analytics));
+    else process.stdout.write(renderAnalyticsJourneyText(analytics));
+    recordOperationEvent(cwd, startedAtMs, "analytics", analytics.status, false, {
+      counters: {
+        attempts: analytics.funnel.attempts,
+        successfulRuns: analytics.funnel.successfulRuns,
+        failedRuns: analytics.funnel.failedRuns,
+        blockedRuns: analytics.funnel.blockedRuns
+      }
+    });
+    process.exit(analytics.status);
   }
 
   const manifest = loadManifest(cwd);
