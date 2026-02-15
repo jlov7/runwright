@@ -3017,6 +3017,48 @@ describe("cli integration", () => {
     );
   });
 
+  it("policy check applies external rule pack overrides", () => {
+    const projectDir = makeTempDir("skillbase-cli-policy-rule-pack-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  scan:\n    allowlist:\n      - ruleId: remote-shell-curl-pipe\n        source: local:./skills\n        skill: safe\n        reason: expired acceptance\n        expiresAt: 2020-01-01T00:00:00.000Z\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "team-policy.json"),
+      JSON.stringify(
+        {
+          schemaVersion: "1.0",
+          rules: [
+            {
+              id: "deny-expired-from-pack",
+              when: { hasExpiredAllowlist: true },
+              action: "deny",
+              message: "expired allowlist entries are denied by pack"
+            }
+          ]
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const result = runCli(["policy", "check", "--json", "--rule-pack", "team-policy.json"], projectDir);
+    expect(result.status).toBe(2);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.policy.summary.deny).toBe(1);
+    expect(payload.policy.decisions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ ruleId: "deny-expired-from-pack", action: "deny" })])
+    );
+  });
+
   it("fix --plan returns action plan and trust summary", () => {
     const projectDir = makeTempDir("skillbase-cli-fix-plan-");
     mkdirSync(join(projectDir, "skills", "risky"), { recursive: true });

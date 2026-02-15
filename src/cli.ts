@@ -39,7 +39,8 @@ import {
 } from "./lockfile.js";
 import { parseManifest, type SkillbaseManifest } from "./manifest.js";
 import { evaluatePolicyRules } from "./policy/engine.js";
-import type { PolicyContext } from "./policy/types.js";
+import { mergePolicyRules, parsePolicyRulePack } from "./policy/rule-pack.js";
+import type { ManifestPolicyRule, PolicyContext } from "./policy/types.js";
 import { lintSkillDir } from "./scanner/lint.js";
 import { scanSkillDir, type SecurityRuleId } from "./scanner/security.js";
 import { TrustVerificationError, resolveSkillUnits, type SkillUnit } from "./resolver.js";
@@ -194,15 +195,17 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   policy: {
     summary: "Check manifest scan-policy exceptions and expiry health.",
     usage: [
-      "runwright policy check [--format text|json] [--json] [--explain]",
+      "runwright policy check [--format text|json] [--json] [--explain] [--rule-pack <path>]",
       "                      [--refresh-sources] [--remote-cache-ttl <seconds>]"
     ],
-    examples: ["runwright policy check", "runwright policy check --explain --json"]
+    examples: ["runwright policy check", "runwright policy check --explain --rule-pack team-policy.json --json"]
   },
   fix: {
     summary: "Plan and optionally apply safe remediations for policy/scan findings.",
-    usage: ["runwright fix [--plan] [--apply] [--json] [--refresh-sources] [--remote-cache-ttl <seconds>]"],
-    examples: ["runwright fix --plan --json", "runwright fix --apply --json"]
+    usage: [
+      "runwright fix [--plan] [--apply] [--json] [--rule-pack <path>] [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: ["runwright fix --plan --json", "runwright fix --apply --rule-pack team-policy.json --json"]
   },
   list: {
     summary: "List resolved skills and effective target install paths.",
@@ -332,6 +335,7 @@ function formatCliErrorGuidance(error: CliError, failedCommand?: string): string
     case "invalid-flag":
     case "invalid-argument":
     case "invalid-format":
+    case "invalid-policy-pack":
       hints.push(helpForCommand);
       break;
     case "lockfile-error":
@@ -494,8 +498,22 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "refresh-sources": "boolean",
     "remote-cache-ttl": "string"
   },
-  policy: { format: "string", json: "boolean", explain: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
-  fix: { plan: "boolean", apply: "boolean", json: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
+  policy: {
+    format: "string",
+    json: "boolean",
+    explain: "boolean",
+    "rule-pack": "string",
+    "refresh-sources": "boolean",
+    "remote-cache-ttl": "string"
+  },
+  fix: {
+    plan: "boolean",
+    apply: "boolean",
+    json: "boolean",
+    "rule-pack": "string",
+    "refresh-sources": "boolean",
+    "remote-cache-ttl": "string"
+  },
   list: { json: "boolean", target: "string", scope: "string", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
   update: { "frozen-lockfile": "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string", json: "boolean" },
   export: {
@@ -716,6 +734,34 @@ function resolverOptionsFromArgs(args: ParsedArgs): { refreshSources: boolean; r
     refreshSources: getBooleanFlag(args, "refresh-sources"),
     remoteCacheTtlSeconds: parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"))
   };
+}
+
+function resolveEffectivePolicyRules(
+  manifest: SkillbaseManifest,
+  cwd: string,
+  args: ParsedArgs
+): ManifestPolicyRule[] {
+  const manifestRules = manifest.defaults?.policy?.rules ?? [];
+  const rulePackFlag = getStringFlag(args, "rule-pack");
+  if (!rulePackFlag) {
+    return [...manifestRules].sort((left, right) => left.id.localeCompare(right.id));
+  }
+
+  const packPath = resolve(cwd, rulePackFlag);
+  let packRaw: unknown;
+  try {
+    packRaw = JSON.parse(readFileSync(packPath, "utf8")) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new CliError(`Unable to read policy rule pack '${rulePackFlag}': ${message}`, 1, "invalid-policy-pack");
+  }
+  try {
+    const packRules = parsePolicyRulePack(packRaw);
+    return mergePolicyRules(manifestRules, packRules);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new CliError(`Invalid policy rule pack '${rulePackFlag}': ${message}`, 1, "invalid-policy-pack");
+  }
 }
 
 function collectConfiguredSources(manifest: SkillbaseManifest): Set<string> {
@@ -2696,7 +2742,7 @@ function runPolicyCheck(args: ParsedArgs, cwd: string, manifest: SkillbaseManife
       unresolved: summary.unresolved
     }
   };
-  const policyEvaluation = evaluatePolicyRules(manifest.defaults?.policy?.rules ?? [], context);
+  const policyEvaluation = evaluatePolicyRules(resolveEffectivePolicyRules(manifest, cwd, args), context);
   const status = unresolved.length > 0 || policyEvaluation.summary.deny > 0 ? 2 : 0;
 
   if (format === "json") {
@@ -2813,11 +2859,14 @@ function runFix(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
   const scanPolicy = normalizeScanPolicy(manifest);
   const scan = runSkillScans(resolution.units, { lintOnly: false, security: "warn", policy: scanPolicy });
+  const policyFlags = new Map<string, string | boolean>([["json", true]]);
+  const rulePackPath = getStringFlag(args, "rule-pack");
+  if (rulePackPath) policyFlags.set("rule-pack", rulePackPath);
 
   const policyCheck = runPolicyCheck(
     {
       command: "policy",
-      flags: new Map<string, string | boolean>([["json", true]]),
+      flags: policyFlags,
       positionals: ["check"],
       duplicateFlags: []
     },
