@@ -17,6 +17,26 @@ type ParsedArgs = {
 const DEFAULT_SCORECARD_PATH = "reports/quality/ship-gate.scorecard.json";
 const DEFAULT_REQUIRED_CHECKS = DEFAULT_SHIP_GATE_STAGES.map((stage) => stage.id);
 
+function hasHelpFlag(argv: string[]): boolean {
+  return argv.includes("--help") || argv.includes("-h");
+}
+
+function renderUsage(): string {
+  return [
+    "Usage: pnpm tsx scripts/verify_quality_evidence.ts [options]",
+    "",
+    "Options:",
+    `  --scorecard <path>          Scorecard JSON path (default: ${DEFAULT_SCORECARD_PATH})`,
+    "  --require-check <name>      Require a named scorecard check to be successful (repeatable)",
+    "  --allow-scorecard-fail      Do not fail when overall scorecard pass=false",
+    "  --mutation-report <path>    Optional mutation report JSON path",
+    "  --min-mutation-score <num>  Optional minimum mutation score threshold",
+    "  --sbom <path>               Optional SBOM JSON path",
+    "  --out <path>                Output verification JSON path (default: reports/quality/evidence-verification.json)",
+    "  --help, -h                  Show this help message"
+  ].join("\n");
+}
+
 function readRequiredArgValue(argv: string[], index: number, flag: string): string {
   const value = argv[index + 1];
   if (!value || value.startsWith("--")) {
@@ -102,6 +122,11 @@ function readJson(path: string): unknown {
 }
 
 function main(): void {
+  if (hasHelpFlag(process.argv)) {
+    process.stdout.write(`${renderUsage()}\n`);
+    return;
+  }
+
   const args = parseArgs(process.argv);
   const scorecard = readJson(resolve(args.scorecardPath));
   const mutationReport = args.mutationReportPath ? readJson(resolve(args.mutationReportPath)) : undefined;

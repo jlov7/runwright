@@ -74,4 +74,17 @@ describe("doctor script", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Unknown doctor argument '--bogus'");
   });
+
+  it("prints help usage with --help", () => {
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/doctor.ts",
+      args: ["--help"],
+      cwd: process.cwd()
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Usage: pnpm tsx scripts/doctor.ts [options]");
+    expect(result.stdout).toContain("--only <check>");
+    expect(result.stdout).toContain("Checks:");
+  });
 });

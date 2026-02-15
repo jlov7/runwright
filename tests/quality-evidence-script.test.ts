@@ -86,6 +86,21 @@ describe("quality evidence verifier script", () => {
     expect(result.stderr).toContain("Unknown argument '--bogus'");
   });
 
+  it("prints help usage with --help", () => {
+    const dir = makeTempDir("skillbase-quality-evidence-help-");
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/verify_quality_evidence.ts",
+      args: ["--help"],
+      cwd: dir
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Usage: pnpm tsx scripts/verify_quality_evidence.ts [options]");
+    expect(result.stdout).toContain("--allow-scorecard-fail");
+    expect(result.stdout).toContain("--min-mutation-score <num>");
+  });
+
   it("succeeds and writes verification output when evidence passes", () => {
     const dir = makeTempDir("skillbase-quality-evidence-pass-");
     const scorecardPath = join(dir, "scorecard.json");

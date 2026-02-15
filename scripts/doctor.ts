@@ -52,6 +52,25 @@ const DEFAULT_CHECKS: DoctorCheck[] = [
   { id: "audit:deps", command: PNPM_COMMAND, args: ["run", "audit:deps"] }
 ];
 
+function hasHelpFlag(argv: string[]): boolean {
+  return argv.includes("--help") || argv.includes("-h");
+}
+
+function renderUsage(): string {
+  return [
+    "Usage: pnpm tsx scripts/doctor.ts [options]",
+    "",
+    "Options:",
+    "  --out <path>       Output JSON report path (default: reports/doctor/doctor.json)",
+    "  --only <check>     Run only a specific check (repeatable)",
+    "  --skip <check>     Skip a specific check (repeatable)",
+    "  --help, -h         Show this help message",
+    "",
+    "Checks:",
+    `  ${DEFAULT_CHECKS.map((check) => check.id).join(", ")}`
+  ].join("\n");
+}
+
 function readRequiredArgValue(argv: string[], index: number, flag: string): string {
   const value = argv[index + 1];
   if (!value || value.startsWith("--")) {
@@ -158,6 +177,11 @@ function writeJson(path: string, payload: unknown): void {
 }
 
 function main(): void {
+  if (hasHelpFlag(process.argv)) {
+    process.stdout.write(`${renderUsage()}\n`);
+    return;
+  }
+
   const args = parseArgs(process.argv);
   const checks = selectChecks(DEFAULT_CHECKS, args);
   const mockStatus = parseMockStatus(process.env.RUNWRIGHT_DOCTOR_MOCK_STATUS);
