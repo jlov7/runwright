@@ -61,6 +61,21 @@
   - GitHub `CI` workflow status = success on latest commit.
   - GitHub `CodeQL` workflow status = success on latest commit.
 
+### RG-007 Exception Path (Platform Incident Only)
+- Allowed only when workflow failures are clearly infrastructure startup failures (for example `steps: []` / no test execution) and persist across at least two reruns.
+- Required compensating evidence on HEAD:
+  - `pnpm verify`
+  - `pnpm run doctor`
+  - `pnpm quality:evidence:verify`
+  - `pnpm ship:gate`
+  - `pnpm release:verify-local`
+- Required documentation:
+  - Record incident run IDs and failure mode in `QUESTIONS.md`.
+  - Record exception usage and timestamp in `RELEASE_CHECKLIST.md`.
+- Exit criteria:
+  - Re-run GitHub `CI` and `CodeQL` once platform service recovers.
+  - If post-recovery runs reveal code failures, ship a patch release or roll back.
+
 ## Gate RG-008: Release Provenance & Attestation
 - Requirement: release bundle provenance includes signed local attestation and successful verification.
 - Evidence:

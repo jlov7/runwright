@@ -64,3 +64,4 @@
 - [x] Release scripts now support explicit help UX (`--help`/`-h`) for operator self-service in `scripts/doctor.ts` and `scripts/verify_quality_evidence.ts`, with tests.
 - [x] `runwright watch` now supports continuous drift monitoring with `--once`, debounce controls, and `--apply-safe`, with integration tests in `tests/cli.integration.test.ts`.
 - [x] Release provenance now includes signed local attestation generate/verify scripts (`release:attestation:generate`, `release:attestation:verify`), schema contracts, workflow integration, and tamper-detection tests.
+- [x] CI platform-incident fallback policy is now formally defined and resolved in `QUESTIONS.md` and `RELEASE_GATES.md` (default: latest-head green CI; exception: strict RG-007 evidence path only).

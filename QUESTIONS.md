@@ -21,9 +21,14 @@
 ## Q4: Handling external CI platform startup failures
 - Question: When GitHub Actions fails before any step executes (`steps: []` across jobs), should release sign-off allow the last known-good CI head plus fresh local doctor evidence?
 - Why it matters: Latest commit `9a9d5c1` is blocked by platform-level startup failures (`CI` run `22020736688`, `CodeQL` run `22020736679`) with no code-level failure signal.
-- Latest verification attempt (2026-02-15): Workflow history still shows latest reruns failing with zero executed steps; affected job IDs include `63641142163`, `63641142175`, `63641142179`, and `63641142329`.
-- Current assumption: Treat this as an external platform blocker; continue local gap loop and anchor release evidence to the last known-good CI head until service recovers.
-- Status: Open
+- Decision (2026-02-15): Approve a strict CI-incident fallback policy only for verifiable platform failures.
+- Policy:
+  - Default remains unchanged: latest-head `CI` and `CodeQL` must be green.
+  - Exception allowed only when both workflows fail before any test/build step executes (startup/platform failure), and at least two reruns still fail the same way.
+  - HEAD must pass full local release gates: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`, `pnpm release:verify-local`.
+  - Incident evidence must be logged in `QUESTIONS.md` and `RELEASE_CHECKLIST.md` with run IDs and failure mode.
+  - Follow-up required: rerun CI after platform recovery; if code-related failures appear, cut a patch release or roll back.
+- Status: Resolved
 
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
