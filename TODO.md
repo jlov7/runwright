@@ -10,6 +10,16 @@
 
 Tracker: `docs/plans/overnight-super-hard-features.md`
 
+## P0 (World-class overnight feature suite)
+- [ ] Execute full six-feature program from `docs/plans/2026-02-15-world-class-next-level-feature-suite.md`
+- [ ] NX1 Mission Control TUI experience
+- [ ] NX2 Autonomous Remediation Engine v2
+- [ ] NX3 Continuous Drift Daemon + Alerting
+- [ ] NX4 Policy Simulator + Explain Graph
+- [ ] NX5 Trust Center + Key Lifecycle UX
+- [ ] NX6 Session Replay + Journey Analytics
+- [ ] Final convergence gate (`pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`)
+
 ## P0 (Overnight next-level build)
 - [ ] Execute full triple-feature plan from `docs/plans/2026-02-15-next-level-feature-suite.md`
 
