@@ -229,9 +229,15 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     summary: "Check manifest scan-policy exceptions and expiry health.",
     usage: [
       "runwright policy check [--format text|json] [--json] [--explain] [--rule-pack <path>]",
-      "                      [--refresh-sources] [--remote-cache-ttl <seconds>]"
+      "                      [--refresh-sources] [--remote-cache-ttl <seconds>]",
+      "runwright policy simulate --scenario <scenario.json> [--graph-format text|mermaid] [--json]",
+      "                         [--rule-pack <path>] [--refresh-sources] [--remote-cache-ttl <seconds>]"
     ],
-    examples: ["runwright policy check", "runwright policy check --explain --rule-pack team-policy.json --json"]
+    examples: [
+      "runwright policy check",
+      "runwright policy check --explain --rule-pack team-policy.json --json",
+      "runwright policy simulate --scenario policy-scenario.json --graph-format mermaid --json"
+    ]
   },
   fix: {
     summary: "Plan and optionally apply safe remediations for policy/scan findings.",
@@ -566,6 +572,8 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     format: "string",
     json: "boolean",
     explain: "boolean",
+    scenario: "string",
+    "graph-format": "string",
     "rule-pack": "string",
     "refresh-sources": "boolean",
     "remote-cache-ttl": "string"
@@ -623,8 +631,9 @@ function validateAllowedFlags(args: ParsedArgs): void {
     );
   }
   if (args.command === "policy") {
-    if (args.positionals.length !== 1 || args.positionals[0] !== "check") {
-      throw new CliError("policy command requires subcommand: policy check", 1, "invalid-argument");
+    const subcommand = args.positionals[0];
+    if (args.positionals.length !== 1 || (subcommand !== "check" && subcommand !== "simulate")) {
+      throw new CliError("policy command requires subcommand: policy check|simulate", 1, "invalid-argument");
     }
   } else if (args.command === "registry") {
     const subcommand = args.positionals[0];
@@ -746,6 +755,12 @@ function parsePolicyFormat(raw: string | undefined, fallback: PolicyFormat): Pol
   throw new CliError(`Invalid format: ${raw}`, 1, "invalid-format");
 }
 
+function parsePolicyGraphFormat(raw: string | undefined): "text" | "mermaid" {
+  if (!raw) return "text";
+  if (raw === "text" || raw === "mermaid") return raw;
+  throw new CliError(`Invalid policy graph format: ${raw}`, 1, "invalid-argument");
+}
+
 function parseFixRisk(raw: string | undefined, fallback: FixRiskLevel): FixRiskLevel {
   if (!raw) return fallback;
   if (raw === "low" || raw === "medium" || raw === "high") return raw;
@@ -799,6 +814,7 @@ function validateSemanticFlags(args: ParsedArgs): void {
 
   if (command === "policy") {
     parsePolicyFormat(getStringFlag(args, "format"), "text");
+    parsePolicyGraphFormat(getStringFlag(args, "graph-format"));
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
     return;
   }
@@ -3114,6 +3130,116 @@ function runPolicyCheck(args: ParsedArgs, cwd: string, manifest: SkillbaseManife
   };
 }
 
+function runPolicySimulate(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
+  status: number;
+  payload: Record<string, unknown>;
+} {
+  const scenarioFlag = getStringFlag(args, "scenario");
+  if (!scenarioFlag) {
+    throw new CliError("policy simulate requires --scenario <scenario.json>", 1, "invalid-argument");
+  }
+  const format = parsePolicyFormat(getStringFlag(args, "format"), getBooleanFlag(args, "json") ? "json" : "text");
+  const graphFormat = parsePolicyGraphFormat(getStringFlag(args, "graph-format"));
+  const scenarioPath = resolve(cwd, scenarioFlag);
+  let scenarioRaw: unknown;
+  try {
+    scenarioRaw = JSON.parse(readFileSync(scenarioPath, "utf8")) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new CliError(`Unable to read policy simulation scenario '${scenarioFlag}': ${message}`, 1, "invalid-argument");
+  }
+
+  if (!scenarioRaw || typeof scenarioRaw !== "object" || Array.isArray(scenarioRaw)) {
+    throw new CliError(`Invalid policy simulation scenario '${scenarioFlag}': expected object root`, 1, "invalid-argument");
+  }
+  const root = scenarioRaw as Record<string, unknown>;
+  if (!Array.isArray(root.contexts)) {
+    throw new CliError(`Invalid policy simulation scenario '${scenarioFlag}': missing contexts array`, 1, "invalid-argument");
+  }
+
+  const rules = resolveEffectivePolicyRules(manifest, cwd, args);
+  const results: Array<{
+    id: string;
+    summary: { allow: number; warn: number; deny: number };
+    decisions: ReturnType<typeof evaluatePolicyRules>["decisions"];
+  }> = [];
+  const totals = { allow: 0, warn: 0, deny: 0 };
+
+  for (let index = 0; index < root.contexts.length; index += 1) {
+    const entry = root.contexts[index];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new CliError(`Invalid policy simulation context at index ${index}`, 1, "invalid-argument");
+    }
+    const contextEntry = entry as Record<string, unknown>;
+    const idRaw = contextEntry.id;
+    const id = typeof idRaw === "string" && idRaw.trim().length > 0 ? idRaw : `context-${index + 1}`;
+    const trustRaw = contextEntry.trust as Record<string, unknown> | undefined;
+    const scanRaw = contextEntry.scan as Record<string, unknown> | undefined;
+    const allowlistRaw = contextEntry.allowlist as Record<string, unknown> | undefined;
+    const context: PolicyContext = {
+      trust: {
+        untrustedSources: Number(trustRaw?.untrustedSources ?? 0)
+      },
+      scan: {
+        highFindings: Number(scanRaw?.highFindings ?? 0),
+        mediumFindings: Number(scanRaw?.mediumFindings ?? 0)
+      },
+      allowlist: {
+        expired: Number(allowlistRaw?.expired ?? 0),
+        unresolved: Number(allowlistRaw?.unresolved ?? 0)
+      }
+    };
+    const evaluation = evaluatePolicyRules(rules, context);
+    totals.allow += evaluation.summary.allow;
+    totals.warn += evaluation.summary.warn;
+    totals.deny += evaluation.summary.deny;
+    results.push({ id, summary: evaluation.summary, decisions: evaluation.decisions });
+  }
+
+  const graphContent = graphFormat === "mermaid"
+    ? [
+        "flowchart TD",
+        ...results.map(
+          (result, index) =>
+            `  C${index + 1}[${result.id}] --> D${index + 1}[allow=${result.summary.allow} warn=${result.summary.warn} deny=${result.summary.deny}]`
+        )
+      ].join("\n")
+    : results
+        .map(
+          (result) =>
+            `${result.id}: allow=${result.summary.allow} warn=${result.summary.warn} deny=${result.summary.deny}`
+        )
+        .join("\n");
+
+  const status = totals.deny > 0 ? 2 : 0;
+  const payload = {
+    schemaVersion: "1.0",
+    summary: {
+      contexts: results.length,
+      allow: totals.allow,
+      warn: totals.warn,
+      deny: totals.deny
+    },
+    results,
+    graph: {
+      format: graphFormat,
+      content: graphContent
+    }
+  };
+
+  if (format === "json") return { status, payload };
+  return {
+    status,
+    payload: {
+      text: [
+        `policy-simulate contexts=${results.length} allow=${totals.allow} warn=${totals.warn} deny=${totals.deny}`,
+        "",
+        graphContent
+      ].join("\n")
+    }
+  };
+}
+
 function buildFixActions(input: {
   scan: { highFindings: number; mediumFindings: number };
   trustSummary: TrustSummary;
@@ -4598,7 +4724,8 @@ async function main() {
   }
 
   if (cmd === "policy") {
-    const policy = runPolicyCheck(parsed, cwd, manifest);
+    const subcommand = parsed.positionals[0];
+    const policy = subcommand === "simulate" ? runPolicySimulate(parsed, cwd, manifest) : runPolicyCheck(parsed, cwd, manifest);
     const format = parsePolicyFormat(getStringFlag(parsed, "format"), jsonOutput ? "json" : "text");
     if (format === "text") {
       process.stdout.write(`${String(policy.payload.text ?? "")}\n`);

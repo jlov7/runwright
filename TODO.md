@@ -15,7 +15,7 @@ Tracker: `docs/plans/overnight-super-hard-features.md`
 - [x] NX1 Mission Control TUI experience
 - [x] NX2 Autonomous Remediation Engine v2
 - [x] NX3 Continuous Drift Daemon + Alerting
-- [ ] NX4 Policy Simulator + Explain Graph
+- [x] NX4 Policy Simulator + Explain Graph
 - [ ] NX5 Trust Center + Key Lifecycle UX
 - [ ] NX6 Session Replay + Journey Analytics
 - [ ] Final convergence gate (`pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`)

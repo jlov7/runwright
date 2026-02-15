@@ -42,11 +42,11 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 - [x] Add integration tests for state persistence and alert triggering.
 
 ### NX4: Policy Simulator + Explain Graph
-- [ ] Add `runwright policy simulate` subcommand.
-- [ ] Accept scenario input payloads and evaluate policy outcomes deterministically.
-- [ ] Emit explain graph in JSON and Mermaid-compatible text.
-- [ ] Return failure status when simulated decisions deny required actions.
-- [ ] Add integration tests for simulation decisions and graph output.
+- [x] Add `runwright policy simulate` subcommand.
+- [x] Accept scenario input payloads and evaluate policy outcomes deterministically.
+- [x] Emit explain graph in JSON and Mermaid-compatible text.
+- [x] Return failure status when simulated decisions deny required actions.
+- [x] Add integration tests for simulation decisions and graph output.
 
 ### NX5: Trust Center + Key Lifecycle UX
 - [ ] Add `runwright trust` command surface (`status`, `revoke`, `rotate-plan`).
@@ -72,5 +72,5 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: NX4 Policy Simulator + Explain Graph
+- Current phase: NX5 Trust Center + Key Lifecycle UX
 - Completion target: all six features implemented + verified + tracked

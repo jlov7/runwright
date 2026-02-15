@@ -3059,6 +3059,85 @@ describe("cli integration", () => {
     );
   });
 
+  it("policy simulate returns decision graph and aggregated summary", () => {
+    const projectDir = makeTempDir("skillbase-cli-policy-simulate-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  policy:\n    rules:\n      - id: warn-untrusted\n        when:\n          hasUntrustedSources: true\n        action: warn\n        message: untrusted source simulated\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "scenario.json"),
+      JSON.stringify(
+        {
+          contexts: [
+            {
+              id: "warn-1",
+              trust: { untrustedSources: 1 },
+              scan: { highFindings: 0, mediumFindings: 0 },
+              allowlist: { expired: 0, unresolved: 0 }
+            }
+          ]
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const result = runCli(["policy", "simulate", "--scenario", "scenario.json", "--graph-format", "mermaid", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.summary.contexts).toBe(1);
+    expect(payload.summary.warn).toBe(1);
+    expect(payload.graph.format).toBe("mermaid");
+    expect(String(payload.graph.content)).toContain("flowchart TD");
+  });
+
+  it("policy simulate exits non-zero when deny decisions are present", () => {
+    const projectDir = makeTempDir("skillbase-cli-policy-simulate-deny-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  policy:\n    rules:\n      - id: deny-medium\n        when:\n          minMediumFindings: 1\n        action: deny\n        message: deny simulated medium findings\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "scenario.json"),
+      JSON.stringify(
+        {
+          contexts: [
+            {
+              id: "deny-1",
+              trust: { untrustedSources: 0 },
+              scan: { highFindings: 0, mediumFindings: 2 },
+              allowlist: { expired: 0, unresolved: 0 }
+            }
+          ]
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const result = runCli(["policy", "simulate", "--scenario", "scenario.json", "--json"], projectDir);
+    expect(result.status).toBe(2);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.summary.deny).toBe(1);
+  });
+
   it("fix --plan returns action plan and trust summary", () => {
     const projectDir = makeTempDir("skillbase-cli-fix-plan-");
     mkdirSync(join(projectDir, "skills", "risky"), { recursive: true });
