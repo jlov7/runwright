@@ -319,4 +319,76 @@ describe("quality schemas", () => {
     expect(validateManifest(manifest), JSON.stringify(validateManifest.errors, null, 2)).toBe(true);
     expect(validateVerification(verification), JSON.stringify(validateVerification.errors, null, 2)).toBe(true);
   });
+
+  it("validates release attestation payloads against schemas", () => {
+    const attestationSchemaPath = join(
+      process.cwd(),
+      "docs",
+      "schemas",
+      "quality",
+      "release-attestation.schema.json"
+    );
+    const verifySchemaPath = join(
+      process.cwd(),
+      "docs",
+      "schemas",
+      "quality",
+      "release-attestation-verify.schema.json"
+    );
+
+    const attestationSchema = loadJson(attestationSchemaPath) as AnySchemaObject;
+    const verifySchema = loadJson(verifySchemaPath) as AnySchemaObject;
+    const attestation = {
+      schemaVersion: "1.0",
+      generatedAt: new Date().toISOString(),
+      predicateType: "https://runwright.dev/provenance/release-attestation/v1",
+      subject: {
+        path: "skillbase-release.zip",
+        sizeBytes: 123,
+        digest: {
+          sha256: `sha256:${"a".repeat(64)}`
+        }
+      },
+      builder: {
+        id: "runwright.release",
+        version: "1.0.0"
+      },
+      run: {
+        invocationId: "123",
+        sourceRef: "abc123",
+        workflow: "release-verify"
+      },
+      signature: {
+        algorithm: "ed25519",
+        keyId: `sha256:${"b".repeat(64)}`,
+        payloadDigest: `sha256:${"c".repeat(64)}`,
+        value: "dGVzdA=="
+      }
+    };
+    const verification = {
+      schemaVersion: "1.0",
+      generatedAt: new Date().toISOString(),
+      ok: true,
+      attestationPath: "/tmp/release/release-attestation.json",
+      artifactPath: "/tmp/release/skillbase-release.zip",
+      checks: {
+        artifactFound: true,
+        digestMatch: true,
+        sizeMatch: true,
+        subjectPathMatch: true,
+        payloadDigestMatch: true,
+        keyIdMatch: true,
+        signatureVerified: true
+      },
+      issues: []
+    };
+
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv);
+    const validateAttestation = ajv.compile(attestationSchema);
+    const validateVerification = ajv.compile(verifySchema);
+
+    expect(validateAttestation(attestation), JSON.stringify(validateAttestation.errors, null, 2)).toBe(true);
+    expect(validateVerification(verification), JSON.stringify(validateVerification.errors, null, 2)).toBe(true);
+  });
 });

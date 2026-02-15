@@ -269,6 +269,8 @@ describe("workflow policy", () => {
       hasRunContaining(releaseSteps, "verify-bundle --bundle skillbase-release.zip --sign-public-key")
     ).toBe(true);
     expect(hasRunContaining(releaseSteps, "shasum -a 256 skillbase-release.zip > SHA256SUMS")).toBe(true);
+    expect(hasRunContaining(releaseSteps, "release:attestation:generate")).toBe(true);
+    expect(hasRunContaining(releaseSteps, "release:attestation:verify")).toBe(true);
     expect(hasRunContaining(releaseSteps, "gh attestation download skillbase-release.zip")).toBe(true);
     expect(hasRunContaining(releaseSteps, "verify_release_consumer_artifact.sh")).toBe(true);
     expect(hasRunContaining(releaseSteps, "generate_quality_scorecard.ts")).toBe(true);
@@ -277,6 +279,8 @@ describe("workflow policy", () => {
     expect(hasRunContaining(releaseSteps, "release:artifact-manifest:generate")).toBe(true);
     expect(hasRunContaining(releaseSteps, "release:artifact-manifest:verify")).toBe(true);
     expect(hasRunContaining(releaseSteps, "tag-signature.verify.json")).toBe(true);
+    expect(hasRunContaining(releaseSteps, "skillbase-release.attestation.json")).toBe(true);
+    expect(hasRunContaining(releaseSteps, "skillbase-release.attestation.local.verify.json")).toBe(true);
     expect(hasRunContaining(releaseSteps, "release-artifact-manifest.json")).toBe(true);
     expect(hasRunContaining(releaseSteps, "release-artifact-manifest.verify.json")).toBe(true);
     expect(hasRunContaining(releaseSteps, "release-scorecard.json")).toBe(true);

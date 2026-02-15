@@ -74,6 +74,18 @@ jobs:
             node ../../dist/cli.js export --out skillbase-release.zip --sign-private-key ../keys/private.pem --deterministic --json && \
             node ../../dist/cli.js verify-bundle --bundle skillbase-release.zip --sign-public-key ../keys/public.pem --require-signature --json > skillbase-release.verify.json && \
             shasum -a 256 skillbase-release.zip > SHA256SUMS)
+          pnpm release:attestation:generate -- \
+            --artifact .release/project/skillbase-release.zip \
+            --private-key .release/keys/private.pem \
+            --source-ref "$GITHUB_SHA" \
+            --workflow "$GITHUB_WORKFLOW" \
+            --invocation-id "$GITHUB_RUN_ID" \
+            --out .release/project/skillbase-release.attestation.json
+          pnpm release:attestation:verify -- \
+            --attestation .release/project/skillbase-release.attestation.json \
+            --artifact .release/project/skillbase-release.zip \
+            --public-key .release/keys/public.pem \
+            --out .release/project/skillbase-release.attestation.local.verify.json
         env:
           SOURCE_DATE_EPOCH: "1704067200"
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
@@ -143,6 +155,8 @@ jobs:
             --file skillbase-release.zip \
             --file SHA256SUMS \
             --file skillbase-release.verify.json \
+            --file skillbase-release.attestation.json \
+            --file skillbase-release.attestation.local.verify.json \
             --file skillbase-release.attestation.jsonl \
             --file skillbase-release.attestation.verify.json \
             --file release-scorecard.json \
@@ -163,6 +177,8 @@ jobs:
             .release/project/skillbase-release.zip
             .release/project/SHA256SUMS
             .release/project/skillbase-release.verify.json
+            .release/project/skillbase-release.attestation.json
+            .release/project/skillbase-release.attestation.local.verify.json
             .release/project/skillbase-release.attestation.jsonl
             .release/project/skillbase-release.attestation.verify.json
             .release/project/release-scorecard.json

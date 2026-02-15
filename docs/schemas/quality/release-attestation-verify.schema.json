@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillbase.dev/schemas/quality/release-attestation-verify.schema.json",
+  "title": "Runwright Release Attestation Verification Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "ok", "attestationPath", "artifactPath", "checks", "issues"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "ok": { "type": "boolean" },
+    "attestationPath": { "type": "string", "minLength": 1 },
+    "artifactPath": { "type": "string", "minLength": 1 },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactFound",
+        "digestMatch",
+        "sizeMatch",
+        "subjectPathMatch",
+        "payloadDigestMatch",
+        "keyIdMatch",
+        "signatureVerified"
+      ],
+      "properties": {
+        "artifactFound": { "type": "boolean" },
+        "digestMatch": { "type": "boolean" },
+        "sizeMatch": { "type": "boolean" },
+        "subjectPathMatch": { "type": "boolean" },
+        "payloadDigestMatch": { "type": "boolean" },
+        "keyIdMatch": { "type": "boolean" },
+        "signatureVerified": { "type": "boolean" }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
