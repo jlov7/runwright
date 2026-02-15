@@ -40,7 +40,8 @@ describe("journey UX", () => {
     expect(result.stdout).toContain("Next best action");
     expect(result.stdout).toContain("runwright init");
     expect(result.stdout).toContain("Empty state: no manifest found");
-    expect(result.stdout).toContain("touch skills/<skill-name>/SKILL.md");
+    expect(result.stdout).toContain("touch skills/example-skill/SKILL.md");
+    expect(result.stdout).not.toContain("<skill-name>");
     expect(result.stdout).toContain("Help: runwright help init");
   });
 

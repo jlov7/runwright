@@ -2,6 +2,12 @@
 
 ## P0
 
+### P0-008: Journey skill scaffolding command still used placeholder redirection syntax
+- Evidence: `runwright journey` step 2 suggested `mkdir -p skills/<skill-name> && touch skills/<skill-name>/SKILL.md`, which shell users cannot copy-paste safely because `<...>` is interpreted as redirection.
+- Impacted journey: First-run onboarding and first success moment for new users.
+- Fix strategy: Replace with a literal runnable example path and add regression coverage in journey UX tests.
+- Status: Done
+
 ### P0-005: Journey skill-creation command was non-executable
 - Evidence: `runwright journey` step 2 previously suggested `create skills/<skill-name>/SKILL.md`, which is not a valid shell command in standard environments.
 - Impacted journey: First-run onboarding (technical + non-technical guided setup).

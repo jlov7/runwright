@@ -1710,7 +1710,7 @@ function runJourney(cwd: string): { status: number; payload: JourneyPayload } {
       details: skillsExist
         ? "Found at least one SKILL.md under skills/."
         : "Empty state: no SKILL.md found under skills/. Add one skill to unlock your first successful apply (see quickstart template).",
-      command: "mkdir -p skills/<skill-name> && touch skills/<skill-name>/SKILL.md"
+      command: "mkdir -p skills/example-skill && touch skills/example-skill/SKILL.md"
     },
     {
       id: "lockfile",
