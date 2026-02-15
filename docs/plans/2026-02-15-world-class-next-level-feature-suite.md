@@ -21,11 +21,11 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 ## Exhaustive Task Matrix
 
 ### NX1: Mission Control TUI Experience
-- [ ] Add `runwright mission` command with keyboard-first, sectioned dashboard output.
-- [ ] Surface onboarding status, trust health, scan/policy summary, and next-best-action.
-- [ ] Add action runner hooks (`scan`, `fix`, `apply --dry-run`, `journey`) from mission view.
-- [ ] Add machine-readable `--json` payload for mission state.
-- [ ] Add integration tests for mission happy-path and action execution.
+- [x] Add `runwright mission` command with keyboard-first, sectioned dashboard output.
+- [x] Surface onboarding status, trust health, scan/policy summary, and next-best-action.
+- [x] Add action runner hooks (`scan`, `fix`, `apply --dry-run`, `journey`) from mission view.
+- [x] Add machine-readable `--json` payload for mission state.
+- [x] Add integration tests for mission happy-path and action execution.
 
 ### NX2: Autonomous Remediation Engine v2
 - [ ] Add remediation risk scoring and deterministic priority ordering.
@@ -72,5 +72,5 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: NX1 Mission Control
+- Current phase: NX2 Autonomous Remediation Engine v2
 - Completion target: all six features implemented + verified + tracked

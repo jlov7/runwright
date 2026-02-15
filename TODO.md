@@ -12,7 +12,7 @@ Tracker: `docs/plans/overnight-super-hard-features.md`
 
 ## P0 (World-class overnight feature suite)
 - [ ] Execute full six-feature program from `docs/plans/2026-02-15-world-class-next-level-feature-suite.md`
-- [ ] NX1 Mission Control TUI experience
+- [x] NX1 Mission Control TUI experience
 - [ ] NX2 Autonomous Remediation Engine v2
 - [ ] NX3 Continuous Drift Daemon + Alerting
 - [ ] NX4 Policy Simulator + Explain Graph

@@ -3193,6 +3193,61 @@ describe("cli integration", () => {
     expect(existsSync(join(projectDir, ".codex", "skills", "safe", "SKILL.md"))).toBe(true);
   });
 
+  it("mission --json renders mission control state with next action", () => {
+    const projectDir = makeTempDir("skillbase-cli-mission-json-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  mode: copy\n  scope: project\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+
+    const result = runCli(["mission", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("dashboard");
+    expect(typeof payload.nextAction.command).toBe("string");
+    expect(payload.sections).toEqual(
+      expect.objectContaining({
+        journey: expect.any(Object),
+        trust: expect.any(Object),
+        scan: expect.any(Object),
+        policy: expect.any(Object)
+      })
+    );
+  });
+
+  it("mission --action scan executes scan and returns action output", () => {
+    const projectDir = makeTempDir("skillbase-cli-mission-action-scan-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  mode: copy\n  scope: project\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+
+    const result = runCli(["mission", "--action", "scan", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("dashboard");
+    expect(payload.action).toEqual(
+      expect.objectContaining({
+        command: "scan",
+        status: 0
+      })
+    );
+  });
+
   it("verify-bundle --json returns code when --bundle is missing", () => {
     const detachedDir = makeTempDir("skillbase-cli-verify-missing-bundle-");
     const result = runCli(["verify-bundle", "--json"], detachedDir);

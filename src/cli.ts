@@ -157,6 +157,14 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     usage: ["runwright journey [--json]"],
     examples: ["runwright journey", "runwright journey --json"]
   },
+  mission: {
+    summary: "Mission control dashboard for onboarding, trust, quality, and one-command actions.",
+    usage: [
+      "runwright mission [--action journey|scan|policy-check|fix-plan|apply-dry-run] [--json]",
+      "                 [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: ["runwright mission --json", "runwright mission --action scan --json"]
+  },
   apply: {
     summary: "Install resolved skills into target tools (safe by default with scanning).",
     usage: [
@@ -439,6 +447,7 @@ Core loop after first success:
 Core commands:
   runwright init
   runwright journey
+  runwright mission
   runwright apply
   runwright apply-resume
   runwright remediate
@@ -493,6 +502,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
   init: { json: "boolean" },
   journey: { json: "boolean" },
+  mission: { action: "string", json: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
   apply: {
     mode: "string",
     target: "string",
@@ -737,6 +747,13 @@ function validateSemanticFlags(args: ParsedArgs): void {
     return;
   }
 
+  if (command === "mission") {
+    const action = getStringFlag(args, "action");
+    if (action) parseMissionAction(action);
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
   if (command === "scan") {
     parseSecurityMode(getStringFlag(args, "security"), "warn");
     parseScanFormat(getStringFlag(args, "format"), "text");
@@ -789,6 +806,21 @@ function resolverOptionsFromArgs(args: ParsedArgs): { refreshSources: boolean; r
     refreshSources: getBooleanFlag(args, "refresh-sources"),
     remoteCacheTtlSeconds: parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"))
   };
+}
+
+type MissionAction = "journey" | "scan" | "policy-check" | "fix-plan" | "apply-dry-run";
+
+function parseMissionAction(raw: string): MissionAction {
+  if (
+    raw === "journey" ||
+    raw === "scan" ||
+    raw === "policy-check" ||
+    raw === "fix-plan" ||
+    raw === "apply-dry-run"
+  ) {
+    return raw;
+  }
+  throw new CliError(`Invalid mission action: ${raw}`, 1, "invalid-argument");
 }
 
 function resolveEffectivePolicyRules(
@@ -1884,6 +1916,35 @@ type JourneyPayload = {
   docs: string[];
 };
 
+type MissionPayload = {
+  status: number;
+  mode: "dashboard";
+  nextAction: JourneyPayload["nextAction"];
+  sections: {
+    journey: {
+      completedCoreSteps: number;
+      totalCoreSteps: number;
+      completionPercent: number;
+    };
+    trust: TrustSummary;
+    scan: {
+      lastStatus: number | null;
+      lastTimestampMs: number | null;
+      health: "ok" | "warn" | "blocked" | "unknown";
+    };
+    policy: {
+      lastStatus: number | null;
+      lastTimestampMs: number | null;
+      health: "ok" | "warn" | "blocked" | "unknown";
+    };
+  };
+  action?: {
+    command: string;
+    status: number;
+    summary: Record<string, number | string | boolean>;
+  };
+};
+
 type OperationEventRecord = {
   command: string;
   status: number;
@@ -2190,6 +2251,182 @@ function renderJourneyText(payload: JourneyPayload): string {
 
   lines.push("", "Next best action:", `  ${payload.nextAction.command}`, `  Why: ${payload.nextAction.reason}`, "", "Guides:");
   for (const docPath of payload.docs) lines.push(`  - ${docPath}`);
+  lines.push("");
+  return lines.join("\n");
+}
+
+function runMission(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): MissionPayload {
+  const journey = runJourney(cwd).payload;
+  const events = readOperationEventRecords(cwd);
+  const scanEvent = latestOperationEvent(events, "scan");
+  const policyEvent = latestOperationEvent(events, "policy");
+
+  let trustSummary: TrustSummary = { totalSources: 0, verifiedSources: 0, untrustedSources: 0, requiredSources: 0 };
+  const lockPath = resolve(cwd, "skillbase.lock.json");
+  if (existsSync(lockPath)) {
+    try {
+      trustSummary = summarizeTrustFromLockfile(readLockfile(lockPath));
+    } catch {
+      trustSummary = { totalSources: 0, verifiedSources: 0, untrustedSources: 0, requiredSources: 0 };
+    }
+  } else {
+    const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
+    trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
+  }
+
+  const asHealth = (status: number | null): "ok" | "warn" | "blocked" | "unknown" => {
+    if (status === null) return "unknown";
+    if (status === 0) return "ok";
+    if (status === 2) return "warn";
+    if (status === 30) return "blocked";
+    return "warn";
+  };
+
+  const payload: MissionPayload = {
+    status: 0,
+    mode: "dashboard",
+    nextAction: journey.nextAction,
+    sections: {
+      journey: {
+        completedCoreSteps: journey.summary.completedCoreSteps,
+        totalCoreSteps: journey.summary.totalCoreSteps,
+        completionPercent: journey.summary.completionPercent
+      },
+      trust: trustSummary,
+      scan: {
+        lastStatus: scanEvent ? scanEvent.status : null,
+        lastTimestampMs: scanEvent ? scanEvent.timestampMs : null,
+        health: asHealth(scanEvent ? scanEvent.status : null)
+      },
+      policy: {
+        lastStatus: policyEvent ? policyEvent.status : null,
+        lastTimestampMs: policyEvent ? policyEvent.timestampMs : null,
+        health: asHealth(policyEvent ? policyEvent.status : null)
+      }
+    }
+  };
+
+  const actionRaw = getStringFlag(args, "action");
+  if (!actionRaw) return payload;
+  const action = parseMissionAction(actionRaw);
+
+  if (action === "journey") {
+    payload.action = { command: "journey", status: 0, summary: { completionPercent: journey.summary.completionPercent } };
+    payload.status = 0;
+    return payload;
+  }
+
+  if (action === "scan") {
+    const result = runScan(
+      { command: "scan", flags: new Map<string, string | boolean>([["format", "json"], ["json", true]]), positionals: [], duplicateFlags: [] },
+      cwd,
+      manifest
+    );
+    const scanPayload = result.payload as Record<string, unknown>;
+    const scanSummary =
+      scanPayload.summary && typeof scanPayload.summary === "object"
+        ? (scanPayload.summary as Record<string, unknown>)
+        : {};
+    payload.action = {
+      command: "scan",
+      status: result.status,
+      summary: {
+        lintIssues: Number(scanSummary.lintIssues ?? 0),
+        highFindings: Number(scanSummary.highFindings ?? 0),
+        mediumFindings: Number(scanSummary.mediumFindings ?? 0)
+      }
+    };
+    payload.status = result.status;
+    return payload;
+  }
+
+  if (action === "policy-check") {
+    const result = runPolicyCheck(
+      { command: "policy", flags: new Map<string, string | boolean>([["json", true]]), positionals: ["check"], duplicateFlags: [] },
+      cwd,
+      manifest
+    );
+    const policyPayload = result.payload as Record<string, unknown>;
+    const unresolvedCount = Number((policyPayload.summary as Record<string, unknown> | undefined)?.unresolved ?? 0);
+    const deniedPolicies = Number(
+      ((policyPayload.policy as Record<string, unknown> | undefined)?.summary as Record<string, unknown> | undefined)?.deny ?? 0
+    );
+    payload.action = {
+      command: "policy-check",
+      status: result.status,
+      summary: {
+        unresolvedAllowlistEntries: unresolvedCount,
+        deniedPolicies
+      }
+    };
+    payload.status = result.status;
+    return payload;
+  }
+
+  if (action === "fix-plan") {
+    const result = runFix(
+      { command: "fix", flags: new Map<string, string | boolean>([["plan", true], ["json", true]]), positionals: [], duplicateFlags: [] },
+      cwd,
+      manifest
+    );
+    payload.action = {
+      command: "fix-plan",
+      status: result.status,
+      summary: {
+        actions: result.actions.length,
+        deniedPolicies: result.summary.deniedPolicies
+      }
+    };
+    payload.status = result.status;
+    return payload;
+  }
+
+  const applyResult = runApply(
+    {
+      command: "apply",
+      flags: new Map<string, string | boolean>([
+        ["dry-run", true],
+        ["target", "all"],
+        ["scope", "project"],
+        ["mode", "copy"],
+        ["json", true]
+      ]),
+      positionals: [],
+      duplicateFlags: []
+    },
+    cwd,
+    manifest
+  );
+  payload.action = {
+    command: "apply-dry-run",
+    status: applyResult.status,
+    summary: {
+      operations: applyResult.operations.length,
+      scanned: applyResult.scanned,
+      dryRun: true
+    }
+  };
+  payload.status = applyResult.status;
+  return payload;
+}
+
+function renderMissionText(payload: MissionPayload): string {
+  const lines = [
+    "Runwright Mission Control",
+    "",
+    `Journey: ${payload.sections.journey.completedCoreSteps}/${payload.sections.journey.totalCoreSteps} (${payload.sections.journey.completionPercent}%)`,
+    `Trust: verified=${payload.sections.trust.verifiedSources}/${payload.sections.trust.totalSources} required=${payload.sections.trust.requiredSources}`,
+    `Scan: ${payload.sections.scan.health}`,
+    `Policy: ${payload.sections.policy.health}`,
+    "",
+    "Next best action:",
+    `  ${payload.nextAction.command}`,
+    `  Why: ${payload.nextAction.reason}`
+  ];
+
+  if (payload.action) {
+    lines.push("", "Action run:", `  ${payload.action.command} -> status=${payload.action.status}`);
+  }
   lines.push("");
   return lines.join("\n");
 }
@@ -4114,6 +4351,21 @@ async function main() {
   }
 
   const manifest = loadManifest(cwd);
+
+  if (cmd === "mission") {
+    const mission = runMission(parsed, cwd, manifest);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(mission));
+    else process.stdout.write(renderMissionText(mission));
+    recordOperationEvent(cwd, startedAtMs, "mission", mission.status, false, {
+      counters: {
+        completionPercent: mission.sections.journey.completionPercent,
+        trustVerifiedSources: mission.sections.trust.verifiedSources,
+        trustRequiredSources: mission.sections.trust.requiredSources,
+        actionStatus: mission.action ? mission.action.status : 0
+      }
+    });
+    process.exit(mission.status);
+  }
 
   if (cmd === "watch") {
     const watchResult = await runWatch(parsed, cwd);
