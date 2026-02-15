@@ -42,11 +42,11 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 - [x] Add tests for deterministic merges, deny/warn decisions, invalid pack errors.
 
 ### F4: Interactive Remediation Flow
-- [ ] Add guided remediation command with non-interactive fallback.
-- [ ] Support scan/policy/doctor issues as remediation candidates.
-- [ ] Add explicit preview/apply confirmation flow with safe defaults.
-- [ ] Ensure clear keyboard/terminal UX copy for non-technical operators.
-- [ ] Add integration tests for guided and non-interactive modes.
+- [x] Add guided remediation command with non-interactive fallback.
+- [x] Support scan/policy/doctor issues as remediation candidates.
+- [x] Add explicit preview/apply confirmation flow with safe defaults.
+- [x] Ensure clear keyboard/terminal UX copy for non-technical operators.
+- [x] Add integration tests for guided and non-interactive modes.
 
 ### F5: Continuous Drift Watch Mode
 - [ ] Add watch command to monitor manifest/skills/lockfile changes.
@@ -70,5 +70,5 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: F4 interactive remediation flow
+- Current phase: F5 continuous drift watch mode
 - Completion target: all six features implemented + verified locally

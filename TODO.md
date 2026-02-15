@@ -4,7 +4,7 @@
 - [x] F1 Team Registry + Signed Sync
 - [x] F2 Crash-Resumable Apply Engine
 - [x] F3 Policy-as-Code Rule Packs
-- [ ] F4 Interactive Remediation Flow
+- [x] F4 Interactive Remediation Flow
 - [ ] F5 Continuous Drift Watch Mode
 - [ ] F6 Release Provenance + Attestation Pipeline
 

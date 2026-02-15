@@ -64,6 +64,12 @@
 
 ## P1
 
+### P1-014: No guided remediation command for operators
+- Evidence: Recovery required chaining multiple commands manually (`scan`, `policy check`, `fix`) with no single remediation surface.
+- Impacted journey: Failure recovery UX and non-technical operator confidence.
+- Fix strategy: Add `runwright remediate` with non-interactive plan/apply-safe flows and interactive confirmation when a TTY is available.
+- Status: Done
+
 ### P1-013: No external policy-as-code pack ingestion path
 - Evidence: Policy rules could only be defined in manifest defaults, preventing team-level shared rule packs with deterministic overrides.
 - Impacted journey: Policy governance portability and centralized compliance workflows.
