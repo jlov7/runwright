@@ -64,6 +64,12 @@
 
 ## P1
 
+### P1-012: Apply transactions lacked crash-recovery workflow
+- Evidence: interrupted filesystem apply operations had no first-class recovery command, leaving operators to manually inspect `.skillbase` state.
+- Impacted journey: Core apply reliability, operator trust, and incident recovery speed.
+- Fix strategy: Add persisted apply journal + `runwright apply-resume` command and block apply when stale journal exists until recovered.
+- Status: Done
+
 ### P1-011: Missing team-level signed bundle sync workflow
 - Evidence: No built-in command existed to publish and retrieve signed release bundles from a shared registry location with digest/signature checks.
 - Impacted journey: Team collaboration, release handoff, and trust-preserving artifact reuse.

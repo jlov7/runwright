@@ -112,6 +112,7 @@ type ParsedArgs = {
 type FlagValueType = "boolean" | "string";
 const JSON_CONTRACT_SCHEMA_VERSION = "1.0";
 const DEFAULT_OPERATION_LOG_PATH = ".skillbase/operations.jsonl";
+const DEFAULT_APPLY_JOURNAL_PATH = ".skillbase/apply-journal.json";
 const PRIMARY_MANIFEST_FILENAMES = ["runwright.yml", "runwright.json"] as const;
 const LEGACY_MANIFEST_FILENAMES = ["skillbase.yml", "skillbase.json"] as const;
 
@@ -167,6 +168,11 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
       "runwright apply --target codex --scope project --mode copy",
       "runwright apply --frozen-lockfile --target all --scope project --mode copy --json"
     ]
+  },
+  "apply-resume": {
+    summary: "Recover from interrupted apply transactions using the persisted apply journal.",
+    usage: ["runwright apply-resume [--json]"],
+    examples: ["runwright apply-resume", "runwright apply-resume --json"]
   },
   doctor: {
     summary: "Diagnose and optionally fix safe local install issues.",
@@ -413,6 +419,7 @@ Core commands:
   runwright init
   runwright journey
   runwright apply
+  runwright apply-resume
   runwright doctor
   runwright scan
   runwright policy check
@@ -476,6 +483,7 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "remote-cache-ttl": "string",
     "frozen-lockfile": "boolean"
   },
+  "apply-resume": { json: "boolean" },
   doctor: { fix: "boolean", json: "boolean", target: "string", scope: "string" },
   scan: {
     "lint-only": "boolean",
@@ -789,11 +797,72 @@ type OperationEvent = {
   counters?: Record<string, number>;
 };
 
+type ApplyJournal = {
+  schemaVersion: "1.0";
+  phase: "target-in-progress";
+  target: TargetName;
+  installDir: string;
+  stagingRoot: string;
+  backupDir: string;
+  updatedAt: string;
+};
+
 function resolveOperationLogPath(cwd: string): string | undefined {
   const override = process.env.SKILLBASE_OPERATION_LOG_PATH?.trim();
   if (override === "off") return undefined;
   const configuredPath = override && override.length > 0 ? override : DEFAULT_OPERATION_LOG_PATH;
   return isAbsolute(configuredPath) ? configuredPath : resolve(cwd, configuredPath);
+}
+
+function resolveApplyJournalPath(cwd: string): string {
+  return resolve(cwd, DEFAULT_APPLY_JOURNAL_PATH);
+}
+
+function readApplyJournal(cwd: string): ApplyJournal | undefined {
+  const path = resolveApplyJournalPath(cwd);
+  if (!existsSync(path)) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
+  } catch {
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== "object") return undefined;
+  const root = parsed as Record<string, unknown>;
+  if (
+    root.schemaVersion !== "1.0" ||
+    root.phase !== "target-in-progress" ||
+    typeof root.target !== "string" ||
+    typeof root.installDir !== "string" ||
+    typeof root.stagingRoot !== "string" ||
+    typeof root.backupDir !== "string" ||
+    typeof root.updatedAt !== "string"
+  ) {
+    return undefined;
+  }
+  if (root.target !== "codex" && root.target !== "claude-code" && root.target !== "cursor") {
+    return undefined;
+  }
+  return {
+    schemaVersion: "1.0",
+    phase: "target-in-progress",
+    target: root.target,
+    installDir: root.installDir,
+    stagingRoot: root.stagingRoot,
+    backupDir: root.backupDir,
+    updatedAt: root.updatedAt
+  };
+}
+
+function writeApplyJournal(cwd: string, entry: ApplyJournal): void {
+  const path = resolveApplyJournalPath(cwd);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(entry, null, 2)}\n`, "utf8");
+}
+
+function clearApplyJournal(cwd: string): void {
+  const path = resolveApplyJournalPath(cwd);
+  if (existsSync(path)) rmSync(path, { force: true });
 }
 
 function appendOperationEvent(cwd: string, event: OperationEvent): void {
@@ -1541,7 +1610,11 @@ function runSkillScans(
   };
 }
 
-function performAtomicTargetApply(plan: TargetApplyPlan, cwd: string): void {
+function performAtomicTargetApply(
+  plan: TargetApplyPlan,
+  cwd: string,
+  onPrepared?: (paths: { target: TargetName; installDir: string; stagingRoot: string; backupDir: string }) => void
+): void {
   const parentDir = resolve(plan.installDir, "..");
   mkdirSync(parentDir, { recursive: true });
 
@@ -1562,11 +1635,23 @@ function performAtomicTargetApply(plan: TargetApplyPlan, cwd: string): void {
     }
   }
 
+  if (onPrepared) {
+    onPrepared({
+      target: plan.target,
+      installDir: plan.installDir,
+      stagingRoot,
+      backupDir
+    });
+  }
+
   let hadExistingTarget = false;
   try {
     if (existsSync(plan.installDir)) {
       renameSync(plan.installDir, backupDir);
       hadExistingTarget = true;
+      if (process.env.SKILLBASE_APPLY_CRASH_AFTER_BACKUP_RENAME === "1") {
+        process.exit(99);
+      }
     }
     renameSync(stagedInstallDir, plan.installDir);
     if (hadExistingTarget && existsSync(backupDir)) {
@@ -1584,6 +1669,36 @@ function performAtomicTargetApply(plan: TargetApplyPlan, cwd: string): void {
     rmSync(stagingRoot, { recursive: true, force: true });
     if (existsSync(backupDir)) rmSync(backupDir, { recursive: true, force: true });
   }
+}
+
+function runApplyResume(cwd: string): { status: number; recovered: boolean; message: string } {
+  const journal = readApplyJournal(cwd);
+  if (!journal) {
+    return { status: 0, recovered: false, message: "No interrupted apply transaction found." };
+  }
+
+  const actions: string[] = [];
+  if (existsSync(journal.backupDir)) {
+    if (existsSync(journal.installDir)) {
+      rmSync(journal.backupDir, { recursive: true, force: true });
+      actions.push("removed stale backup directory");
+    } else {
+      mkdirSync(resolve(journal.installDir, ".."), { recursive: true });
+      renameSync(journal.backupDir, journal.installDir);
+      actions.push("restored target from backup directory");
+    }
+  }
+  if (existsSync(journal.stagingRoot)) {
+    rmSync(journal.stagingRoot, { recursive: true, force: true });
+    actions.push("removed stale staging directory");
+  }
+  clearApplyJournal(cwd);
+  const actionSummary = actions.length > 0 ? actions.join("; ") : "no filesystem cleanup was needed";
+  return {
+    status: 0,
+    recovered: actions.length > 0,
+    message: `Apply journal recovered for target '${journal.target}': ${actionSummary}.`
+  };
 }
 
 function runInit(cwd: string): { status: number; message: string; mutating: boolean } {
@@ -2200,8 +2315,29 @@ function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   }
 
   if (!dryRun) {
+    const staleJournal = readApplyJournal(cwd);
+    if (staleJournal) {
+      throw new CliError(
+        "Detected interrupted apply journal. Run `runwright apply-resume` before applying again.",
+        11,
+        "apply-recovery-required"
+      );
+    }
     try {
-      for (const plan of targetPlans) performAtomicTargetApply(plan, cwd);
+      for (const plan of targetPlans) {
+        performAtomicTargetApply(plan, cwd, (paths) => {
+          writeApplyJournal(cwd, {
+            schemaVersion: "1.0",
+            phase: "target-in-progress",
+            target: paths.target,
+            installDir: paths.installDir,
+            stagingRoot: paths.stagingRoot,
+            backupDir: paths.backupDir,
+            updatedAt: new Date().toISOString()
+          });
+        });
+        clearApplyJournal(cwd);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new CliError(`Filesystem apply failed: ${message}`, 20, "filesystem-apply-failed");
@@ -3607,6 +3743,16 @@ async function main() {
     process.exit(result.status);
   }
 
+  if (cmd === "apply-resume") {
+    const result = runApplyResume(cwd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(result));
+    else process.stdout.write(`${result.message}\n`);
+    recordOperationEvent(cwd, startedAtMs, "apply-resume", result.status, result.recovered, {
+      counters: { recovered: result.recovered ? 1 : 0 }
+    });
+    process.exit(result.status);
+  }
+
   if (cmd === "registry") {
     const result = runRegistry(parsed, cwd);
     if (jsonOutput) writeJson(withJsonSchemaVersion(result));
@@ -3844,6 +3990,7 @@ main().catch((err) => {
     failedCommand === "init" ||
     failedCommand === "doctor" ||
     failedCommand === "apply" ||
+    failedCommand === "apply-resume" ||
     failedCommand === "update" ||
     failedCommand === "export" ||
     failedCommand === "registry" ||

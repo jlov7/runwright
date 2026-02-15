@@ -2,7 +2,7 @@
 
 ## Overnight hard features (execution order)
 - [x] F1 Team Registry + Signed Sync
-- [ ] F2 Crash-Resumable Apply Engine
+- [x] F2 Crash-Resumable Apply Engine
 - [ ] F3 Policy-as-Code Rule Packs
 - [ ] F4 Interactive Remediation Flow
 - [ ] F5 Continuous Drift Watch Mode

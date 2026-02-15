@@ -2571,6 +2571,47 @@ describe("cli integration", () => {
     }
   });
 
+  it("apply-resume recovers interrupted apply journal and unblocks future apply", () => {
+    const projectDir = makeTempDir("skillbase-cli-apply-resume-");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\ndefaults:\n  mode: copy\n  scope: project\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    expect(runCli(["update", "--json"], projectDir).status).toBe(0);
+    expect(runCli(["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--json"], projectDir).status).toBe(0);
+
+    const interrupted = runCli(
+      ["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--json"],
+      projectDir,
+      { SKILLBASE_APPLY_CRASH_AFTER_BACKUP_RENAME: "1" }
+    );
+    expect(interrupted.status).toBe(99);
+
+    const journalPath = join(projectDir, ".skillbase", "apply-journal.json");
+    expect(existsSync(journalPath)).toBe(true);
+
+    const blocked = runCli(["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--json"], projectDir);
+    expect(blocked.status).toBe(11);
+    const blockedPayload = JSON.parse(blocked.stdout);
+    expect(blockedPayload.code).toBe("apply-recovery-required");
+
+    const resumed = runCli(["apply-resume", "--json"], projectDir);
+    expect(resumed.status).toBe(0);
+    const resumedPayload = JSON.parse(resumed.stdout);
+    expect(resumedPayload.recovered).toBe(true);
+    expect(existsSync(journalPath)).toBe(false);
+
+    const finalApply = runCli(["apply", "--target", "codex", "--scope", "project", "--mode", "copy", "--json"], projectDir);
+    expect(finalApply.status).toBe(0);
+  });
+
   it("export and verify handle larger valid bundles within performance guardrails", () => {
     const projectDir = makeTempDir("skillbase-cli-large-bundle-perf-");
     const skillCount = 40;

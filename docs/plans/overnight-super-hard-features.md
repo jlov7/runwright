@@ -28,11 +28,11 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 - [x] Add integration tests for push/pull happy path and signature failure.
 
 ### F2: Crash-Resumable Apply Engine
-- [ ] Define apply journal schema (`phase`, `target`, `backupDir`, `stagingDir`, `timestamp`).
-- [ ] Persist journal before mutating filesystem and clear on success.
-- [ ] Add recovery command to resume/rollback incomplete apply transactions.
-- [ ] Add startup-safe guidance when stale journal exists.
-- [ ] Add integration tests for interrupted apply recovery.
+- [x] Define apply journal schema (`phase`, `target`, `backupDir`, `stagingDir`, `timestamp`).
+- [x] Persist journal before mutating filesystem and clear on success.
+- [x] Add recovery command to resume/rollback incomplete apply transactions.
+- [x] Add startup-safe guidance when stale journal exists.
+- [x] Add integration tests for interrupted apply recovery.
 
 ### F3: Policy-as-Code Rule Packs
 - [ ] Add external policy pack input format (JSON rules file) and parser.
@@ -70,5 +70,5 @@ Implement six advanced capabilities in one tracked, methodical execution pass wi
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: F2 crash-resume apply journal
+- Current phase: F3 policy-as-code rule packs
 - Completion target: all six features implemented + verified locally
