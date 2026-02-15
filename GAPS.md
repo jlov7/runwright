@@ -115,7 +115,7 @@
 - Status: Done
 
 ### P2-001: Product decision defaults still open
-- Evidence: `QUESTIONS.md` still contains open release-channel and signing-mode decisions.
+- Evidence: `QUESTIONS.md` previously contained open release-channel and signing-mode decisions.
 - Impacted journey: Final release policy hardening and operator clarity.
-- Fix strategy: Keep assumptions documented; proceed on all unblocked technical gaps; mark blocked only if a gate depends on a decision.
-- Status: Open
+- Fix strategy: Record explicit product defaults for distribution channel and required signing mode.
+- Status: Done
