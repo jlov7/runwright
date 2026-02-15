@@ -49,11 +49,11 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 - [x] Add integration tests for simulation decisions and graph output.
 
 ### NX5: Trust Center + Key Lifecycle UX
-- [ ] Add `runwright trust` command surface (`status`, `revoke`, `rotate-plan`).
-- [ ] Persist trust key metadata and revocation state in project-local store.
-- [ ] Validate bundle/registry key IDs against revocation state.
-- [ ] Add clear operator UX for rotation plans and revoked key impacts.
-- [ ] Add integration tests for revoke/rotation planning and enforcement.
+- [x] Add `runwright trust` command surface (`status`, `revoke`, `rotate-plan`).
+- [x] Persist trust key metadata and revocation state in project-local store.
+- [x] Validate bundle/registry key IDs against revocation state.
+- [x] Add clear operator UX for rotation plans and revoked key impacts.
+- [x] Add integration tests for revoke/rotation planning and enforcement.
 
 ### NX6: Session Replay + Journey Analytics
 - [ ] Add `runwright analytics journey` command.
@@ -72,5 +72,5 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: NX5 Trust Center + Key Lifecycle UX
+- Current phase: NX6 Session Replay + Journey Analytics
 - Completion target: all six features implemented + verified + tracked

@@ -283,6 +283,19 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
       "runwright registry pull --registry-dir .runwright-registry --sign-public-key release-public.pem --out synced-bundle.zip --json"
     ]
   },
+  trust: {
+    summary: "Manage trust-center key lifecycle state for revocation and rotation planning.",
+    usage: [
+      "runwright trust status [--json]",
+      "runwright trust revoke --key-id <sha256:fingerprint> [--label <name>] [--json]",
+      "runwright trust rotate-plan [--json]"
+    ],
+    examples: [
+      "runwright trust status --json",
+      "runwright trust revoke --key-id sha256:abc123 --label old-release-key --json",
+      "runwright trust rotate-plan --json"
+    ]
+  },
   "verify-bundle": {
     summary: "Verify bundle integrity and optional signature requirements.",
     usage: [
@@ -479,6 +492,7 @@ Core commands:
   runwright update
   runwright export
   runwright registry
+  runwright trust
   runwright verify-bundle
 
 Help:
@@ -609,6 +623,11 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "sign-public-key": "string",
     json: "boolean"
   },
+  trust: {
+    "key-id": "string",
+    label: "string",
+    json: "boolean"
+  },
   "verify-bundle": {
     bundle: "string",
     "sign-key": "string",
@@ -639,6 +658,11 @@ function validateAllowedFlags(args: ParsedArgs): void {
     const subcommand = args.positionals[0];
     if (args.positionals.length !== 1 || (subcommand !== "push" && subcommand !== "pull")) {
       throw new CliError("registry command requires subcommand: registry push|pull", 1, "invalid-argument");
+    }
+  } else if (args.command === "trust") {
+    const subcommand = args.positionals[0];
+    if (args.positionals.length !== 1 || (subcommand !== "status" && subcommand !== "revoke" && subcommand !== "rotate-plan")) {
+      throw new CliError("trust command requires subcommand: trust status|revoke|rotate-plan", 1, "invalid-argument");
     }
   } else if (args.positionals.length > 0) {
     throw new CliError(
@@ -840,6 +864,14 @@ function validateSemanticFlags(args: ParsedArgs): void {
     }
     parseWatchMaxCycles(getStringFlag(args, "max-cycles"));
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "trust") {
+    const subcommand = args.positionals[0];
+    if (subcommand === "revoke") {
+      requireStringFlag(args, "key-id", "trust revoke requires --key-id <sha256:fingerprint>");
+    }
     return;
   }
 
@@ -3861,11 +3893,149 @@ function requireStringFlag(args: ParsedArgs, key: string, message: string): stri
   return value;
 }
 
+type TrustCenterKey = {
+  keyId: string;
+  label?: string;
+  revoked: boolean;
+  createdAt: string;
+  revokedAt?: string;
+};
+
+type TrustCenterState = {
+  schemaVersion: "1.0";
+  keys: TrustCenterKey[];
+};
+
+function trustCenterPath(cwd: string): string {
+  return resolve(cwd, ".skillbase", "trust-center.json");
+}
+
+function readTrustCenterState(cwd: string): TrustCenterState {
+  const path = trustCenterPath(cwd);
+  if (!existsSync(path)) return { schemaVersion: "1.0", keys: [] };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
+  } catch {
+    return { schemaVersion: "1.0", keys: [] };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { schemaVersion: "1.0", keys: [] };
+  const root = parsed as Record<string, unknown>;
+  const keysRaw = Array.isArray(root.keys) ? root.keys : [];
+  const keys: TrustCenterKey[] = [];
+  for (const entry of keysRaw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const key = entry as Record<string, unknown>;
+    if (typeof key.keyId !== "string") continue;
+    keys.push({
+      keyId: key.keyId,
+      revoked: key.revoked === true,
+      createdAt: typeof key.createdAt === "string" ? key.createdAt : new Date().toISOString(),
+      ...(typeof key.label === "string" ? { label: key.label } : {}),
+      ...(typeof key.revokedAt === "string" ? { revokedAt: key.revokedAt } : {})
+    });
+  }
+  return { schemaVersion: "1.0", keys };
+}
+
+function writeTrustCenterState(cwd: string, state: TrustCenterState): void {
+  const path = trustCenterPath(cwd);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+}
+
+function runTrust(args: ParsedArgs, cwd: string): {
+  status: number;
+  mode: "status" | "revoke" | "rotate-plan";
+  summary: { totalKeys: number; activeKeys: number; revokedKeys: number };
+  keys?: TrustCenterKey[];
+  keyId?: string;
+  revoked?: boolean;
+  plan?: { steps: string[] };
+  message: string;
+} {
+  const subcommand = args.positionals[0];
+  if (subcommand !== "status" && subcommand !== "revoke" && subcommand !== "rotate-plan") {
+    throw new CliError("trust command requires subcommand: trust status|revoke|rotate-plan", 1, "invalid-argument");
+  }
+  const state = readTrustCenterState(cwd);
+
+  if (subcommand === "status") {
+    const revokedKeys = state.keys.filter((key) => key.revoked).length;
+    return {
+      status: 0,
+      mode: "status",
+      summary: {
+        totalKeys: state.keys.length,
+        activeKeys: state.keys.length - revokedKeys,
+        revokedKeys
+      },
+      keys: state.keys,
+      message: "Trust center status loaded."
+    };
+  }
+
+  if (subcommand === "rotate-plan") {
+    const revokedKeys = state.keys.filter((key) => key.revoked).length;
+    const activeKeys = state.keys.length - revokedKeys;
+    return {
+      status: 0,
+      mode: "rotate-plan",
+      summary: {
+        totalKeys: state.keys.length,
+        activeKeys,
+        revokedKeys
+      },
+      plan: {
+        steps: [
+          "Generate a new ed25519 key pair for future releases.",
+          "Publish with the new key while keeping current active keys accepted during overlap.",
+          "Revoke prior key IDs in trust center after consumers rotate."
+        ]
+      },
+      message: "Trust center rotation plan generated."
+    };
+  }
+
+  const keyId = requireStringFlag(args, "key-id", "trust revoke requires --key-id <sha256:fingerprint>");
+  const label = getStringFlag(args, "label");
+  const existing = state.keys.find((entry) => entry.keyId === keyId);
+  if (existing) {
+    existing.revoked = true;
+    existing.revokedAt = new Date().toISOString();
+    if (label) existing.label = label;
+  } else {
+    state.keys.push({
+      keyId,
+      revoked: true,
+      createdAt: new Date().toISOString(),
+      revokedAt: new Date().toISOString(),
+      ...(label ? { label } : {})
+    });
+  }
+  state.keys.sort((left, right) => left.keyId.localeCompare(right.keyId));
+  writeTrustCenterState(cwd, state);
+  const revokedKeys = state.keys.filter((key) => key.revoked).length;
+  return {
+    status: 0,
+    mode: "revoke",
+    summary: {
+      totalKeys: state.keys.length,
+      activeKeys: state.keys.length - revokedKeys,
+      revokedKeys
+    },
+    keyId,
+    revoked: true,
+    message: `Revoked trust key '${keyId}'.`
+  };
+}
+
 function runRegistry(args: ParsedArgs, cwd: string): {
   status: number;
   subcommand: "push" | "pull";
   registryDir: string;
   artifactId?: string;
+  keyId?: string;
   digest?: string;
   out?: string;
   signatureVerified?: boolean;
@@ -3933,6 +4103,7 @@ function runRegistry(args: ParsedArgs, cwd: string): {
       subcommand,
       registryDir,
       artifactId,
+      keyId,
       digest,
       message: `Published ${artifactId} to registry`
     };
@@ -4030,12 +4201,28 @@ function runRegistry(args: ParsedArgs, cwd: string): {
     };
   }
 
+  const trustState = readTrustCenterState(cwd);
+  const revoked = trustState.keys.find((entry) => entry.keyId === artifact.signature.keyId && entry.revoked);
+  if (revoked) {
+    return {
+      status: 1,
+      subcommand,
+      registryDir,
+      artifactId: artifact.id,
+      keyId: artifact.signature.keyId,
+      code: "revoked-trust-key",
+      signatureVerified: true,
+      message: `Registry artifact signed by revoked key '${artifact.signature.keyId}'.`
+    };
+  }
+
   writeFileSync(outPath, bundleBytes);
   return {
     status: 0,
     subcommand,
     registryDir,
     artifactId: artifact.id,
+    keyId: artifact.signature.keyId,
     digest: artifact.digest,
     out: outPath,
     signatureVerified: true,
@@ -4048,6 +4235,7 @@ function renderRegistryText(result: {
   subcommand: "push" | "pull";
   registryDir: string;
   artifactId?: string;
+  keyId?: string;
   digest?: string;
   out?: string;
   signatureVerified?: boolean;
@@ -4060,6 +4248,7 @@ function renderRegistryText(result: {
     `- Status: ${result.status}`,
     `- Registry: ${result.registryDir}`,
     ...(result.artifactId ? [`- Artifact: ${result.artifactId}`] : []),
+    ...(result.keyId ? [`- Key ID: ${result.keyId}`] : []),
     ...(result.digest ? [`- Digest: ${result.digest}`] : []),
     ...(result.out ? [`- Output: ${result.out}`] : []),
     ...(typeof result.signatureVerified === "boolean"
@@ -4069,6 +4258,34 @@ function renderRegistryText(result: {
     "",
     result.message
   ];
+  lines.push("");
+  return lines.join("\n");
+}
+
+function renderTrustText(result: {
+  status: number;
+  mode: "status" | "revoke" | "rotate-plan";
+  summary: { totalKeys: number; activeKeys: number; revokedKeys: number };
+  keys?: TrustCenterKey[];
+  keyId?: string;
+  revoked?: boolean;
+  plan?: { steps: string[] };
+  message: string;
+}): string {
+  const lines = [
+    "Trust Center",
+    `- Mode: ${result.mode}`,
+    `- Status: ${result.status}`,
+    `- Keys: total=${result.summary.totalKeys}, active=${result.summary.activeKeys}, revoked=${result.summary.revokedKeys}`,
+    ...(result.keyId ? [`- Key ID: ${result.keyId}`] : []),
+    ...(typeof result.revoked === "boolean" ? [`- Revoked: ${result.revoked ? "yes" : "no"}`] : []),
+    "",
+    result.message
+  ];
+  if (result.plan?.steps && result.plan.steps.length > 0) {
+    lines.push("", "Rotation plan:");
+    for (const step of result.plan.steps) lines.push(`- ${step}`);
+  }
   lines.push("");
   return lines.join("\n");
 }
@@ -4645,6 +4862,20 @@ async function main() {
     process.exit(result.status);
   }
 
+  if (cmd === "trust") {
+    const result = runTrust(parsed, cwd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(result));
+    else process.stdout.write(renderTrustText(result));
+    const mutating = result.mode === "revoke";
+    recordOperationEvent(cwd, startedAtMs, "trust", result.status, mutating, {
+      counters: {
+        totalKeys: result.summary.totalKeys,
+        revokedKeys: result.summary.revokedKeys
+      }
+    });
+    process.exit(result.status);
+  }
+
   const manifest = loadManifest(cwd);
 
   if (cmd === "mission") {
@@ -4930,6 +5161,7 @@ main().catch((err) => {
     failedCommand === "update" ||
     failedCommand === "export" ||
     failedCommand === "registry" ||
+    failedCommand === "trust" ||
     failedCommand === "remediate" ||
     failedCommand === "watch" ||
     failedCommand === "fix";

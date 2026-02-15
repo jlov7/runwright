@@ -1390,6 +1390,78 @@ describe("cli integration", () => {
     expect(payload.signatureVerified).toBe(false);
   });
 
+  it("trust status/revoke updates key lifecycle state", () => {
+    const projectDir = makeTempDir("skillbase-cli-trust-status-revoke-");
+    const statusBefore = runCli(["trust", "status", "--json"], projectDir);
+    expect(statusBefore.status).toBe(0);
+    const beforePayload = JSON.parse(statusBefore.stdout);
+    expect(beforePayload.summary.totalKeys).toBe(0);
+
+    const revoke = runCli(["trust", "revoke", "--key-id", "sha256:test-key", "--label", "legacy-key", "--json"], projectDir);
+    expect(revoke.status).toBe(0);
+    const revokePayload = JSON.parse(revoke.stdout);
+    expect(revokePayload.keyId).toBe("sha256:test-key");
+    expect(revokePayload.revoked).toBe(true);
+
+    const statusAfter = runCli(["trust", "status", "--json"], projectDir);
+    expect(statusAfter.status).toBe(0);
+    const afterPayload = JSON.parse(statusAfter.stdout);
+    expect(afterPayload.summary.totalKeys).toBe(1);
+    expect(afterPayload.summary.revokedKeys).toBe(1);
+  });
+
+  it("trust rotate-plan returns actionable key lifecycle plan", () => {
+    const projectDir = makeTempDir("skillbase-cli-trust-rotate-plan-");
+    const result = runCli(["trust", "rotate-plan", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("rotate-plan");
+    expect(Array.isArray(payload.plan.steps)).toBe(true);
+    expect(payload.plan.steps.length).toBeGreaterThan(0);
+  });
+
+  it("registry pull is blocked when signing key is revoked in trust center", () => {
+    const projectDir = makeTempDir("skillbase-cli-registry-revoked-key-");
+    const registryDir = join(projectDir, "team-registry");
+    mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
+    writeFileSync(
+      join(projectDir, "skills", "safe", "SKILL.md"),
+      `---\nname: safe\ndescription: safe skill\n---\n\n# Safe\n`,
+      "utf8"
+    );
+    writeFileSync(
+      join(projectDir, "skillbase.yml"),
+      `version: 1\nskillsets:\n  base:\n    skills:\n      - source: local:./skills\napply:\n  useSkillsets: [base]\n`,
+      "utf8"
+    );
+    expect(runCli(["update", "--json"], projectDir).status).toBe(0);
+    const bundlePath = join(projectDir, "release.zip");
+    expect(runCli(["export", "--out", bundlePath, "--deterministic", "--json"], projectDir).status).toBe(0);
+
+    const keys = generateKeyPairSync("ed25519");
+    const privateKeyPath = join(projectDir, "registry-private.pem");
+    const publicKeyPath = join(projectDir, "registry-public.pem");
+    writeFileSync(privateKeyPath, keys.privateKey.export({ type: "pkcs8", format: "pem" }).toString(), "utf8");
+    writeFileSync(publicKeyPath, keys.publicKey.export({ type: "spki", format: "pem" }).toString(), "utf8");
+
+    const pushed = runCli(
+      ["registry", "push", "--registry-dir", registryDir, "--bundle", bundlePath, "--sign-private-key", privateKeyPath, "--json"],
+      projectDir
+    );
+    expect(pushed.status).toBe(0);
+    const pushPayload = JSON.parse(pushed.stdout);
+    expect(typeof pushPayload.keyId).toBe("string");
+    expect(runCli(["trust", "revoke", "--key-id", pushPayload.keyId, "--json"], projectDir).status).toBe(0);
+
+    const pulled = runCli(
+      ["registry", "pull", "--registry-dir", registryDir, "--sign-public-key", publicKeyPath, "--json"],
+      projectDir
+    );
+    expect(pulled.status).toBe(1);
+    const pullPayload = JSON.parse(pulled.stdout);
+    expect(pullPayload.code).toBe("revoked-trust-key");
+  });
+
   it("export --deterministic produces byte-identical bundles with fixed SOURCE_DATE_EPOCH", () => {
     const projectDir = makeTempDir("skillbase-cli-export-deterministic-");
     mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
