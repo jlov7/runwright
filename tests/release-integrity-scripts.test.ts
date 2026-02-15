@@ -1,4 +1,5 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -173,5 +174,77 @@ describe("release integrity scripts", () => {
     expect(skippedResult.status).toBe(0);
     const skippedReport = JSON.parse(readFileSync(outPath, "utf8")) as { skipped: boolean };
     expect(skippedReport.skipped).toBe(true);
+  });
+
+  it("generates and verifies signed release attestation payloads", () => {
+    const dir = makeTempDir("skillbase-release-attestation-");
+    const artifactPath = join(dir, "skillbase-release.zip");
+    const privateKeyPath = join(dir, "private.pem");
+    const publicKeyPath = join(dir, "public.pem");
+    const attestationPath = join(dir, "release-attestation.json");
+    const verifyPath = join(dir, "release-attestation.verify.json");
+
+    writeFileSync(artifactPath, "release-bundle-bytes", "utf8");
+    const keyPair = generateKeyPairSync("ed25519");
+    writeFileSync(privateKeyPath, keyPair.privateKey.export({ format: "pem", type: "pkcs8" }), "utf8");
+    writeFileSync(publicKeyPath, keyPair.publicKey.export({ format: "pem", type: "spki" }), "utf8");
+
+    const generate = runTsxScript({
+      scriptRelativePath: "scripts/generate_release_attestation.ts",
+      args: [
+        "--artifact",
+        artifactPath,
+        "--private-key",
+        privateKeyPath,
+        "--source-ref",
+        "abc123",
+        "--workflow",
+        "test-release",
+        "--invocation-id",
+        "run-1",
+        "--out",
+        attestationPath
+      ],
+      cwd: process.cwd()
+    });
+    expect(generate.status).toBe(0);
+    expect(existsSync(attestationPath)).toBe(true);
+
+    const verify = runTsxScript({
+      scriptRelativePath: "scripts/verify_release_attestation.ts",
+      args: [
+        "--attestation",
+        attestationPath,
+        "--artifact",
+        artifactPath,
+        "--public-key",
+        publicKeyPath,
+        "--out",
+        verifyPath
+      ],
+      cwd: process.cwd()
+    });
+    expect(verify.status).toBe(0);
+    const verifyReport = JSON.parse(readFileSync(verifyPath, "utf8")) as { ok: boolean };
+    expect(verifyReport.ok).toBe(true);
+
+    writeFileSync(artifactPath, "release-bundle-bytes-tampered", "utf8");
+    const tamperedVerify = runTsxScript({
+      scriptRelativePath: "scripts/verify_release_attestation.ts",
+      args: [
+        "--attestation",
+        attestationPath,
+        "--artifact",
+        artifactPath,
+        "--public-key",
+        publicKeyPath,
+        "--out",
+        verifyPath
+      ],
+      cwd: process.cwd()
+    });
+    expect(tamperedVerify.status).toBe(1);
+    const tamperedReport = JSON.parse(readFileSync(verifyPath, "utf8")) as { ok: boolean };
+    expect(tamperedReport.ok).toBe(false);
   });
 });

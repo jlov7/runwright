@@ -37,6 +37,18 @@ pnpm -C "$ROOT_DIR" build
   node "$ROOT_DIR/dist/cli.js" update --json >/dev/null
   node "$ROOT_DIR/dist/cli.js" export --out skillbase-release.zip --sign-private-key "$TMP_DIR/keys/private.pem" --deterministic --json >/dev/null
   node "$ROOT_DIR/dist/cli.js" verify-bundle --bundle skillbase-release.zip --sign-public-key "$TMP_DIR/keys/public.pem" --require-signature --json > skillbase-release.verify.json
+  pnpm --dir "$ROOT_DIR" exec tsx scripts/generate_release_attestation.ts \
+    --artifact "$TMP_DIR/project/skillbase-release.zip" \
+    --private-key "$TMP_DIR/keys/private.pem" \
+    --source-ref local \
+    --workflow release:verify-local \
+    --invocation-id local-release-verify \
+    --out "$TMP_DIR/project/skillbase-release.attestation.json"
+  pnpm --dir "$ROOT_DIR" exec tsx scripts/verify_release_attestation.ts \
+    --attestation "$TMP_DIR/project/skillbase-release.attestation.json" \
+    --artifact "$TMP_DIR/project/skillbase-release.zip" \
+    --public-key "$TMP_DIR/keys/public.pem" \
+    --out "$TMP_DIR/project/skillbase-release.attestation.verify.json"
   shasum -a 256 skillbase-release.zip > SHA256SUMS
   pnpm --dir "$ROOT_DIR" exec tsx scripts/generate_quality_scorecard.ts \
     --out "$TMP_DIR/project/release-scorecard.json" \
@@ -64,6 +76,8 @@ pnpm -C "$ROOT_DIR" build
     --file skillbase-release.zip \
     --file SHA256SUMS \
     --file skillbase-release.verify.json \
+    --file skillbase-release.attestation.json \
+    --file skillbase-release.attestation.verify.json \
     --file release-scorecard.json \
     --file release-scorecard.md \
     --file release-scorecard.verify.json \

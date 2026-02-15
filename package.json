@@ -26,6 +26,8 @@
     "ship:soak": "pnpm tsx scripts/soak_ship_gate.ts",
     "release:verify-local": "bash scripts/verify_release_artifact.sh",
     "release:tag:verify": "pnpm tsx scripts/verify_release_tag_signature.ts",
+    "release:attestation:generate": "pnpm tsx scripts/generate_release_attestation.ts",
+    "release:attestation:verify": "pnpm tsx scripts/verify_release_attestation.ts",
     "release:artifact-manifest:generate": "pnpm tsx scripts/generate_artifact_manifest.ts",
     "release:artifact-manifest:verify": "pnpm tsx scripts/verify_artifact_manifest.ts",
     "release:notes:generate": "pnpm tsx scripts/generate_release_notes.ts",
