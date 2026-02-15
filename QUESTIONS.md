@@ -21,6 +21,6 @@
 ## Q4: Handling external CI platform startup failures
 - Question: When GitHub Actions fails before any step executes (`steps: []` across jobs), should release sign-off allow the last known-good CI head plus fresh local doctor evidence?
 - Why it matters: Latest commit `9a9d5c1` is blocked by platform-level startup failures (`CI` run `22020736688`, `CodeQL` run `22020736679`) with no code-level failure signal.
-- Latest verification attempt (2026-02-14): Rerunning both workflows still failed with zero executed steps; affected job IDs include `63641142163`, `63641142175`, `63641142179`, and `63641142329`.
+- Latest verification attempt (2026-02-15): Workflow history still shows latest reruns failing with zero executed steps; affected job IDs include `63641142163`, `63641142175`, `63641142179`, and `63641142329`.
 - Current assumption: Treat this as an external platform blocker; continue local gap loop and anchor release evidence to the last known-good CI head until service recovers.
 - Status: Open
