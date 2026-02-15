@@ -35,11 +35,11 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 - [x] Add integration tests for autopilot apply and blocked high-risk cases.
 
 ### NX3: Continuous Drift Daemon + Alerting
-- [ ] Extend watch mode with persisted state (`lastCycle`, `status`, counters).
-- [ ] Add bounded daemon controls (`--max-cycles`) for unattended runs.
-- [ ] Add alert hook command execution on failing/blocked cycles.
-- [ ] Persist cycle history summaries for observability.
-- [ ] Add integration tests for state persistence and alert triggering.
+- [x] Extend watch mode with persisted state (`lastCycle`, `status`, counters).
+- [x] Add bounded daemon controls (`--max-cycles`) for unattended runs.
+- [x] Add alert hook command execution on failing/blocked cycles.
+- [x] Persist cycle history summaries for observability.
+- [x] Add integration tests for state persistence and alert triggering.
 
 ### NX4: Policy Simulator + Explain Graph
 - [ ] Add `runwright policy simulate` subcommand.
@@ -72,5 +72,5 @@ Ship six genuinely difficult, high-impact features in one methodical execution p
 
 ## Status Ledger
 - Started: 2026-02-15
-- Current phase: NX3 Continuous Drift Daemon + Alerting
+- Current phase: NX4 Policy Simulator + Explain Graph
 - Completion target: all six features implemented + verified + tracked

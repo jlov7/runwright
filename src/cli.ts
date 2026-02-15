@@ -26,6 +26,7 @@ import {
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { spawnSync } from "node:child_process";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { claudeAdapter } from "./adapters/claude.js";
 import { codexAdapter } from "./adapters/codex.js";
@@ -198,10 +199,14 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   watch: {
     summary: "Continuously watch project drift and run update -> scan -> apply (or dry-run) loops.",
     usage: [
-      "runwright watch [--once] [--apply-safe] [--debounce-ms <ms>] [--target ...] [--scope ...] [--mode ...] [--json]",
+      "runwright watch [--once] [--apply-safe] [--debounce-ms <ms>] [--max-cycles <n>] [--state-file <path>]",
+      "               [--alert-cmd <command>] [--target ...] [--scope ...] [--mode ...] [--json]",
       "               [--refresh-sources] [--remote-cache-ttl <seconds>]"
     ],
-    examples: ["runwright watch --once --json", "runwright watch --apply-safe --target codex --scope project --mode copy"]
+    examples: [
+      "runwright watch --once --state-file .skillbase/watch-state.json --json",
+      "runwright watch --apply-safe --max-cycles 20 --alert-cmd \"echo watch-alert\" --target codex --scope project --mode copy"
+    ]
   },
   doctor: {
     summary: "Diagnose and optionally fix safe local install issues.",
@@ -537,6 +542,9 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     once: "boolean",
     "apply-safe": "boolean",
     "debounce-ms": "string",
+    "max-cycles": "string",
+    "state-file": "string",
+    "alert-cmd": "string",
     target: "string",
     scope: "string",
     mode: "string",
@@ -744,6 +752,18 @@ function parseFixRisk(raw: string | undefined, fallback: FixRiskLevel): FixRiskL
   throw new CliError(`Invalid fix risk level: ${raw}`, 1, "invalid-argument");
 }
 
+function parseWatchMaxCycles(raw: string | undefined): number {
+  if (!raw) return 0;
+  if (!/^(0|[1-9][0-9]*)$/.test(raw)) {
+    throw new CliError(`Invalid watch max cycles: ${raw}`, 1, "invalid-argument");
+  }
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 100000) {
+    throw new CliError(`Invalid watch max cycles: ${raw}`, 1, "invalid-argument");
+  }
+  return parsed;
+}
+
 function validateSemanticFlags(args: ParsedArgs): void {
   const command = args.command;
   if (!command) return;
@@ -802,6 +822,7 @@ function validateSemanticFlags(args: ParsedArgs): void {
     if (debounceRaw && (!/^(0|[1-9][0-9]*)$/.test(debounceRaw) || Number(debounceRaw) > 600000)) {
       throw new CliError(`Invalid debounce milliseconds: ${debounceRaw}`, 1, "invalid-argument");
     }
+    parseWatchMaxCycles(getStringFlag(args, "max-cycles"));
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
     return;
   }
@@ -3513,32 +3534,88 @@ function watchFingerprint(cwd: string): string {
   return `${manifestMtime}:${skillsMtime}:${lockfileMtime}`;
 }
 
+type WatchCycleResult = {
+  status: number;
+  update: { status: number; lockfile: string; skills: number; sources: number };
+  scan: { status: number; lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
+  apply: { status: number; dryRun: boolean; operations: number };
+};
+
+function writeWatchStateFile(
+  statePath: string,
+  payload: {
+    mode: "once" | "watch";
+    applySafe: boolean;
+    debounceMs: number;
+    maxCycles: number;
+    cycles: number;
+    lastStatus: number | null;
+    lastFingerprint: string;
+  }
+): void {
+  mkdirSync(dirname(statePath), { recursive: true });
+  writeFileSync(
+    statePath,
+    `${JSON.stringify(
+      {
+        schemaVersion: "1.0",
+        generatedAt: new Date().toISOString(),
+        ...payload
+      },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+}
+
+function runWatchAlertCommand(command: string, cwd: string, cycle: WatchCycleResult): void {
+  spawnSync(command, {
+    cwd,
+    shell: true,
+    env: {
+      ...process.env,
+      RUNWRIGHT_WATCH_STATUS: String(cycle.status),
+      RUNWRIGHT_WATCH_SCAN_STATUS: String(cycle.scan.status),
+      RUNWRIGHT_WATCH_APPLY_STATUS: String(cycle.apply.status),
+      RUNWRIGHT_WATCH_HIGH_FINDINGS: String(cycle.scan.highFindings),
+      RUNWRIGHT_WATCH_MEDIUM_FINDINGS: String(cycle.scan.mediumFindings)
+    }
+  });
+}
+
 async function runWatch(args: ParsedArgs, cwd: string): Promise<{
   status: number;
   mode: "once" | "watch";
   applySafe: boolean;
   debounceMs: number;
-  cycles: Array<{
-    status: number;
-    update: { status: number; lockfile: string; skills: number; sources: number };
-    scan: { status: number; lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
-    apply: { status: number; dryRun: boolean; operations: number };
-  }>;
+  maxCycles: number;
+  stateFile: string;
+  cycles: WatchCycleResult[];
 }> {
   const applySafe = getBooleanFlag(args, "apply-safe");
   const once = getBooleanFlag(args, "once");
   const debounceMs = Number(getStringFlag(args, "debounce-ms") ?? "1500");
-
-  const cycles: Array<{
-    status: number;
-    update: { status: number; lockfile: string; skills: number; sources: number };
-    scan: { status: number; lintIssues: number; highFindings: number; mediumFindings: number; suppressedFindings: number };
-    apply: { status: number; dryRun: boolean; operations: number };
-  }> = [];
+  const maxCycles = parseWatchMaxCycles(getStringFlag(args, "max-cycles"));
+  const stateFile = getStringFlag(args, "state-file") ?? ".skillbase/watch-state.json";
+  const stateFilePath = resolve(cwd, stateFile);
+  const alertCommand = getStringFlag(args, "alert-cmd");
+  const cycles: WatchCycleResult[] = [];
 
   if (once) {
-    cycles.push(runWatchCycle(args, cwd));
-    return { status: cycles[0]?.status ?? 0, mode: "once", applySafe, debounceMs, cycles };
+    const cycle = runWatchCycle(args, cwd);
+    cycles.push(cycle);
+    if (alertCommand && cycle.status !== 0) runWatchAlertCommand(alertCommand, cwd, cycle);
+    writeWatchStateFile(stateFilePath, {
+      mode: "once",
+      applySafe,
+      debounceMs,
+      maxCycles,
+      cycles: cycles.length,
+      lastStatus: cycle.status,
+      lastFingerprint: watchFingerprint(cwd)
+    });
+    return { status: cycle.status, mode: "once", applySafe, debounceMs, maxCycles, stateFile, cycles };
   }
 
   let previousFingerprint = watchFingerprint(cwd);
@@ -3555,8 +3632,30 @@ async function runWatch(args: ParsedArgs, cwd: string): Promise<{
     if (pendingChangeAtMs === 0 || Date.now() - pendingChangeAtMs < debounceMs) continue;
     const result = runWatchCycle(args, cwd);
     cycles.push(result);
+    if (alertCommand && result.status !== 0) runWatchAlertCommand(alertCommand, cwd, result);
+    writeWatchStateFile(stateFilePath, {
+      mode: "watch",
+      applySafe,
+      debounceMs,
+      maxCycles,
+      cycles: cycles.length,
+      lastStatus: result.status,
+      lastFingerprint: fingerprint
+    });
     pendingChangeAtMs = 0;
     previousFingerprint = watchFingerprint(cwd);
+    if (maxCycles > 0 && cycles.length >= maxCycles) {
+      const latest = cycles[cycles.length - 1];
+      return {
+        status: latest?.status ?? 0,
+        mode: "watch",
+        applySafe,
+        debounceMs,
+        maxCycles,
+        stateFile,
+        cycles
+      };
+    }
   }
 }
 
