@@ -52,3 +52,4 @@
 - [x] Verification commands passed: `pnpm vitest run tests/journey-ux.test.ts tests/help-ux.test.ts tests/error-guidance-ux.test.ts`, `pnpm vitest run tests/cli.integration.test.ts`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm run doctor`.
 - [x] Deep multi-persona product + backend scorecards were completed and recorded in `docs/audits/2026-02-14-product-and-backend-scorecard.md`.
 - [x] Latest local gate reruns are green: `pnpm verify` (248/248 tests) and `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-14T22:34:07.685Z`, `overall.ok: true`).
+- [x] `pnpm quality:evidence:verify` now works without manual CLI arguments and is covered by script tests.

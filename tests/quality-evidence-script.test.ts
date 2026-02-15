@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,6 +17,31 @@ afterEach(() => {
 });
 
 describe("quality evidence verifier script", () => {
+  it("uses default scorecard and output paths when args are omitted", () => {
+    const dir = makeTempDir("skillbase-quality-evidence-defaults-");
+    const reportsDir = join(dir, "reports", "quality");
+    const scorecardPath = join(reportsDir, "ship-gate.scorecard.json");
+    const outPath = join(reportsDir, "evidence-verification.json");
+
+    rmSync(reportsDir, { recursive: true, force: true });
+    mkdirSync(reportsDir, { recursive: true });
+    writeFileSync(
+      scorecardPath,
+      JSON.stringify({ overall: { pass: true }, checks: [{ name: "verify", result: "success" }] }),
+      "utf8"
+    );
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/verify_quality_evidence.ts",
+      args: [],
+      cwd: dir
+    });
+
+    expect(result.status).toBe(0);
+    const summary = JSON.parse(readFileSync(outPath, "utf8")) as { ok: boolean };
+    expect(summary.ok).toBe(true);
+  });
+
   it("succeeds and writes verification output when evidence passes", () => {
     const dir = makeTempDir("skillbase-quality-evidence-pass-");
     const scorecardPath = join(dir, "scorecard.json");

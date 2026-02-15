@@ -58,6 +58,12 @@
 - Fix strategy: Add dedicated text-mode renderer for verify-bundle success/failure with actionable next steps.
 - Status: Done
 
+### P1-005: `quality:evidence:verify` script unusable without manual args
+- Evidence: `pnpm quality:evidence:verify` failed immediately with `Missing required --scorecard argument`, despite being listed as a standard command.
+- Impacted journey: Operator quality evidence verification and release gate automation.
+- Fix strategy: Add sensible default scorecard path/output in script and regression test for no-arg invocation.
+- Status: Done
+
 ### P1-001: Gap loop algorithm not enforced in working agreement
 - Evidence: Prior `AGENTS.md` loop stopped at milestone planning semantics and did not define strict stop conditions.
 - Impacted journey: Autonomous product hardening pass from planning to completion.

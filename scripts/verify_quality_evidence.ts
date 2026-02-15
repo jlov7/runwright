@@ -15,7 +15,7 @@ type ParsedArgs = {
 
 function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
-    scorecardPath: "",
+    scorecardPath: "reports/quality/ship-gate.scorecard.json",
     requireChecks: [],
     requireScorecardPass: true,
     outPath: "reports/quality/evidence-verification.json"
@@ -58,10 +58,6 @@ function parseArgs(argv: string[]): ParsedArgs {
       parsed.outPath = argv[index + 1] ?? parsed.outPath;
       index += 1;
     }
-  }
-
-  if (!parsed.scorecardPath) {
-    throw new Error("Missing required --scorecard argument");
   }
 
   return parsed;
