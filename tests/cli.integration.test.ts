@@ -114,6 +114,23 @@ describe("cli integration", () => {
     expect(manifest).toContain("skillsets:");
   });
 
+  it("init is idempotent and remains successful on repeat runs", () => {
+    const projectDir = makeTempDir("skillbase-cli-init-idempotent-");
+
+    const first = runCli(["init"], projectDir);
+    const second = runCli(["init"], projectDir);
+
+    expect(first.status).toBe(0);
+    expect(second.status).toBe(0);
+    expect(second.stdout).toContain("Already initialized");
+    expect(second.stdout).toContain("runwright journey");
+
+    const initEvents = readOperationEvents(projectDir).filter((event) => event.command === "init");
+    expect(initEvents).toHaveLength(2);
+    expect(initEvents[0]?.mutating).toBe(true);
+    expect(initEvents[1]?.mutating).toBe(false);
+  });
+
   it("scan exits 30 in security fail mode for risky content", () => {
     const projectDir = makeTempDir("skillbase-cli-scan-");
     mkdirSync(join(projectDir, "skills", "risky"), { recursive: true });

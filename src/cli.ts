@@ -1464,9 +1464,13 @@ function performAtomicTargetApply(plan: TargetApplyPlan, cwd: string): void {
   }
 }
 
-function runInit(cwd: string): { status: number; message: string } {
+function runInit(cwd: string): { status: number; message: string; mutating: boolean } {
   if (resolveManifestFile(cwd)) {
-    return { status: 2, message: "Manifest already exists; init skipped" };
+    return {
+      status: 0,
+      message: "Already initialized: manifest exists. Next: runwright journey",
+      mutating: false
+    };
   }
 
   const manifestPathYaml = resolve(cwd, "runwright.yml");
@@ -1507,7 +1511,7 @@ apply:
     if (!nextLines.includes(entry)) nextLines.push(entry);
   }
   writeFileSync(gitIgnorePath, `${nextLines.filter((line) => line.length > 0).join("\n")}\n`, "utf8");
-  return { status: 0, message: "Initialized runwright.yml and updated .gitignore. Next: runwright journey" };
+  return { status: 0, message: "Initialized runwright.yml and updated .gitignore. Next: runwright journey", mutating: true };
 }
 
 type JourneyStepStatus = "complete" | "pending" | "blocked";
@@ -2890,7 +2894,7 @@ async function main() {
     const init = runInit(cwd);
     if (jsonOutput) writeJson(withJsonSchemaVersion({ status: init.status, message: init.message }));
     else process.stdout.write(`${init.message}\n`);
-    recordOperationEvent(cwd, startedAtMs, "init", init.status, init.status === 0);
+    recordOperationEvent(cwd, startedAtMs, "init", init.status, init.mutating);
     process.exit(init.status);
   }
 

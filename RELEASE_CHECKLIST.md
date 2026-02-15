@@ -59,3 +59,4 @@
 - [x] `runwright export --deterministic` now succeeds without env var across timezones via ZIP-safe timestamp clamping; edge cases are covered in `tests/cli.integration.test.ts`.
 - [x] Journey optional verify-bundle guidance now expires on project changes and surfaces rerun guidance with coverage in `tests/journey-ux.test.ts`.
 - [x] Release policy defaults are now explicit in `QUESTIONS.md` (GitHub artifacts required for v1, ed25519 signatures required for production releases).
+- [x] `runwright init` is now idempotent-success on repeat runs with clear next-step copy and event mutating accuracy coverage in `tests/cli.integration.test.ts`.

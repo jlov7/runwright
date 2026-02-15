@@ -58,6 +58,12 @@
 
 ## P1
 
+### P1-009: `init` re-runs exited nonzero and looked like failures
+- Evidence: running `runwright init` in an already initialized workspace returned status `2`, creating unnecessary friction for non-technical users and CI wrappers expecting idempotent setup.
+- Impacted journey: First-run onboarding retries and automation reliability.
+- Fix strategy: Make `init` idempotent-success with explicit "already initialized" guidance and keep operation-event mutating semantics accurate.
+- Status: Done
+
 ### P1-008: Optional bundle verification step did not expire when project inputs changed
 - Evidence: `runwright journey` could continue showing optional verify-bundle as complete after manifest/skills updates, leaving stale release assurance cues.
 - Impacted journey: Ongoing core loop clarity and release confidence.
