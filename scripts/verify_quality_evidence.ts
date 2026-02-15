@@ -17,6 +17,14 @@ type ParsedArgs = {
 const DEFAULT_SCORECARD_PATH = "reports/quality/ship-gate.scorecard.json";
 const DEFAULT_REQUIRED_CHECKS = DEFAULT_SHIP_GATE_STAGES.map((stage) => stage.id);
 
+function readRequiredArgValue(argv: string[], index: number, flag: string): string {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`Missing value for ${flag}`);
+  }
+  return value;
+}
+
 function parseArgs(argv: string[]): ParsedArgs {
   let requireChecksExplicitlySet = false;
   const parsed: ParsedArgs = {
@@ -29,28 +37,31 @@ function parseArgs(argv: string[]): ParsedArgs {
   for (let index = 2; index < argv.length; index += 1) {
     const token = argv[index] ?? "";
     if (token === "--scorecard") {
-      parsed.scorecardPath = argv[index + 1] ?? "";
+      parsed.scorecardPath = readRequiredArgValue(argv, index, "--scorecard");
       index += 1;
       continue;
     }
     if (token === "--mutation-report") {
-      parsed.mutationReportPath = argv[index + 1] ?? "";
+      parsed.mutationReportPath = readRequiredArgValue(argv, index, "--mutation-report");
       index += 1;
       continue;
     }
     if (token === "--min-mutation-score") {
-      const raw = Number(argv[index + 1] ?? "");
-      if (Number.isFinite(raw)) parsed.minMutationScore = raw;
+      const raw = Number(readRequiredArgValue(argv, index, "--min-mutation-score"));
+      if (!Number.isFinite(raw)) {
+        throw new Error("Expected a numeric value for --min-mutation-score");
+      }
+      parsed.minMutationScore = raw;
       index += 1;
       continue;
     }
     if (token === "--sbom") {
-      parsed.sbomPath = argv[index + 1] ?? "";
+      parsed.sbomPath = readRequiredArgValue(argv, index, "--sbom");
       index += 1;
       continue;
     }
     if (token === "--require-check") {
-      const name = (argv[index + 1] ?? "").trim();
+      const name = readRequiredArgValue(argv, index, "--require-check").trim();
       if (name.length > 0) {
         parsed.requireChecks.push(name);
         requireChecksExplicitlySet = true;
@@ -63,9 +74,11 @@ function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
     if (token === "--out") {
-      parsed.outPath = argv[index + 1] ?? parsed.outPath;
+      parsed.outPath = readRequiredArgValue(argv, index, "--out");
       index += 1;
+      continue;
     }
+    throw new Error(`Unknown argument '${token}'`);
   }
 
   if (!requireChecksExplicitlySet && parsed.scorecardPath === DEFAULT_SCORECARD_PATH) {

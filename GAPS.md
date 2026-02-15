@@ -52,6 +52,12 @@
 
 ## P1
 
+### P1-006: Quality evidence script accepted malformed/unknown arguments silently
+- Evidence: `scripts/verify_quality_evidence.ts` previously treated missing flag values and unknown arguments as implicit defaults, producing misleading downstream file-read errors.
+- Impacted journey: CI/release automation diagnostics and operator self-service troubleshooting.
+- Fix strategy: Enforce strict CLI arg parsing (required values, numeric validation, unknown-flag rejection) and add regression tests.
+- Status: Done
+
 ### P1-003: Semantic flag validation was deferred behind manifest loading
 - Evidence: `runwright apply --scan-security severe` in a fresh directory previously surfaced `missing-manifest` instead of invalid flag value.
 - Impacted journey: Error-state diagnosis and self-service correction.

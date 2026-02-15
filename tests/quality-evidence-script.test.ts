@@ -60,6 +60,32 @@ describe("quality evidence verifier script", () => {
     expect(result.stderr).toContain("ship-gate.scorecard.json");
   });
 
+  it("fails when a flag that requires a value is missing its value", () => {
+    const dir = makeTempDir("skillbase-quality-evidence-missing-arg-value-");
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/verify_quality_evidence.ts",
+      args: ["--scorecard"],
+      cwd: dir
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Missing value for --scorecard");
+  });
+
+  it("fails on unknown arguments", () => {
+    const dir = makeTempDir("skillbase-quality-evidence-unknown-arg-");
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/verify_quality_evidence.ts",
+      args: ["--bogus"],
+      cwd: dir
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Unknown argument '--bogus'");
+  });
+
   it("succeeds and writes verification output when evidence passes", () => {
     const dir = makeTempDir("skillbase-quality-evidence-pass-");
     const scorecardPath = join(dir, "scorecard.json");
