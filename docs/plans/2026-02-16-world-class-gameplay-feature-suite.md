@@ -50,14 +50,14 @@ Implement twelve high-complexity gameplay/UX features that layer on top of exist
 
 ### M5: Test + quality convergence
 - [x] Add/expand integration tests for each gameplay mode.
-- [ ] Run full convergence gate:
+- [x] Run full convergence gate:
   - `pnpm verify`
   - `pnpm run doctor`
   - `pnpm quality:evidence:verify`
   - `pnpm ship:gate`
-- [ ] Sync checklist evidence + TODO completion state.
+- [x] Sync checklist evidence + TODO completion state.
 
 ## Status Ledger
 - Started: 2026-02-16
-- Current phase: M5 Test + quality convergence
-- Completion target: all 12 gameplay features implemented + verified + tracked
+- Current phase: Completed
+- Completion target: Met on 2026-02-16

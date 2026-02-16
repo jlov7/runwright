@@ -69,4 +69,10 @@ Latest evidence refresh (2026-02-15):
 - [x] GX10 Creator Studio (UGC level publishing)
 - [x] GX11 Cinematic feedback/highlight timeline
 - [x] GX12 Ranked mode + local leaderboard
-- [ ] Final convergence gate for gameplay suite
+- [x] Final convergence gate for gameplay suite
+
+Gameplay suite evidence refresh (2026-02-16):
+- Targeted mode validation: `pnpm exec vitest run tests/cli.integration.test.ts -t "gameplay"` (`12/12` gameplay tests passing).
+- Full verification gate: `pnpm verify` (`316/316` tests passing).
+- Full release gate: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
+- Artifacts: `reports/doctor/doctor.json` (`generatedAt: 2026-02-16T02:32:27.382Z`), `reports/quality/ship-gate.summary.json` (`generatedAt: 2026-02-16T02:34:53.220Z`, `overall.ok: true`).
