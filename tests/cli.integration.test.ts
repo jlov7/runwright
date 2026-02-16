@@ -1511,6 +1511,183 @@ describe("cli integration", () => {
     expect(String(payload.replay.recommendedRecoveryCommand)).toContain("runwright");
   });
 
+  it("gameplay quest maps onboarding journey into quest objectives", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-quest-");
+    const result = runCli(["gameplay", "quest", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("quest");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        totalQuests: expect.any(Number),
+        completedQuests: expect.any(Number),
+        completionPercent: expect.any(Number)
+      })
+    );
+    expect(Array.isArray(payload.details.quests)).toBe(true);
+    expect(payload.details.firstSuccessMoment.command).toContain("runwright apply");
+  });
+
+  it("gameplay campaign computes progression tier and missions", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-campaign-");
+    const result = runCli(["gameplay", "campaign", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("campaign");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        seasonPoints: expect.any(Number),
+        tier: expect.any(String),
+        streak: expect.any(Number)
+      })
+    );
+    expect(Array.isArray(payload.details.missions)).toBe(true);
+  });
+
+  it("gameplay boss simulates hard encounter scenarios with recovery rotation", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-boss-");
+    const result = runCli(["gameplay", "boss", "--scenario", "release-chaos", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("boss");
+    expect(payload.summary.scenario).toBe("release-chaos");
+    expect(payload.details.recommendedRotation).toEqual(expect.arrayContaining([expect.stringContaining("runwright")]));
+    expect(String(payload.details.recoveryCommand)).toContain("pnpm ship:gate");
+  });
+
+  it("gameplay ghost replays last flow and provides recovery command", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-ghost-");
+    const warmup = runCli(["gameplay", "ghost", "--json"], projectDir);
+    expect(warmup.status).toBe(0);
+    const result = runCli(["gameplay", "ghost", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("ghost");
+    expect(payload.summary).toEqual(expect.objectContaining({ ghostSteps: expect.any(Number) }));
+    expect(payload.details.replay).toEqual(expect.objectContaining({ recommendedRecovery: expect.any(String) }));
+  });
+
+  it("gameplay director outputs adaptive difficulty tuning", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-director-");
+    const result = runCli(["gameplay", "director", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("director");
+    expect(payload.summary).toEqual(expect.objectContaining({ failureRate: expect.any(Number), targetDifficulty: expect.any(String) }));
+    expect(payload.details.tuning).toEqual(
+      expect.objectContaining({
+        challengeIntensity: expect.any(Number),
+        hintFrequency: expect.any(String)
+      })
+    );
+  });
+
+  it("gameplay coop persists a war room and supports room rejoin", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-coop-");
+    const created = runCli(["gameplay", "coop", "--json"], projectDir);
+    expect(created.status).toBe(0);
+    const createdPayload = JSON.parse(created.stdout);
+    expect(createdPayload.mode).toBe("coop");
+    const roomId = String(createdPayload.summary.roomId);
+    expect(roomId).toMatch(/^WR-/);
+
+    const joined = runCli(["gameplay", "coop", "--room", roomId, "--json"], projectDir);
+    expect(joined.status).toBe(0);
+    const joinedPayload = JSON.parse(joined.stdout);
+    expect(Number(joinedPayload.summary.members)).toBeGreaterThanOrEqual(2);
+  });
+
+  it("gameplay challenge generation is deterministic for a fixed seed", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-challenge-");
+    const first = runCli(["gameplay", "challenge", "--seed", "4242", "--json"], projectDir);
+    const second = runCli(["gameplay", "challenge", "--seed", "4242", "--json"], projectDir);
+    expect(first.status).toBe(0);
+    expect(second.status).toBe(0);
+    const firstPayload = JSON.parse(first.stdout);
+    const secondPayload = JSON.parse(second.stdout);
+    expect(firstPayload.summary.seed).toBe(4242);
+    expect(firstPayload.details.objective).toBe(secondPayload.details.objective);
+    expect(firstPayload.details.constraint).toBe(secondPayload.details.constraint);
+  });
+
+  it("gameplay skilltree unlocks archetypes based on telemetry", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-skilltree-");
+    expect(runCli(["init"], projectDir).status).toBe(0);
+    expect(runCli(["gameplay", "campaign", "--json"], projectDir).status).toBe(0);
+    const result = runCli(["gameplay", "skilltree", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("skilltree");
+    expect(payload.summary).toEqual(expect.objectContaining({ talentPoints: expect.any(Number) }));
+    expect(Array.isArray(payload.details.unlocked)).toBe(true);
+  });
+
+  it("gameplay liveops emits season events with active flags", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-liveops-");
+    const result = runCli(["gameplay", "liveops", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("liveops");
+    expect(payload.summary).toEqual(expect.objectContaining({ seasonId: expect.any(String), activeEvents: expect.any(Number) }));
+    expect(payload.details.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.any(String),
+          title: expect.any(String),
+          active: expect.any(Boolean)
+        })
+      ])
+    );
+  });
+
+  it("gameplay creator publishes persistent custom levels", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-creator-");
+    const result = runCli(
+      ["gameplay", "creator", "--title", "Zero-Downtime Gauntlet", "--difficulty", "legendary", "--json"],
+      projectDir
+    );
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("creator");
+    expect(payload.summary).toEqual(expect.objectContaining({ createdLevelId: expect.any(String), totalLevels: 1 }));
+    expect(payload.details.latestLevel).toEqual(
+      expect.objectContaining({
+        title: "Zero-Downtime Gauntlet",
+        difficulty: "legendary"
+      })
+    );
+  });
+
+  it("gameplay cinematic returns timeline highlights from operation history", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-cinematic-");
+    expect(runCli(["gameplay", "campaign", "--json"], projectDir).status).toBe(0);
+    expect(runCli(["gameplay", "director", "--json"], projectDir).status).toBe(0);
+    const result = runCli(["gameplay", "cinematic", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("cinematic");
+    expect(payload.summary).toEqual(expect.objectContaining({ scenes: expect.any(Number) }));
+    expect(Array.isArray(payload.details.timeline)).toBe(true);
+  });
+
+  it("gameplay ranked computes rating and leaderboard snapshot", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-ranked-");
+    expect(runCli(["gameplay", "quest", "--json"], projectDir).status).toBe(0);
+    const result = runCli(["gameplay", "ranked", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("ranked");
+    expect(payload.summary).toEqual(expect.objectContaining({ rating: expect.any(Number), division: expect.any(String) }));
+    expect(payload.details.leaderboard).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          handle: expect.any(String),
+          rating: expect.any(Number)
+        })
+      ])
+    );
+  });
+
   it("export --deterministic produces byte-identical bundles with fixed SOURCE_DATE_EPOCH", () => {
     const projectDir = makeTempDir("skillbase-cli-export-deterministic-");
     mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });

@@ -26,30 +26,30 @@ Implement twelve high-complexity gameplay/UX features that layer on top of exist
 ## Milestones
 
 ### M1: Tracking + command surface scaffold
-- [ ] Add new top-level `runwright gameplay <mode>` command with full help/docs copy.
-- [ ] Add parser/flag validation for gameplay subcommands.
-- [ ] Add base JSON/text renderer contract.
+- [x] Add new top-level `runwright gameplay <mode>` command with full help/docs copy.
+- [x] Add parser/flag validation for gameplay subcommands.
+- [x] Add base JSON/text renderer contract.
 
 ### M2: Journey and progression mechanics
-- [ ] GX1 Adaptive Quest Onboarding Engine.
-- [ ] GX2 Campaign Mode progression loop.
-- [ ] GX4 Deterministic Replay + Ghost Runs.
-- [ ] GX8 Skill Tree + archetype system.
-- [ ] GX12 Ranked mode + leaderboard.
+- [x] GX1 Adaptive Quest Onboarding Engine.
+- [x] GX2 Campaign Mode progression loop.
+- [x] GX4 Deterministic Replay + Ghost Runs.
+- [x] GX8 Skill Tree + archetype system.
+- [x] GX12 Ranked mode + leaderboard.
 
 ### M3: Challenge and simulation systems
-- [ ] GX3 Scenario Simulator + Boss Encounters.
-- [ ] GX5 AI Game Director (difficulty adaptation).
-- [ ] GX7 Procedural Challenge Generator.
-- [ ] GX9 LiveOps event system.
-- [ ] GX11 Cinematic feedback/highlight timeline.
+- [x] GX3 Scenario Simulator + Boss Encounters.
+- [x] GX5 AI Game Director (difficulty adaptation).
+- [x] GX7 Procedural Challenge Generator.
+- [x] GX9 LiveOps event system.
+- [x] GX11 Cinematic feedback/highlight timeline.
 
 ### M4: Social + creator systems
-- [ ] GX6 Co-op Multiplayer War Room with persistent local room state.
-- [ ] GX10 Creator Studio (UGC level publishing) with persistent catalog state.
+- [x] GX6 Co-op Multiplayer War Room with persistent local room state.
+- [x] GX10 Creator Studio (UGC level publishing) with persistent catalog state.
 
 ### M5: Test + quality convergence
-- [ ] Add/expand integration tests for each gameplay mode.
+- [x] Add/expand integration tests for each gameplay mode.
 - [ ] Run full convergence gate:
   - `pnpm verify`
   - `pnpm run doctor`
@@ -59,5 +59,5 @@ Implement twelve high-complexity gameplay/UX features that layer on top of exist
 
 ## Status Ledger
 - Started: 2026-02-16
-- Current phase: M1 Tracking + command surface scaffold
+- Current phase: M5 Test + quality convergence
 - Completion target: all 12 gameplay features implemented + verified + tracked

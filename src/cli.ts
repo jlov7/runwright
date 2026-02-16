@@ -99,6 +99,19 @@ type FixActionType =
   | "verify-trusted-sources";
 
 type FixRiskLevel = "low" | "medium" | "high";
+type GameplayMode =
+  | "quest"
+  | "campaign"
+  | "boss"
+  | "ghost"
+  | "director"
+  | "coop"
+  | "challenge"
+  | "skilltree"
+  | "liveops"
+  | "creator"
+  | "cinematic"
+  | "ranked";
 
 type FixAction = {
   type: FixActionType;
@@ -173,6 +186,18 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
     summary: "Replay user journeys and compute persona-oriented operational scorecards.",
     usage: ["runwright analytics journey [--json]"],
     examples: ["runwright analytics journey --json"]
+  },
+  gameplay: {
+    summary: "World-class gameplay layer: quests, campaign progression, simulation, social, creator, and ranking systems.",
+    usage: [
+      "runwright gameplay <quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|ranked> [--json]",
+      "                 [--scenario <name>] [--seed <number>] [--room <id>] [--title <name>] [--difficulty <tier>] [--description <text>]"
+    ],
+    examples: [
+      "runwright gameplay quest --json",
+      "runwright gameplay boss --scenario trust-breach --json",
+      "runwright gameplay creator --title \"Zero-Downtime Gauntlet\" --difficulty legendary --json"
+    ]
   },
   apply: {
     summary: "Install resolved skills into target tools (safe by default with scanning).",
@@ -486,6 +511,7 @@ Core commands:
   runwright journey
   runwright mission
   runwright analytics journey
+  runwright gameplay
   runwright apply
   runwright apply-resume
   runwright remediate
@@ -543,6 +569,15 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
   journey: { json: "boolean" },
   mission: { action: "string", json: "boolean", "refresh-sources": "boolean", "remote-cache-ttl": "string" },
   analytics: { json: "boolean" },
+  gameplay: {
+    json: "boolean",
+    scenario: "string",
+    seed: "string",
+    room: "string",
+    title: "string",
+    difficulty: "string",
+    description: "string"
+  },
   apply: {
     mode: "string",
     target: "string",
@@ -670,6 +705,29 @@ function validateAllowedFlags(args: ParsedArgs): void {
     const subcommand = args.positionals[0];
     if (args.positionals.length !== 1 || subcommand !== "journey") {
       throw new CliError("analytics command requires subcommand: analytics journey", 1, "invalid-argument");
+    }
+  } else if (args.command === "gameplay") {
+    const subcommand = args.positionals[0];
+    const allowedModes = new Set<GameplayMode>([
+      "quest",
+      "campaign",
+      "boss",
+      "ghost",
+      "director",
+      "coop",
+      "challenge",
+      "skilltree",
+      "liveops",
+      "creator",
+      "cinematic",
+      "ranked"
+    ]);
+    if (args.positionals.length !== 1 || !subcommand || !allowedModes.has(subcommand as GameplayMode)) {
+      throw new CliError(
+        "gameplay command requires subcommand: gameplay quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|ranked",
+        1,
+        "invalid-argument"
+      );
     }
   } else if (args.command === "trust") {
     const subcommand = args.positionals[0];
@@ -815,6 +873,23 @@ function parseWatchMaxCycles(raw: string | undefined): number {
   return parsed;
 }
 
+function parseGameplaySeed(raw: string | undefined): number | undefined {
+  if (!raw) return undefined;
+  if (!/^-?[0-9]+$/.test(raw)) {
+    throw new CliError(`Invalid gameplay seed: ${raw}`, 1, "invalid-argument");
+  }
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value)) {
+    throw new CliError(`Invalid gameplay seed: ${raw}`, 1, "invalid-argument");
+  }
+  return value;
+}
+
+function parseGameplayDifficulty(raw: string | undefined, fallback: "bronze" | "silver" | "gold" | "legendary"): "bronze" | "silver" | "gold" | "legendary" {
+  if (raw === "bronze" || raw === "silver" || raw === "gold" || raw === "legendary") return raw;
+  return fallback;
+}
+
 function validateSemanticFlags(args: ParsedArgs): void {
   const command = args.command;
   if (!command) return;
@@ -838,6 +913,15 @@ function validateSemanticFlags(args: ParsedArgs): void {
     const action = getStringFlag(args, "action");
     if (action) parseMissionAction(action);
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "gameplay") {
+    parseGameplaySeed(getStringFlag(args, "seed"));
+    const difficulty = getStringFlag(args, "difficulty");
+    if (difficulty && parseGameplayDifficulty(difficulty, "silver") !== difficulty) {
+      throw new CliError(`Invalid gameplay difficulty tier: ${difficulty}`, 1, "invalid-argument");
+    }
     return;
   }
 
@@ -2622,6 +2706,519 @@ function renderAnalyticsJourneyText(payload: {
     lines.push("  No failed command recorded in operation history.");
   }
   lines.push("");
+  return lines.join("\n");
+}
+
+type GameplayState = {
+  schemaVersion: "1.0";
+  creatorLevels: Array<{
+    id: string;
+    title: string;
+    difficulty: "bronze" | "silver" | "gold" | "legendary";
+    description: string;
+    createdAt: string;
+  }>;
+  coopRooms: Array<{
+    roomId: string;
+    roles: string[];
+    members: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+type GameplayResult = {
+  status: number;
+  mode: GameplayMode;
+  mutating: boolean;
+  summary: Record<string, string | number | boolean>;
+  details: Record<string, unknown>;
+};
+
+function gameplayStatePath(cwd: string): string {
+  return resolve(cwd, ".skillbase", "gameplay-state.json");
+}
+
+function readGameplayState(cwd: string): GameplayState {
+  const path = gameplayStatePath(cwd);
+  if (!existsSync(path)) {
+    return {
+      schemaVersion: "1.0",
+      creatorLevels: [],
+      coopRooms: []
+    };
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const creatorLevelsRaw = Array.isArray(parsed.creatorLevels) ? parsed.creatorLevels : [];
+    const coopRoomsRaw = Array.isArray(parsed.coopRooms) ? parsed.coopRooms : [];
+    const creatorLevels: GameplayState["creatorLevels"] = creatorLevelsRaw
+      .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+      .map((entry) => ({
+        id: typeof entry.id === "string" ? entry.id : "",
+        title: typeof entry.title === "string" ? entry.title : "Untitled Challenge",
+        difficulty: parseGameplayDifficulty(typeof entry.difficulty === "string" ? entry.difficulty : undefined, "silver"),
+        description: typeof entry.description === "string" ? entry.description : "",
+        createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date(0).toISOString()
+      }))
+      .filter((entry) => entry.id.length > 0);
+    const coopRooms: GameplayState["coopRooms"] = coopRoomsRaw
+      .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+      .map((entry) => ({
+        roomId: typeof entry.roomId === "string" ? entry.roomId : "",
+        roles: Array.isArray(entry.roles) ? entry.roles.filter((item): item is string => typeof item === "string") : ["captain", "operator"],
+        members:
+          typeof entry.members === "number" && Number.isFinite(entry.members) && entry.members >= 1
+            ? Math.floor(entry.members)
+            : 1,
+        createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date(0).toISOString(),
+        updatedAt: typeof entry.updatedAt === "string" ? entry.updatedAt : new Date(0).toISOString()
+      }))
+      .filter((entry) => entry.roomId.length > 0);
+    return {
+      schemaVersion: "1.0",
+      creatorLevels,
+      coopRooms
+    };
+  } catch {
+    return {
+      schemaVersion: "1.0",
+      creatorLevels: [],
+      coopRooms: []
+    };
+  }
+}
+
+function writeGameplayState(cwd: string, state: GameplayState): void {
+  const path = gameplayStatePath(cwd);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+}
+
+function seededGameplayNumber(seed: number): number {
+  const normalized = seed % 2147483647;
+  const value = normalized <= 0 ? normalized + 2147483646 : normalized;
+  return (value * 48271) % 2147483647;
+}
+
+function mapRankDivision(rating: number): "bronze" | "silver" | "gold" | "platinum" | "diamond" {
+  if (rating >= 1600) return "diamond";
+  if (rating >= 1450) return "platinum";
+  if (rating >= 1300) return "gold";
+  if (rating >= 1150) return "silver";
+  return "bronze";
+}
+
+function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
+  const mode = args.positionals[0] as GameplayMode;
+  const events = readOperationEventRecords(cwd);
+  const successfulRuns = events.filter((event) => event.status === 0 || event.status === 2).length;
+  const failedRuns = events.filter((event) => event.status !== 0 && event.status !== 2).length;
+  const blockedRuns = events.filter((event) => event.status === 30).length;
+  const journey = runJourney(cwd).payload;
+  const state = readGameplayState(cwd);
+
+  if (mode === "quest") {
+    const quests = journey.steps.map((step, index) => ({
+      id: `Q-${String(index + 1).padStart(2, "0")}`,
+      title: step.title,
+      status: step.status,
+      xpReward: step.optional ? 40 : 100,
+      run: step.command
+    }));
+    const completed = quests.filter((quest) => quest.status === "complete").length;
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        totalQuests: quests.length,
+        completedQuests: completed,
+        completionPercent: Math.round((completed / Math.max(quests.length, 1)) * 100)
+      },
+      details: {
+        quests,
+        firstSuccessMoment: {
+          achieved: journey.summary.completedCoreSteps >= journey.summary.totalCoreSteps,
+          command: "runwright apply --target all --scope project --mode copy --json"
+        },
+        nextQuest: quests.find((quest) => quest.status !== "complete") ?? null
+      }
+    };
+  }
+
+  if (mode === "campaign") {
+    let streak = 0;
+    for (let i = events.length - 1; i >= 0; i -= 1) {
+      const event = events[i];
+      if (!event) continue;
+      if (event.status === 0 || event.status === 2) streak += 1;
+      else break;
+    }
+    const seasonPoints = successfulRuns * 120 + blockedRuns * 40 - failedRuns * 30;
+    const tier = seasonPoints >= 1500 ? "mythic" : seasonPoints >= 900 ? "elite" : seasonPoints >= 450 ? "advanced" : "rookie";
+    const missions = [
+      {
+        id: "daily-core-loop",
+        objective: "Run update -> scan -> apply loop once",
+        progress: Math.min(1, successfulRuns > 0 ? 1 : 0),
+        reward: 200
+      },
+      {
+        id: "risk-slayer",
+        objective: "Resolve at least one blocked run",
+        progress: Math.min(1, blockedRuns > 0 ? 1 : 0),
+        reward: 280
+      },
+      {
+        id: "release-guardian",
+        objective: "Pass ship gate on latest state",
+        progress: Math.min(1, events.some((entry) => entry.command === "verify-bundle" && entry.status === 0) ? 1 : 0),
+        reward: 320
+      }
+    ];
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        seasonPoints,
+        tier,
+        streak
+      },
+      details: {
+        missions,
+        loopHealth: failedRuns === 0 ? "stable" : failedRuns <= successfulRuns ? "recovering" : "fragile"
+      }
+    };
+  }
+
+  if (mode === "boss") {
+    const scenario = getStringFlag(args, "scenario") ?? "trust-breach";
+    const scenarios: Record<string, { title: string; command: string; targetCommand: string }> = {
+      "trust-breach": {
+        title: "Trust Breach Hydra",
+        command: "runwright trust status --json && runwright policy check --explain --json",
+        targetCommand: "trust"
+      },
+      "release-chaos": {
+        title: "Release Chaos Titan",
+        command: "pnpm ship:gate",
+        targetCommand: "verify-bundle"
+      },
+      "drift-storm": {
+        title: "Drift Storm Leviathan",
+        command: "runwright watch --once --json",
+        targetCommand: "watch"
+      }
+    };
+    const chosen = scenarios[scenario] ?? scenarios["trust-breach"];
+    const bossHp = 1000;
+    const damage = Math.min(1000, successfulRuns * 35 + blockedRuns * 15);
+    const outcome = damage >= 700 ? "victory" : damage >= 350 ? "phase-2" : "wipe";
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        scenario,
+        outcome,
+        damage
+      },
+      details: {
+        title: chosen.title,
+        bossHp,
+        bossHpRemaining: Math.max(0, bossHp - damage),
+        recommendedRotation: [
+          chosen.command,
+          "runwright fix --autopilot --max-risk medium --json",
+          "runwright mission --action fix-plan --json"
+        ],
+        recoveryCommand: chosen.command,
+        telemetrySignal: {
+          targetCommand: chosen.targetCommand,
+          recentFailures: events.filter((event) => event.command === chosen.targetCommand && event.status !== 0 && event.status !== 2).length
+        }
+      }
+    };
+  }
+
+  if (mode === "ghost") {
+    const lastFailed = [...events].reverse().find((event) => event.status !== 0 && event.status !== 2) ?? null;
+    const ghostPath = events.slice(-8).map((event, index) => ({
+      step: index + 1,
+      command: event.command,
+      status: event.status
+    }));
+    const bestPerfectRun = Math.max(0, successfulRuns - failedRuns);
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        ghostSteps: ghostPath.length,
+        bestPerfectRun,
+        failedRuns
+      },
+      details: {
+        ghostPath,
+        replay: {
+          anchorFailure: lastFailed,
+          recommendedRecovery: lastFailed
+            ? "runwright mission --action fix-plan --json && runwright gameplay quest --json"
+            : "runwright gameplay campaign --json"
+        }
+      }
+    };
+  }
+
+  if (mode === "director") {
+    const totalRuns = successfulRuns + failedRuns;
+    const failureRate = totalRuns === 0 ? 0 : failedRuns / totalRuns;
+    const targetDifficulty = failureRate >= 0.45 ? "assist" : failureRate >= 0.25 ? "balanced" : "hardcore";
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        failureRate: Number(failureRate.toFixed(2)),
+        targetDifficulty
+      },
+      details: {
+        tuning: {
+          challengeIntensity: targetDifficulty === "assist" ? 0.7 : targetDifficulty === "balanced" ? 1 : 1.3,
+          hintFrequency: targetDifficulty === "assist" ? "high" : targetDifficulty === "balanced" ? "medium" : "low",
+          automationBudget: targetDifficulty === "hardcore" ? "strict" : "expanded"
+        },
+        rationale: "Difficulty adapts from recent failure pressure to keep challenge high without stalling progression."
+      }
+    };
+  }
+
+  if (mode === "coop") {
+    const now = new Date().toISOString();
+    const requestedRoom = getStringFlag(args, "room");
+    let room = requestedRoom ? state.coopRooms.find((entry) => entry.roomId === requestedRoom) : undefined;
+    let created = false;
+    if (!room) {
+      const seed = sha256Hex(strToU8(`${cwd}:${events.length}:${state.coopRooms.length + 1}:${now}`));
+      const roomId = `WR-${seed.slice(7, 13).toUpperCase()}`;
+      room = {
+        roomId,
+        roles: ["captain", "operator", "security", "release-manager"],
+        members: 1,
+        createdAt: now,
+        updatedAt: now
+      };
+      state.coopRooms.push(room);
+      created = true;
+    } else {
+      room.members = Math.max(1, room.members + 1);
+      room.updatedAt = now;
+    }
+    writeGameplayState(cwd, state);
+    return {
+      status: 0,
+      mode,
+      mutating: true,
+      summary: {
+        roomId: room.roomId,
+        members: room.members,
+        created
+      },
+      details: {
+        room,
+        playbook: [
+          "Captain runs runwright mission --json",
+          "Operator executes scan/fix loop",
+          "Security validates trust + policy traces",
+          "Release manager runs ship gate"
+        ]
+      }
+    };
+  }
+
+  if (mode === "challenge") {
+    const providedSeed = parseGameplaySeed(getStringFlag(args, "seed"));
+    const baseSeed = providedSeed ?? events.length + successfulRuns * 7 + failedRuns * 13 + 97;
+    const rollA = seededGameplayNumber(baseSeed);
+    const rollB = seededGameplayNumber(rollA);
+    const objectives = [
+      "Recover from a blocked apply using fix autopilot",
+      "Resolve trust mismatch and pass policy explain",
+      "Run release verification with deterministic export",
+      "Stabilize drift watch and clear high-risk findings"
+    ];
+    const constraints = [
+      "max-risk=medium",
+      "no manual file edits",
+      "single-pass gate run",
+      "dry-run first"
+    ];
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        seed: baseSeed,
+        challengeLevel: (rollA % 5) + 1
+      },
+      details: {
+        objective: objectives[rollA % objectives.length],
+        constraint: constraints[rollB % constraints.length],
+        rewardXp: 250 + (rollB % 350),
+        recommendedCommands: ["runwright mission --json", "runwright fix --plan --json", "runwright analytics journey --json"]
+      }
+    };
+  }
+
+  if (mode === "skilltree") {
+    const talentPoints = Math.max(0, successfulRuns * 2 + blockedRuns - failedRuns);
+    const unlocked = [
+      talentPoints >= 1 ? "Pathfinder (onboarding acceleration)" : null,
+      talentPoints >= 4 ? "Guardian (trust and policy discipline)" : null,
+      talentPoints >= 8 ? "Automator (safe autopilot orchestration)" : null,
+      talentPoints >= 12 ? "Conductor (mission + watch mastery)" : null
+    ].filter((entry): entry is string => Boolean(entry));
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        talentPoints,
+        unlocked: unlocked.length
+      },
+      details: {
+        unlocked,
+        nextUnlockAt: talentPoints < 1 ? 1 : talentPoints < 4 ? 4 : talentPoints < 8 ? 8 : talentPoints < 12 ? 12 : null,
+        recommendedNext: "runwright gameplay campaign --json"
+      }
+    };
+  }
+
+  if (mode === "liveops") {
+    const now = new Date();
+    const seasonId = `S${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const eventAActive = now.getUTCDate() % 2 === 0;
+    const eventsCatalog = [
+      {
+        id: `${seasonId}-double-xp`,
+        title: "Double XP Gauntlet",
+        active: eventAActive,
+        boost: 2
+      },
+      {
+        id: `${seasonId}-trust-shield`,
+        title: "Trust Shield Weekend",
+        active: !eventAActive,
+        boost: 1.5
+      }
+    ];
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        seasonId,
+        activeEvents: eventsCatalog.filter((entry) => entry.active).length
+      },
+      details: {
+        events: eventsCatalog,
+        featuredMission: eventsCatalog[0]?.active ? "Challenge mode with boosted rewards" : "Defensive trust-cleanup sprint"
+      }
+    };
+  }
+
+  if (mode === "creator") {
+    const now = new Date().toISOString();
+    const difficulty = parseGameplayDifficulty(getStringFlag(args, "difficulty"), "silver");
+    const title = getStringFlag(args, "title") ?? `Custom Challenge ${state.creatorLevels.length + 1}`;
+    const description = getStringFlag(args, "description") ?? "User-generated scenario for advanced operators.";
+    const id = `LVL-${String(state.creatorLevels.length + 1).padStart(3, "0")}`;
+    state.creatorLevels.push({
+      id,
+      title,
+      difficulty,
+      description,
+      createdAt: now
+    });
+    writeGameplayState(cwd, state);
+    return {
+      status: 0,
+      mode,
+      mutating: true,
+      summary: {
+        createdLevelId: id,
+        totalLevels: state.creatorLevels.length,
+        difficulty
+      },
+      details: {
+        latestLevel: state.creatorLevels[state.creatorLevels.length - 1] ?? null,
+        catalog: state.creatorLevels.slice(-5)
+      }
+    };
+  }
+
+  if (mode === "cinematic") {
+    const timeline = events.slice(-6).map((event, index) => ({
+      scene: index + 1,
+      beat: `${event.command} (${event.status === 0 || event.status === 2 ? "success" : "failure"})`,
+      timestampMs: event.timestampMs
+    }));
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        scenes: timeline.length,
+        failures: failedRuns
+      },
+      details: {
+        tone: failedRuns === 0 ? "heroic" : failedRuns <= successfulRuns ? "resilient" : "high-stakes",
+        timeline,
+        finale: journey.nextAction.command
+      }
+    };
+  }
+
+  const rating = 1000 + successfulRuns * 24 - failedRuns * 18 + blockedRuns * 8;
+  const division = mapRankDivision(rating);
+  return {
+    status: 0,
+    mode: "ranked",
+    mutating: false,
+    summary: {
+      rating,
+      division
+    },
+    details: {
+      leaderboard: [
+        { handle: "you", rating },
+        { handle: "ghost-alpha", rating: rating + 34 },
+        { handle: "safety-bot", rating: Math.max(900, rating - 42) }
+      ],
+      rankDeltaHint: failedRuns > 0 ? "Clear recent failures to gain rating momentum." : "Current streak supports rapid rank climb."
+    }
+  };
+}
+
+function renderGameplayText(result: GameplayResult): string {
+  const lines = [
+    "Runwright Gameplay Control",
+    "",
+    `Mode: ${result.mode}`,
+    ...Object.entries(result.summary).map(([key, value]) => `- ${key}: ${String(value)}`),
+    "",
+    "Details:"
+  ];
+  for (const [key, value] of Object.entries(result.details)) {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null) {
+      lines.push(`  ${key}: ${String(value)}`);
+      continue;
+    }
+    lines.push(`  ${key}: ${JSON.stringify(value)}`);
+  }
+  lines.push("", "Next:", "  runwright gameplay campaign --json", "");
   return lines.join("\n");
 }
 
@@ -4999,6 +5596,20 @@ async function main() {
     process.exit(analytics.status);
   }
 
+  if (cmd === "gameplay") {
+    const gameplay = runGameplay(parsed, cwd);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(gameplay));
+    else process.stdout.write(renderGameplayText(gameplay));
+    const counters: Record<string, number> = {};
+    for (const [key, value] of Object.entries(gameplay.summary)) {
+      if (typeof value === "number") counters[key] = value;
+    }
+    recordOperationEvent(cwd, startedAtMs, "gameplay", gameplay.status, gameplay.mutating, {
+      counters
+    });
+    process.exit(gameplay.status);
+  }
+
   const manifest = loadManifest(cwd);
 
   if (cmd === "mission") {
@@ -5285,6 +5896,7 @@ main().catch((err) => {
     failedCommand === "export" ||
     failedCommand === "registry" ||
     failedCommand === "trust" ||
+    failedCommand === "gameplay" ||
     failedCommand === "remediate" ||
     failedCommand === "watch" ||
     failedCommand === "fix";

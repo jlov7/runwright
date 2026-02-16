@@ -56,17 +56,17 @@ Latest evidence refresh (2026-02-15):
 - Artifacts: `reports/doctor/doctor.json` (`generatedAt: 2026-02-15T23:39:16.231Z`), `reports/quality/ship-gate.summary.json` (`generatedAt: 2026-02-15T23:41:40.667Z`, `overall.ok: true`).
 
 ## P0 (Overnight gameplay/world-class feature suite)
-- [ ] Execute full 12-feature gameplay plan from `docs/plans/2026-02-16-world-class-gameplay-feature-suite.md`
-- [ ] GX1 Adaptive Quest Onboarding Engine
-- [ ] GX2 Campaign Mode progression loop
-- [ ] GX3 Scenario Simulator + Boss Encounters
-- [ ] GX4 Deterministic Replay + Ghost Runs
-- [ ] GX5 AI Game Director (difficulty adaptation)
-- [ ] GX6 Co-op Multiplayer War Room
-- [ ] GX7 Procedural Challenge Generator
-- [ ] GX8 Skill Tree + build archetypes
-- [ ] GX9 LiveOps event system
-- [ ] GX10 Creator Studio (UGC level publishing)
-- [ ] GX11 Cinematic feedback/highlight timeline
-- [ ] GX12 Ranked mode + local leaderboard
+- [x] Execute full 12-feature gameplay plan from `docs/plans/2026-02-16-world-class-gameplay-feature-suite.md`
+- [x] GX1 Adaptive Quest Onboarding Engine
+- [x] GX2 Campaign Mode progression loop
+- [x] GX3 Scenario Simulator + Boss Encounters
+- [x] GX4 Deterministic Replay + Ghost Runs
+- [x] GX5 AI Game Director (difficulty adaptation)
+- [x] GX6 Co-op Multiplayer War Room
+- [x] GX7 Procedural Challenge Generator
+- [x] GX8 Skill Tree + build archetypes
+- [x] GX9 LiveOps event system
+- [x] GX10 Creator Studio (UGC level publishing)
+- [x] GX11 Cinematic feedback/highlight timeline
+- [x] GX12 Ranked mode + local leaderboard
 - [ ] Final convergence gate for gameplay suite
