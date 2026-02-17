@@ -27,8 +27,20 @@
   - Exception allowed only when both workflows fail before any test/build step executes (startup/platform failure), and at least two reruns still fail the same way.
   - HEAD must pass full local release gates: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`, `pnpm release:verify-local`.
   - Incident evidence must be logged in `QUESTIONS.md` and `RELEASE_CHECKLIST.md` with run IDs and failure mode.
-  - Follow-up required: rerun CI after platform recovery; if code-related failures appear, cut a patch release or roll back.
+- Follow-up required: rerun CI after platform recovery; if code-related failures appear, cut a patch release or roll back.
 - Status: Resolved
+
+### Q4 update (2026-02-17)
+- Latest pushed commit: `a6e978fa0f31e12f94f20c3f28aa469c5ad2a0b7`.
+- New GitHub workflow failures remain platform-startup style:
+  - `CI` run `22104362367` (failed jobs include `63882660272`, `63882660342`, `63882660407`; all `steps: []`).
+  - `CodeQL` run `22104362375` (failed job `63882660017`; `steps: []`).
+- Compensating local evidence on this commit:
+  - `pnpm verify` (331/331 tests passing, build success)
+  - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-17T15:19:40.587Z`, `overall.ok: true`)
+  - `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`)
+  - `pnpm ship:gate` (`reports/quality/ship-gate.summary.json`, generated `2026-02-17T15:22:53.137Z`, `overall.ok: true`)
+- Status: Exception path active pending platform recovery rerun.
 
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?

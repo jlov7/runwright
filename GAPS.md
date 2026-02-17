@@ -57,7 +57,7 @@
 - Status: Done
 
 ### P0-004: External GitHub Actions startup instability on latest head
-- Evidence: Latest head `9a9d5c1` still fails immediately in both workflows with zero executed steps even after rerun (`CI` run `22020736688`, `CodeQL` run `22020736679`; failed jobs include `63641142163`, `63641142175`, `63641142179`, `63641142329` with `steps: []`).
+- Evidence: Latest head `a6e978f` still fails immediately in both workflows with zero executed steps (`CI` run `22104362367`, `CodeQL` run `22104362375`; failed jobs include `63882660272`, `63882660342`, `63882660407`, `63882660017` with `steps: []`).
 - Impacted journey: Final CI gate sign-off on most recent commit.
 - Fix strategy: Retry once service stabilizes; keep release evidence anchored to last known-good CI head (`669df6d`) plus fresh local doctor artifacts.
 - Status: Blocked (external platform)

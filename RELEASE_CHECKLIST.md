@@ -54,6 +54,7 @@
 - [x] Fresh doctor evidence: `pnpm run doctor` -> `reports/doctor/doctor.json` generated `2026-02-17T15:19:40.587Z`, `overall.ok: true`.
 - [x] Fresh quality evidence verification: `pnpm quality:evidence:verify` -> `reports/quality/evidence-verification.json`.
 - [x] Fresh ship gate evidence: `pnpm ship:gate` -> `reports/quality/ship-gate.summary.json` generated `2026-02-17T15:22:53.137Z`, `overall.ok: true`.
+- [x] RG-007 platform incident exception documented for latest pushed head `a6e978f`: `CI` run `22104362367` and `CodeQL` run `22104362375` both failed with `steps: []`; incident evidence recorded in `QUESTIONS.md` and `GAPS.md`.
 - [x] Latest ship gate run is green: `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-17T14:56:40.649Z`, `overall.ok: true`).
 - [x] Final convergence gate is green: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, and `pnpm ship:gate` all passed in sequence on `2026-02-17`.
 - [x] Pre-release world-class program shipped: 35 readiness features implemented and tracked in `docs/plans/2026-02-16-world-class-game-pre-release-program.md`.
