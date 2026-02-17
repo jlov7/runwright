@@ -1807,6 +1807,27 @@ describe("cli integration", () => {
     );
   });
 
+  it("gameplay client reports runtime shell readiness when web assets exist", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-client-runtime-");
+    mkdirSync(join(projectDir, "apps", "web"), { recursive: true });
+    mkdirSync(join(projectDir, "scripts"), { recursive: true });
+    writeFileSync(join(projectDir, "apps", "web", "index.html"), "<!doctype html><html><body>shell</body></html>\n", "utf8");
+    writeFileSync(join(projectDir, "scripts", "game_runtime.ts"), "export {};\n", "utf8");
+
+    const result = runCli(["gameplay", "client", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("client");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        shellReady: true,
+        primarySurface: "web-runtime-shell"
+      })
+    );
+    expect(payload.details.startupContract.webShell).toContain("apps/web/index.html");
+    expect(payload.details.startupContract.runtimeScript).toContain("scripts/game_runtime.ts");
+  });
+
   it("export --deterministic produces byte-identical bundles with fixed SOURCE_DATE_EPOCH", () => {
     const projectDir = makeTempDir("skillbase-cli-export-deterministic-");
     mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });

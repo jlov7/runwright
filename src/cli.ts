@@ -2999,26 +2999,34 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
   const nowIso = new Date().toISOString();
 
   if (mode === "client") {
+    const webShellPath = resolve(cwd, "apps", "web", "index.html");
+    const runtimeScriptPath = resolve(cwd, "scripts", "game_runtime.ts");
+    const shellReady = existsSync(webShellPath) && existsSync(runtimeScriptPath);
     return {
       status: 0,
       mode,
       mutating: false,
       summary: {
-        shellReady: true,
-        primarySurface: "cli",
+        shellReady,
+        primarySurface: shellReady ? "web-runtime-shell" : "cli-fallback",
         deterministicRuntime: true
       },
       details: {
         surfaces: [
+          "pnpm game:runtime",
           "runwright gameplay quest --json",
-          "runwright gameplay launch --json",
-          "runwright mission --json"
+          "runwright gameplay launch --json"
         ],
         startupContract: {
-          binary: "tsx src/cli.ts",
+          runtimeScript: runtimeScriptPath,
+          webShell: webShellPath,
           buildOutput: existsSync(resolve(cwd, "dist", "cli.js")),
-          profileStorage: ".skillbase/gameplay-state.json"
-        }
+          profileStorage: ".skillbase/gameplay-state.json",
+          gameStateStorage: ".skillbase/runtime-state.json"
+        },
+        nextAction: shellReady
+          ? "Run `pnpm game:runtime` and open the reported URL."
+          : "Add apps/web/index.html and scripts/game_runtime.ts to enable the runtime shell."
       }
     };
   }
