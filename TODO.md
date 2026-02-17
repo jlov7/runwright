@@ -20,7 +20,7 @@
 - [ ] WRX-016 Empty-state/copy polish across personas
 - [ ] WRX-017 Complete accessibility support surface
 - [ ] WRX-018 Localization framework maturity and fallback correctness
-- [ ] WRX-019 Offline/degraded-network deterministic queue/replay
+- [x] WRX-019 Offline/degraded-network deterministic queue/replay
 - [ ] WRX-020 Premium game-feel feedback timing pass
 - [ ] WRX-021 Progression economy balancing framework
 - [ ] WRX-022 Boss encounter system deepening

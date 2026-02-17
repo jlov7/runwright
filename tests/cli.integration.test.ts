@@ -1753,6 +1753,33 @@ describe("cli integration", () => {
     expect(payload.details.latestSync).toEqual(expect.objectContaining({ strategy: "manual-merge" }));
   });
 
+  it("gameplay sync queues offline mutations and replays them when back online", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-sync-offline-");
+    const queued = runCli(["gameplay", "sync", "--scenario", "manual-merge", "--description", "offline", "--json"], projectDir);
+    expect(queued.status).toBe(0);
+    const queuedPayload = JSON.parse(queued.stdout);
+    expect(queuedPayload.mode).toBe("sync");
+    expect(queuedPayload.summary).toEqual(
+      expect.objectContaining({
+        networkMode: "offline",
+        queuedMutations: 1,
+        syncs: 0
+      })
+    );
+
+    const replayed = runCli(["gameplay", "sync", "--scenario", "manual-merge", "--description", "online", "--json"], projectDir);
+    expect(replayed.status).toBe(0);
+    const replayedPayload = JSON.parse(replayed.stdout);
+    expect(replayedPayload.summary).toEqual(
+      expect.objectContaining({
+        networkMode: "online",
+        appliedQueued: 1,
+        queuedMutations: 0
+      })
+    );
+    expect(replayedPayload.details.queuePolicy).toEqual(expect.objectContaining({ appliedQueued: 1 }));
+  });
+
   it("gameplay social and moderation manage friend and report flows", () => {
     const projectDir = makeTempDir("skillbase-cli-gameplay-social-moderation-");
     const social = runCli(["gameplay", "social", "--title", "ally-one", "--json"], projectDir);

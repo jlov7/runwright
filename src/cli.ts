@@ -2754,6 +2754,13 @@ type GameplayState = {
     digest: string;
     strategy: string;
   }>;
+  pendingSyncQueue: Array<{
+    id: string;
+    timestamp: string;
+    digest: string;
+    strategy: string;
+    status: "queued";
+  }>;
   moderationQueue: Array<{
     id: string;
     title: string;
@@ -2820,6 +2827,7 @@ function readGameplayState(cwd: string): GameplayState {
       activeProfile: null,
       friendCodes: [],
       syncHistory: [],
+      pendingSyncQueue: [],
       moderationQueue: [],
       accessibility: {
         preset: "default",
@@ -2867,6 +2875,17 @@ function readGameplayState(cwd: string): GameplayState {
             strategy: typeof entry.strategy === "string" ? entry.strategy : "last-write-wins"
           }))
       : [];
+    const pendingSyncQueueRaw = Array.isArray(parsed.pendingSyncQueue) ? parsed.pendingSyncQueue : [];
+    const pendingSyncQueue: GameplayState["pendingSyncQueue"] = pendingSyncQueueRaw
+      .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+      .map((entry) => ({
+        id: typeof entry.id === "string" ? entry.id : "",
+        timestamp: typeof entry.timestamp === "string" ? entry.timestamp : new Date(0).toISOString(),
+        digest: typeof entry.digest === "string" ? entry.digest : sha256Hex(strToU8("sync-fallback")),
+        strategy: typeof entry.strategy === "string" ? entry.strategy : "last-write-wins",
+        status: "queued" as const
+      }))
+      .filter((entry) => entry.id.length > 0);
     const moderationQueue = Array.isArray(parsed.moderationQueue)
       ? parsed.moderationQueue
           .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
@@ -2970,6 +2989,7 @@ function readGameplayState(cwd: string): GameplayState {
       activeProfile,
       friendCodes,
       syncHistory,
+      pendingSyncQueue,
       moderationQueue,
       accessibility,
       creatorLevels,
@@ -2982,6 +3002,7 @@ function readGameplayState(cwd: string): GameplayState {
       activeProfile: null,
       friendCodes: [],
       syncHistory: [],
+      pendingSyncQueue: [],
       moderationQueue: [],
       accessibility: {
         preset: "default",
@@ -3132,6 +3153,7 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
   if (mode === "sync") {
     const profileResult = ensureActiveGameplayProfile(state, getStringFlag(args, "title"), getStringFlag(args, "scenario"));
     const strategy = getStringFlag(args, "scenario") ?? "last-write-wins";
+    const networkMode = getStringFlag(args, "description") === "offline" ? "offline" : "online";
     const digest = sha256Hex(
       strToU8(
         JSON.stringify({
@@ -3142,6 +3164,52 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
         })
       )
     );
+    let appliedQueued = 0;
+    if (networkMode === "offline") {
+      const queuedId = `SQ-${sha256Hex(strToU8(`${nowIso}:${state.pendingSyncQueue.length + 1}`)).slice(0, 8).toUpperCase()}`;
+      state.pendingSyncQueue.push({
+        id: queuedId,
+        timestamp: nowIso,
+        digest,
+        strategy,
+        status: "queued"
+      });
+      state.pendingSyncQueue = state.pendingSyncQueue.slice(-50);
+      writeGameplayState(cwd, state);
+      return {
+        status: 0,
+        mode,
+        mutating: true,
+        summary: {
+          strategy,
+          networkMode,
+          syncs: state.syncHistory.length,
+          queuedMutations: state.pendingSyncQueue.length,
+          digest: digest.slice(0, 20)
+        },
+        details: {
+          conflictPolicy: {
+            default: "last-write-wins",
+            alternatives: ["manual-merge", "server-authoritative"],
+            recommendation: "Use deterministic digest comparison before merge."
+          },
+          queuePolicy: {
+            replayCommand: "runwright gameplay sync --description online --json",
+            queuedIds: state.pendingSyncQueue.map((entry) => entry.id).slice(-10)
+          },
+          latestSync: null
+        }
+      };
+    }
+    for (const queued of state.pendingSyncQueue) {
+      state.syncHistory.push({
+        timestamp: nowIso,
+        digest: queued.digest,
+        strategy: `queued-replay:${queued.strategy}`
+      });
+      appliedQueued += 1;
+    }
+    state.pendingSyncQueue = [];
     state.syncHistory.push({
       timestamp: nowIso,
       digest,
@@ -3155,7 +3223,10 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       mutating: true,
       summary: {
         strategy,
+        networkMode,
         syncs: state.syncHistory.length,
+        appliedQueued,
+        queuedMutations: state.pendingSyncQueue.length,
         digest: digest.slice(0, 20)
       },
       details: {
@@ -3163,6 +3234,10 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
           default: "last-write-wins",
           alternatives: ["manual-merge", "server-authoritative"],
           recommendation: "Use deterministic digest comparison before merge."
+        },
+        queuePolicy: {
+          replayCommand: "runwright gameplay sync --description online --json",
+          appliedQueued
         },
         latestSync: state.syncHistory[state.syncHistory.length - 1] ?? null
       }
