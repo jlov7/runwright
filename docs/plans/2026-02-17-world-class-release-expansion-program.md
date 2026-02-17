@@ -29,37 +29,37 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 - [x] WRX-008 Anti-cheat pipeline (anomaly detection + moderation hooks + ban state model).
 - [x] WRX-009 Telemetry ingestion hardening with event contract validation and delivery guarantees.
 - [x] WRX-010 Crash reporting pipeline with diagnostics envelope and redaction guarantees.
-- [ ] WRX-011 CI-enforced performance budgets (startup, frame time, memory, bundle size).
-- [ ] WRX-012 Security hardening pass (dependency posture, provenance, tamper-evident release proof).
+- [x] WRX-011 CI-enforced performance budgets (startup, frame time, memory, bundle size).
+- [x] WRX-012 Security hardening pass (dependency posture, provenance, tamper-evident release proof).
 
 ### Product UX, Accessibility, and Localization
-- [ ] WRX-013 Adaptive onboarding funnel optimization for first 10-minute activation.
-- [ ] WRX-014 Contextual tutorial hint pacing improvements tied to player behavior.
-- [ ] WRX-015 Full failure/recovery UX matrix with explicit next-action guidance per failure mode.
-- [ ] WRX-016 Cross-flow empty-state polish for non-technical and technical personas.
+- [x] WRX-013 Adaptive onboarding funnel optimization for first 10-minute activation.
+- [x] WRX-014 Contextual tutorial hint pacing improvements tied to player behavior.
+- [x] WRX-015 Full failure/recovery UX matrix with explicit next-action guidance per failure mode.
+- [x] WRX-016 Cross-flow empty-state polish for non-technical and technical personas.
 - [x] WRX-017 Complete accessibility surface (input remap, text scale, contrast, reduced motion, SR clarity).
 - [x] WRX-018 Localization framework maturity (message formatting/fallback/coverage reporting).
 - [x] WRX-019 Offline/degraded-network queue behavior with deterministic replay and reconciliation.
-- [ ] WRX-020 Game feel and feedback timing polish for premium interaction quality.
+- [x] WRX-020 Game feel and feedback timing polish for premium interaction quality.
 
 ### Gameplay Depth and Retention
-- [ ] WRX-021 Progression economy balancing framework with tunable reward curves.
-- [ ] WRX-022 Boss encounter depth (telegraphs, phases, counters, reward clarity).
-- [ ] WRX-023 Replay/ghost sharing portability with integrity checks.
-- [ ] WRX-024 Challenge authoring templates with quality validation pipeline.
-- [ ] WRX-025 Procedural challenge quality constraints (novelty/repetition/solvability).
-- [ ] WRX-026 Adaptive difficulty guardrails for fairness and anti-frustration.
-- [ ] WRX-027 Social graph maturity (friends/party/invite/block/mute privacy boundaries).
-- [ ] WRX-028 Co-op session orchestration improvements (join/leave/reconnect fault handling).
-- [ ] WRX-029 Ranked integrity hardening (authoritative scoreboard + anti-inflation controls).
-- [ ] WRX-030 LiveOps controls expansion (rotation/reward/expiry/operator override).
+- [x] WRX-021 Progression economy balancing framework with tunable reward curves.
+- [x] WRX-022 Boss encounter depth (telegraphs, phases, counters, reward clarity).
+- [x] WRX-023 Replay/ghost sharing portability with integrity checks.
+- [x] WRX-024 Challenge authoring templates with quality validation pipeline.
+- [x] WRX-025 Procedural challenge quality constraints (novelty/repetition/solvability).
+- [x] WRX-026 Adaptive difficulty guardrails for fairness and anti-frustration.
+- [x] WRX-027 Social graph maturity (friends/party/invite/block/mute privacy boundaries).
+- [x] WRX-028 Co-op session orchestration improvements (join/leave/reconnect fault handling).
+- [x] WRX-029 Ranked integrity hardening (authoritative scoreboard + anti-inflation controls).
+- [x] WRX-030 LiveOps controls expansion (rotation/reward/expiry/operator override).
 
 ### UGC, Moderation, and Operations
-- [ ] WRX-031 Creator moderation lifecycle (review queue/state transitions/appeals).
-- [ ] WRX-032 UGC discovery/ranking quality signals and abuse weighting.
+- [x] WRX-031 Creator moderation lifecycle (review queue/state transitions/appeals).
+- [x] WRX-032 UGC discovery/ranking quality signals and abuse weighting.
 - [x] WRX-033 Abuse reporting workflow hardening with triage SLAs and escalation paths.
 - [x] WRX-034 Analytics dashboard maturity (funnels, retention, mode health, balancing visibility).
-- [ ] WRX-035 QA automation matrix expansion (device/OS/locale/network profile coverage).
+- [x] WRX-035 QA automation matrix expansion (device/OS/locale/network profile coverage).
 - [ ] WRX-036 Release pipeline maturity (staged rollout controls + instant rollback).
 - [ ] WRX-037 On-call runbooks and incident response playbooks for live operations.
 - [ ] WRX-038 App-store readiness pack completion (metadata, media, policy artifacts).
@@ -83,3 +83,4 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 - 2026-02-17: WRX-017 implemented by extending accessibility controls with explicit text-scale and remap profile overrides in addition to preset-based configuration.
 - 2026-02-17: WRX-018 implemented via locale coverage scoring and explicit fallback-chain reporting for unsupported locale requests.
 - 2026-02-17: WRX-002/003/004/005/007/008/009/010 implemented in runtime via migration-aware persistence metadata, auth lifecycle/link-merge routes, conflict audit records, anti-cheat decision logging, telemetry dedupe receipts, and crash payload redaction.
+- 2026-02-17: WRX-011/012/013/014/015/016/020/021/022/023/024/025/026/027/028/029/030/031/032/035 implemented through expanded gameplay mode logic and integration coverage (onboarding activation, recovery matrix, creator lifecycle, social privacy controls, co-op reconnect, challenge quality guardrails, ranked anti-inflation, liveops overrides, and expanded QA coverage matrix).
