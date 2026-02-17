@@ -1,93 +1,18 @@
-# Task list — Runwright
+# Task List (Archived Bootstrap Backlog)
 
-This is written to map cleanly into GitHub Issues + PR-sized work.
+This file previously tracked early project bootstrap epics.
+It is no longer the execution source of truth for release readiness.
 
-## EPIC 0 — Project scaffolding
-- [ ] Choose name, repo, license, code owners
-- [ ] Set up CI (OS matrix)
-- [ ] Set up formatting + linting + commit hooks
-- [ ] Add docs templates (this folder)
+Current authoritative trackers:
+- `GAPS.md` (gap loop backlog and status)
+- `RELEASE_GATES.md` (release readiness gates and evidence)
+- `RELEASE_CHECKLIST.md` (definition-of-done checklist)
+- `PLANS.md` (executed plans and outcomes)
+- `TODO.md` (post-v1 and world-class enhancement tracker)
 
-## EPIC 1 — Manifest + lockfile
-- [ ] Implement manifest parser (YAML + JSON)
-- [ ] Define schema validation + friendly errors
-- [ ] Implement lockfile writer (stable sort, deterministic)
-- [ ] `init` command scaffolds manifest + defaults
+## Final Disposition
+- EPIC 0-7: Implemented and superseded by shipped CLI/runtime system, docs, and quality gates.
+- EPIC 8: Explicitly post-v1 / out-of-scope for release-ready v1.
 
-Definition of done:
-- invalid manifests produce actionable errors
-- lockfile is deterministic across OS
-
-## EPIC 2 — Skill discovery & store
-- [ ] Define “source” interface:
-  - github repo
-  - local path
-  - skills.sh URL (phase 2; can shell out to `npx skills`)
-- [ ] Implement local store layout
-- [ ] Implement caching and update checks
-- [ ] Compute file digests
-
-DoD:
-- resolve a source → list skill directories inside it
-- cache and re-use without re-downloading
-
-## EPIC 3 — Adapters
-### Codex adapter
-- [ ] Implement path mapping (global vs project)
-- [ ] apply plan (link + copy)
-- [ ] verify installed skills exist
-
-### Claude Code adapter
-- [ ] Implement `.claude/skills` + `~/.claude/skills`
-- [ ] apply plan (link + copy)
-- [ ] verify
-
-### Cursor adapter
-- [ ] Implement `.cursor/skills` + `~/.cursor/skills`
-- [ ] Default to copy mode
-- [ ] Detect symlink issues, auto-fallback
-
-DoD:
-- for each adapter, integration tests pass on all OS
-
-## EPIC 4 — Planner + atomic apply
-- [ ] build desired-state graph
-- [ ] compute minimal ops
-- [ ] implement staging + atomic swap
-- [ ] rollback strategy
-
-DoD:
-- interruption-safe (no partial state)
-- apply is idempotent
-
-## EPIC 5 — Doctor
-- [ ] detect duplicates across known discovery paths
-- [ ] detect broken symlinks and missing files
-- [ ] suggest fixes; implement `--fix` safe subset
-
-DoD:
-- “doctor” output is actionable
-- “doctor --fix” never deletes user data without confirmation
-
-## EPIC 6 — Scanner (lint + security)
-- [ ] spec linter
-- [ ] risky-command heuristics
-- [ ] SARIF output
-- [ ] integrate into `apply`
-
-DoD:
-- scan catches known-bad fixtures
-- supports warn/fail policy
-
-## EPIC 7 — Docs + distribution
-- [ ] README with quickstart and examples
-- [ ] publish to npm (or release binaries)
-- [ ] add homebrew formula (optional)
-- [ ] landing page + docs site
-
-## EPIC 8 — Cloud push/pull (v1+)
-- [ ] Anthropic Skills API uploader
-- [ ] OpenAI Skills API uploader
-- [ ] auth + tokens handling
-- [ ] team workspace sync
-
+## Status
+- No open execution items are tracked in this archived file.
