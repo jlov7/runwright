@@ -3,15 +3,15 @@
 ## P0 (Active world-class release expansion backlog)
 - [ ] Execute full 40-item program from `docs/plans/2026-02-17-world-class-release-expansion-program.md`
 - [ ] WRX-001 CI hardening and deterministic workflow execution
-- [ ] WRX-002 Production-grade runtime persistence and migration path
-- [ ] WRX-003 Full account/auth lifecycle
-- [ ] WRX-004 Cross-device identity linking/merge flow
-- [ ] WRX-005 Authoritative progression/ranked write validation
+- [x] WRX-002 Production-grade runtime persistence and migration path
+- [x] WRX-003 Full account/auth lifecycle
+- [x] WRX-004 Cross-device identity linking/merge flow
+- [x] WRX-005 Authoritative progression/ranked write validation
 - [x] WRX-006 Matchmaking orchestration (MMR + latency/region + reconnect)
-- [ ] WRX-007 Durable cloud save with conflict audit trail
-- [ ] WRX-008 Anti-cheat anomaly detection and enforcement hooks
-- [ ] WRX-009 Telemetry ingestion validation and durability
-- [ ] WRX-010 Crash reporting pipeline with diagnostics redaction
+- [x] WRX-007 Durable cloud save with conflict audit trail
+- [x] WRX-008 Anti-cheat anomaly detection and enforcement hooks
+- [x] WRX-009 Telemetry ingestion validation and durability
+- [x] WRX-010 Crash reporting pipeline with diagnostics redaction
 - [ ] WRX-011 CI-enforced performance budgets
 - [ ] WRX-012 Security hardening and release provenance closure
 - [ ] WRX-013 Adaptive first-10-minute onboarding optimization
