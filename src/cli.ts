@@ -3508,6 +3508,8 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
 
   if (mode === "accessibility") {
     const preset = getStringFlag(args, "scenario");
+    const requestedScaleRaw = Number.parseFloat(getStringFlag(args, "description") ?? "");
+    const requestedRemap = getStringFlag(args, "room");
     let mutated = false;
     if (preset === "high-contrast" || preset === "reduced-motion" || preset === "screen-reader" || preset === "default") {
       state.accessibility.preset = preset;
@@ -3516,8 +3518,16 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       state.accessibility.textScale = preset === "screen-reader" ? 1.5 : 1;
       state.accessibility.remapProfile = preset === "screen-reader" ? "single-stick" : "default";
       mutated = true;
-      writeGameplayState(cwd, state);
     }
+    if (Number.isFinite(requestedScaleRaw) && requestedScaleRaw >= 0.8 && requestedScaleRaw <= 2) {
+      state.accessibility.textScale = Number(requestedScaleRaw.toFixed(2));
+      mutated = true;
+    }
+    if (requestedRemap === "left-handed" || requestedRemap === "single-stick" || requestedRemap === "default") {
+      state.accessibility.remapProfile = requestedRemap;
+      mutated = true;
+    }
+    if (mutated) writeGameplayState(cwd, state);
     return {
       status: 0,
       mode,
@@ -3525,7 +3535,9 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       summary: {
         preset: state.accessibility.preset,
         highContrast: state.accessibility.highContrast,
-        reducedMotion: state.accessibility.reducedMotion
+        reducedMotion: state.accessibility.reducedMotion,
+        textScale: state.accessibility.textScale,
+        remapProfile: state.accessibility.remapProfile
       },
       details: {
         accessibility: state.accessibility,

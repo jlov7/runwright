@@ -1854,7 +1854,26 @@ describe("cli integration", () => {
     expect(accessibilityPayload.summary).toEqual(
       expect.objectContaining({
         preset: "screen-reader",
-        reducedMotion: true
+        reducedMotion: true,
+        remapProfile: "single-stick"
+      })
+    );
+  });
+
+  it("gameplay accessibility supports explicit remap and text-scale overrides", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-a11y-overrides-");
+    const result = runCli(
+      ["gameplay", "accessibility", "--scenario", "default", "--room", "left-handed", "--description", "1.25", "--json"],
+      projectDir
+    );
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("accessibility");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        preset: "default",
+        remapProfile: "left-handed",
+        textScale: 1.25
       })
     );
   });
