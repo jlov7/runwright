@@ -166,3 +166,47 @@ Pre-release program evidence refresh (2026-02-17):
 - Full verification gate: `pnpm verify` (`322/322` tests passing).
 - Full release gate: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
 - Artifacts: `reports/doctor/doctor.json` (`generatedAt: 2026-02-17T14:53:49.568Z`), `reports/quality/ship-gate.summary.json` (`generatedAt: 2026-02-17T14:56:40.649Z`, `overall.ok: true`).
+
+## P0 (Additional pre-release gate world-class backlog: 40/40)
+Tracker: `docs/plans/2026-02-17-pre-release-gate-world-class-backlog.md`
+
+- [x] PRX-01 CI release-gate continuity
+- [x] PRX-02 Release-candidate smoke flow
+- [x] PRX-03 Runtime/client shell readiness
+- [x] PRX-04 Auth lifecycle hardening
+- [x] PRX-05 Account recovery boundary
+- [x] PRX-06 Cloud save conflict policy
+- [x] PRX-07 Unified progression consistency
+- [x] PRX-08 Telemetry ingestion durability
+- [x] PRX-09 Crash diagnostics redaction
+- [x] PRX-10 Legal/privacy/compliance pack
+- [x] PRX-11 First-10-minute onboarding
+- [x] PRX-12 Contextual tutorial pacing
+- [x] PRX-13 Failure recovery assistant
+- [x] PRX-14 Campaign chaptering
+- [x] PRX-15 Economy balancing simulator
+- [x] PRX-16 Boss depth pass
+- [x] PRX-17 Quest variety controls
+- [x] PRX-18 Achievements and milestones
+- [x] PRX-19 Daily/weekly challenge cadence
+- [x] PRX-20 Replay editor/export path
+- [x] PRX-21 Spectator mode baseline
+- [x] PRX-22 Ghost ladder retention layer
+- [x] PRX-23 Friends/party/invite flow
+- [x] PRX-24 Co-op host migration/reconnect
+- [x] PRX-25 Ranked integrity boundary
+- [x] PRX-26 Anti-cheat enforcement visibility
+- [x] PRX-27 Creator authoring guidance
+- [x] PRX-28 UGC moderation + appeals
+- [x] PRX-29 UGC discovery quality ranking
+- [x] PRX-30 Seasonal LiveOps controls
+- [x] PRX-31 Remote config experiments
+- [x] PRX-32 In-app searchable helpdesk
+- [x] PRX-33 Accessibility completeness
+- [x] PRX-34 Controller profile support
+- [x] PRX-35 Localization readiness/fallback
+- [x] PRX-36 Offline-first sync replay
+- [x] PRX-37 Performance budget enforcement
+- [x] PRX-38 QA matrix + signoff criteria
+- [x] PRX-39 Closed beta + balancing gate
+- [x] PRX-40 Launch operations pack

@@ -146,3 +146,4 @@ Execute the full expansion backlog required to move from release-ready v1 to a f
 - [x] M3: Complete (WRX-021..030 complete).
 - [x] M4: Complete (WRX-031..040 complete).
 - [x] M5: Complete.
+- [x] M6: Additional pre-release gate backlog (PRX-01..040) tracked in `docs/plans/2026-02-17-pre-release-gate-world-class-backlog.md` and mirrored in `TODO.md`.
