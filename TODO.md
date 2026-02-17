@@ -1,5 +1,50 @@
 # Five-star TODO (Post-v1)
 
+## P0 (Active world-class release expansion backlog)
+- [ ] Execute full 40-item program from `docs/plans/2026-02-17-world-class-release-expansion-program.md`
+- [ ] WRX-001 CI hardening and deterministic workflow execution
+- [ ] WRX-002 Production-grade runtime persistence and migration path
+- [ ] WRX-003 Full account/auth lifecycle
+- [ ] WRX-004 Cross-device identity linking/merge flow
+- [ ] WRX-005 Authoritative progression/ranked write validation
+- [ ] WRX-006 Matchmaking orchestration (MMR + latency/region + reconnect)
+- [ ] WRX-007 Durable cloud save with conflict audit trail
+- [ ] WRX-008 Anti-cheat anomaly detection and enforcement hooks
+- [ ] WRX-009 Telemetry ingestion validation and durability
+- [ ] WRX-010 Crash reporting pipeline with diagnostics redaction
+- [ ] WRX-011 CI-enforced performance budgets
+- [ ] WRX-012 Security hardening and release provenance closure
+- [ ] WRX-013 Adaptive first-10-minute onboarding optimization
+- [ ] WRX-014 Contextual tutorial hint pacing
+- [ ] WRX-015 Failure/recovery UX matrix completion
+- [ ] WRX-016 Empty-state/copy polish across personas
+- [ ] WRX-017 Complete accessibility support surface
+- [ ] WRX-018 Localization framework maturity and fallback correctness
+- [ ] WRX-019 Offline/degraded-network deterministic queue/replay
+- [ ] WRX-020 Premium game-feel feedback timing pass
+- [ ] WRX-021 Progression economy balancing framework
+- [ ] WRX-022 Boss encounter system deepening
+- [ ] WRX-023 Replay/ghost share portability with integrity checks
+- [ ] WRX-024 Challenge authoring templates + validation
+- [ ] WRX-025 Procedural generation quality constraints
+- [ ] WRX-026 Adaptive difficulty fairness guardrails
+- [ ] WRX-027 Social graph maturity (friends/party/block/mute/privacy)
+- [ ] WRX-028 Co-op join/leave/reconnect orchestration hardening
+- [ ] WRX-029 Ranked integrity hardening + anti-inflation controls
+- [ ] WRX-030 LiveOps controls expansion
+- [ ] WRX-031 Creator moderation lifecycle and appeals
+- [ ] WRX-032 UGC discovery/ranking quality signals
+- [ ] WRX-033 Abuse reporting workflow hardening
+- [ ] WRX-034 Gameplay analytics dashboard maturity
+- [ ] WRX-035 QA matrix automation expansion
+- [ ] WRX-036 Staged rollout + rollback operations maturity
+- [ ] WRX-037 On-call/incident playbook completion
+- [ ] WRX-038 App-store readiness pack
+- [ ] WRX-039 Legal/compliance readiness pass
+- [ ] WRX-040 Closed beta operations + launch-candidate freeze
+
+Tracker: `docs/plans/2026-02-17-world-class-release-expansion-program.md`
+
 ## Overnight hard features (execution order)
 - [x] F1 Team Registry + Signed Sync
 - [x] F2 Crash-Resumable Apply Engine

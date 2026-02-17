@@ -111,3 +111,36 @@ Move beyond v1 “release-ready” into a five-star quality bar by removing rema
 - Full gate after each milestone: `pnpm verify`.
 - Evidence gate: `pnpm run doctor` and `pnpm quality:evidence:verify`.
 - Final release-hardening gate: `pnpm ship:gate`.
+
+---
+
+# ExecPlan: World-class Release Expansion (40 items)
+
+## Purpose / Big Picture
+Execute the full expansion backlog required to move from release-ready v1 to a five-star public-launch quality bar across reliability, UX, gameplay depth, trust/safety, and live operations.
+
+## Approach
+- Treat `docs/plans/2026-02-17-world-class-release-expansion-program.md` as the authoritative tracker.
+- Keep increments under five files and commit each logical slice.
+- Implement highest-impact unblocked tasks first.
+- Require evidence (tests + gates) before marking tasks done.
+
+## Milestones
+- M0 Tracking + baseline gate refresh.
+- M1 Core reliability/security foundations (WRX-001..012).
+- M2 UX/a11y/localization/offline hardening (WRX-013..020).
+- M3 Gameplay depth/retention improvements (WRX-021..030).
+- M4 UGC/moderation/ops governance (WRX-031..040).
+- M5 Final convergence gate.
+
+## Validation Gates
+- Per increment: targeted tests + `pnpm verify`.
+- Per milestone: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
+
+## Progress
+- [x] M0: Program tracker created and synced into `TODO.md`.
+- [ ] M1: In progress.
+- [ ] M2: Pending.
+- [ ] M3: Pending.
+- [ ] M4: Pending.
+- [ ] M5: Pending.
