@@ -3271,19 +3271,39 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
         command: "runwright gameplay challenge --json && runwright gameplay ranked --json"
       }
     ];
+    const activationScore = Math.max(
+      0,
+      Math.min(100, Math.round((journey.summary.completionPercent * 0.6) + ((successfulRuns > 0 ? 1 : 0) * 40)))
+    );
     return {
       status: 0,
       mode,
       mutating: false,
       summary: {
         stages: arc.length,
-        completionPercent: journey.summary.completionPercent
+        completionPercent: journey.summary.completionPercent,
+        activationScore
       },
       details: {
         arc,
+        firstTenMinute: {
+          firstFunMoment: "first-ranked-snapshot-or-creator-publish",
+          activationScore,
+          target: 75
+        },
         hintModel: {
           cadence: failedRuns > successfulRuns ? "aggressive-help" : "progressive-disclosure",
-          contextAware: true
+          contextAware: true,
+          personas: [
+            { id: "new-user", hintDensity: "high", guidanceStyle: "step-by-step" },
+            { id: "speed-runner", hintDensity: "low", guidanceStyle: "outcome-only" },
+            { id: "operator", hintDensity: "medium", guidanceStyle: "risk-first" }
+          ]
+        },
+        emptyStateGuidance: {
+          noProfile: "runwright gameplay profile --title <handle> --json",
+          noProgress: "runwright gameplay quest --json",
+          noSuccessMoment: "runwright gameplay ranked --json"
         }
       }
     };
@@ -3303,44 +3323,118 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
             ? "runwright scan --security warn --format json"
             : "runwright mission --json"
     }));
+    const failureMatrix = [
+      {
+        lane: "onboarding",
+        trigger: "journey pending or stale",
+        fix: "runwright journey --json",
+        severity: "medium"
+      },
+      {
+        lane: "integrity",
+        trigger: "frozen lockfile / trust mismatch",
+        fix: "runwright update --json && runwright apply --dry-run --json",
+        severity: "high"
+      },
+      {
+        lane: "runtime",
+        trigger: "ranked or sync failure",
+        fix: "runwright gameplay sync --description online --json",
+        severity: "high"
+      }
+    ];
     return {
       status: 0,
       mode,
       mutating: false,
       summary: {
         trackedFailures: matrix.length,
-        blockedRuns
+        blockedRuns,
+        failureLanes: failureMatrix.length
       },
       details: {
         matrix,
+        failureMatrix,
         nextAction: matrix[0]?.recommendedFix ?? "runwright gameplay campaign --json",
-        resilienceScore: Math.max(0, Math.min(100, Math.round((successfulRuns / Math.max(1, successfulRuns + failedRuns)) * 100)))
+        resilienceScore: Math.max(0, Math.min(100, Math.round((successfulRuns / Math.max(1, successfulRuns + failedRuns)) * 100))),
+        escalationPolicy: {
+          p1Threshold: 3,
+          p2Threshold: 1,
+          oncallRunbook: "docs/release/oncall-runbook.md"
+        }
       }
     };
   }
 
   if (mode === "social") {
     const friendTitle = getStringFlag(args, "title");
+    const action = getStringFlag(args, "scenario") ?? "add";
+    const currentPrivacyMarker = state.friendCodes.find((entry) => entry.startsWith("PRV-")) ?? "PRV-PUBLIC";
+    let privacyMode = currentPrivacyMarker.replace("PRV-", "").toLowerCase();
+    state.friendCodes = state.friendCodes.filter((entry) => !entry.startsWith("PRV-"));
     let added = false;
-    if (friendTitle && friendTitle.trim().length > 0) {
+    if (action === "privacy-public" || action === "privacy-friends" || action === "privacy-private") {
+      privacyMode = action.replace("privacy-", "");
+      state.friendCodes.push(`PRV-${privacyMode.toUpperCase()}`);
+      added = true;
+    }
+    if (friendTitle && friendTitle.trim().length > 0 && action !== "privacy-public" && action !== "privacy-friends" && action !== "privacy-private") {
       const codeBase = friendTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      const code = `FR-${codeBase.slice(0, 12).toUpperCase() || "ALLY"}`;
-      if (!state.friendCodes.includes(code)) {
-        state.friendCodes.push(code);
+      const suffix = codeBase.slice(0, 12).toUpperCase() || "ALLY";
+      const friendCode = `FR-${suffix}`;
+      const blockCode = `BLK-${suffix}`;
+      const muteCode = `MUT-${suffix}`;
+      if (action === "block") {
+        if (!state.friendCodes.includes(blockCode)) {
+          state.friendCodes = state.friendCodes.filter((entry) => entry !== friendCode);
+          state.friendCodes.push(blockCode);
+          added = true;
+        }
+      } else if (action === "mute") {
+        if (!state.friendCodes.includes(muteCode)) {
+          state.friendCodes.push(muteCode);
+          added = true;
+        }
+      } else if (action === "unblock") {
+        const before = state.friendCodes.length;
+        state.friendCodes = state.friendCodes.filter((entry) => entry !== blockCode);
+        added = state.friendCodes.length !== before;
+      } else if (action === "unmute") {
+        const before = state.friendCodes.length;
+        state.friendCodes = state.friendCodes.filter((entry) => entry !== muteCode);
+        added = state.friendCodes.length !== before;
+      } else if (!state.friendCodes.includes(friendCode)) {
+        state.friendCodes.push(friendCode);
         added = true;
       }
     }
+    if (!state.friendCodes.some((entry) => entry.startsWith("PRV-"))) {
+      state.friendCodes.push(`PRV-${privacyMode.toUpperCase()}`);
+    }
     if (added) writeGameplayState(cwd, state);
+    const friends = state.friendCodes.filter((entry) => entry.startsWith("FR-"));
+    const blocked = state.friendCodes.filter((entry) => entry.startsWith("BLK-"));
+    const muted = state.friendCodes.filter((entry) => entry.startsWith("MUT-"));
     return {
       status: 0,
       mode,
       mutating: added,
       summary: {
-        friends: state.friendCodes.length,
+        friends: friends.length,
+        blocked: blocked.length,
+        muted: muted.length,
+        privacyMode,
         added
       },
       details: {
-        friendCodes: state.friendCodes,
+        friendCodes: friends,
+        blockedCodes: blocked,
+        mutedCodes: muted,
+        privacy: {
+          mode: privacyMode,
+          discoverability: privacyMode === "private" ? "off" : privacyMode === "friends" ? "friends-only" : "public",
+          allowInvites: privacyMode !== "private"
+        },
         partyFlow: {
           inviteStep: "runwright gameplay social --title <friend-handle> --json",
           joinStep: "runwright gameplay coop --room <room-id> --json",
@@ -3595,12 +3689,17 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
   }
 
   if (mode === "qa") {
+    const hasPerfSnapshot = existsSync(resolve(cwd, "reports", "performance", "current.snapshot.json"));
+    const hasPerfTrend = existsSync(resolve(cwd, "reports", "performance", "trend.report.json"));
+    const hasReleaseRunbook = existsSync(resolve(cwd, "docs", "release", "rollout-and-rollback.md"));
     const matrix = [
       { id: "functional", ok: true, evidence: "pnpm verify" },
       { id: "reliability", ok: true, evidence: "runwright gameplay crash --json" },
       { id: "accessibility", ok: true, evidence: "runwright gameplay accessibility --json" },
       { id: "localization", ok: true, evidence: "runwright gameplay localization --json" },
-      { id: "release-gates", ok: existsSync(resolve(cwd, "reports", "quality", "ship-gate.summary.json")), evidence: "pnpm ship:gate" }
+      { id: "performance-budgets", ok: hasPerfSnapshot || hasPerfTrend, evidence: "pnpm test:perf" },
+      { id: "release-gates", ok: existsSync(resolve(cwd, "reports", "quality", "ship-gate.summary.json")), evidence: "pnpm ship:gate" },
+      { id: "release-runbooks", ok: hasReleaseRunbook, evidence: "docs/release/rollout-and-rollback.md" }
     ];
     const passed = matrix.filter((entry) => entry.ok).length;
     return {
@@ -3615,8 +3714,9 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       details: {
         matrix,
         coverage: {
-          deviceClasses: ["desktop", "laptop", "remote-shell"],
-          latencyProfiles: ["low", "moderate", "high"],
+          deviceClasses: ["desktop", "laptop", "remote-shell", "tablet-shell", "mobile-shell"],
+          operatingSystems: ["macos", "linux", "windows", "ios-shell", "android-shell"],
+          latencyProfiles: ["low", "moderate", "high", "lossy", "intermittent-offline"],
           locales: SUPPORTED_GAME_LOCALES
         }
       }
@@ -3666,6 +3766,12 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       status: "ready" as const,
       evidence
     }));
+    const rolloutRunbook = existsSync(resolve(cwd, "docs", "release", "rollout-and-rollback.md"));
+    const oncallRunbook = existsSync(resolve(cwd, "docs", "release", "oncall-incident-playbook.md"));
+    const appStorePack = existsSync(resolve(cwd, "docs", "release", "app-store-readiness-pack.md"));
+    const legalPack = existsSync(resolve(cwd, "docs", "release", "legal-compliance-pack.md"));
+    const betaPack = existsSync(resolve(cwd, "docs", "release", "closed-beta-and-lc-freeze.md"));
+    const governanceReady = [rolloutRunbook, oncallRunbook, appStorePack, legalPack, betaPack].every(Boolean);
     return {
       status: 0,
       mode,
@@ -3673,7 +3779,8 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       summary: {
         total: requirements.length,
         ready: requirements.length,
-        pending: 0
+        pending: 0,
+        governanceReady
       },
       details: {
         requirements,
@@ -3681,6 +3788,13 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
           doctor: existsSync(resolve(cwd, "reports", "doctor", "doctor.json")),
           shipGate: existsSync(resolve(cwd, "reports", "quality", "ship-gate.summary.json")),
           buildOutput: existsSync(resolve(cwd, "dist", "cli.js"))
+        },
+        releaseGovernance: {
+          stagedRollout: rolloutRunbook,
+          oncallPlaybook: oncallRunbook,
+          appStorePack,
+          legalCompliancePack: legalPack,
+          closedBetaPack: betaPack
         }
       }
     };
@@ -3745,6 +3859,11 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
         reward: 320
       }
     ];
+    const xpCurve = {
+      base: 120,
+      streakBonus: Math.min(300, streak * 25),
+      riskRecoveryBonus: blockedRuns > 0 ? 90 : 0
+    };
     return {
       status: 0,
       mode,
@@ -3752,11 +3871,22 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       summary: {
         seasonPoints,
         tier,
-        streak
+        streak,
+        projectedXp: xpCurve.base + xpCurve.streakBonus + xpCurve.riskRecoveryBonus
       },
       details: {
         missions,
-        loopHealth: failedRuns === 0 ? "stable" : failedRuns <= successfulRuns ? "recovering" : "fragile"
+        loopHealth: failedRuns === 0 ? "stable" : failedRuns <= successfulRuns ? "recovering" : "fragile",
+        economy: {
+          xpCurve,
+          rewardBands: [
+            { tier: "rookie", xpPerMission: 120 },
+            { tier: "advanced", xpPerMission: 180 },
+            { tier: "elite", xpPerMission: 240 },
+            { tier: "mythic", xpPerMission: 300 }
+          ],
+          balancingNotes: "Rewards scale by streak and recovery behavior to avoid runaway inflation."
+        }
       }
     };
   }
@@ -3784,6 +3914,23 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
     const bossHp = 1000;
     const damage = Math.min(1000, successfulRuns * 35 + blockedRuns * 15);
     const outcome = damage >= 700 ? "victory" : damage >= 350 ? "phase-2" : "wipe";
+    const phases = [
+      {
+        id: "phase-1",
+        telegraph: "warning pulses before trust breach",
+        counter: "run trust status + policy explain"
+      },
+      {
+        id: "phase-2",
+        telegraph: "latency spikes and rollout alarms",
+        counter: "stabilize queue and replay recovery flow"
+      },
+      {
+        id: "phase-3",
+        telegraph: "integrity lock and score spike checks",
+        counter: "submit verified ranked snapshot"
+      }
+    ];
     return {
       status: 0,
       mode,
@@ -3797,11 +3944,16 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
         title: chosen.title,
         bossHp,
         bossHpRemaining: Math.max(0, bossHp - damage),
+        phases,
         recommendedRotation: [
           chosen.command,
           "runwright fix --autopilot --max-risk medium --json",
           "runwright mission --action fix-plan --json"
         ],
+        rewards: {
+          xp: outcome === "victory" ? 480 : outcome === "phase-2" ? 220 : 80,
+          unlock: outcome === "victory" ? "legendary-shield" : "retry-token"
+        },
         recoveryCommand: chosen.command,
         telemetrySignal: {
           targetCommand: chosen.targetCommand,
@@ -3819,6 +3971,8 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       status: event.status
     }));
     const bestPerfectRun = Math.max(0, successfulRuns - failedRuns);
+    const replayDigest = sha256Hex(strToU8(JSON.stringify(ghostPath)));
+    const shareCode = `GHOST-${replayDigest.slice(0, 10).toUpperCase()}`;
     return {
       status: 0,
       mode,
@@ -3830,6 +3984,11 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       },
       details: {
         ghostPath,
+        share: {
+          shareCode,
+          integrityDigest: replayDigest,
+          importCommand: `runwright gameplay ghost --title ${shareCode} --json`
+        },
         replay: {
           anchorFailure: lastFailed,
           recommendedRecovery: lastFailed
@@ -3844,6 +4003,7 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
     const totalRuns = successfulRuns + failedRuns;
     const failureRate = totalRuns === 0 ? 0 : failedRuns / totalRuns;
     const targetDifficulty = failureRate >= 0.45 ? "assist" : failureRate >= 0.25 ? "balanced" : "hardcore";
+    const challengeIntensity = targetDifficulty === "assist" ? 0.7 : targetDifficulty === "balanced" ? 1 : 1.3;
     return {
       status: 0,
       mode,
@@ -3854,9 +4014,15 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       },
       details: {
         tuning: {
-          challengeIntensity: targetDifficulty === "assist" ? 0.7 : targetDifficulty === "balanced" ? 1 : 1.3,
+          challengeIntensity,
           hintFrequency: targetDifficulty === "assist" ? "high" : targetDifficulty === "balanced" ? "medium" : "low",
           automationBudget: targetDifficulty === "hardcore" ? "strict" : "expanded"
+        },
+        guardrails: {
+          minDifficultyFloor: 0.65,
+          maxDifficultyCeiling: 1.35,
+          frustrationBudget: 3,
+          fairnessClampApplied: challengeIntensity > 1.3 || challengeIntensity < 0.65
         },
         rationale: "Difficulty adapts from recent failure pressure to keep challenge high without stalling progression."
       }
@@ -3865,9 +4031,11 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
 
   if (mode === "coop") {
     const now = new Date().toISOString();
+    const action = getStringFlag(args, "scenario") ?? "join";
     const requestedRoom = getStringFlag(args, "room");
     let room = requestedRoom ? state.coopRooms.find((entry) => entry.roomId === requestedRoom) : undefined;
     let created = false;
+    let transitioned = false;
     if (!room) {
       const seed = sha256Hex(strToU8(`${cwd}:${events.length}:${state.coopRooms.length + 1}:${now}`));
       const roomId = `WR-${seed.slice(7, 13).toUpperCase()}`;
@@ -3880,10 +4048,19 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       };
       state.coopRooms.push(room);
       created = true;
+    } else if (action === "leave") {
+      room.members = Math.max(1, room.members - 1);
+      room.updatedAt = now;
+      transitioned = true;
+    } else if (action === "reconnect") {
+      room.updatedAt = now;
+      transitioned = true;
     } else {
       room.members = Math.max(1, room.members + 1);
       room.updatedAt = now;
+      transitioned = true;
     }
+    const reconnectToken = `RC-${sha256Hex(strToU8(`${room.roomId}:${room.updatedAt}`)).slice(0, 10).toUpperCase()}`;
     writeGameplayState(cwd, state);
     return {
       status: 0,
@@ -3892,10 +4069,17 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       summary: {
         roomId: room.roomId,
         members: room.members,
-        created
+        created,
+        action
       },
       details: {
         room,
+        reconnectToken,
+        sessionResilience: {
+          rejoinCommand: `runwright gameplay coop --scenario reconnect --room ${room.roomId} --json`,
+          leaveCommand: `runwright gameplay coop --scenario leave --room ${room.roomId} --json`,
+          transitioned
+        },
         playbook: [
           "Captain runs runwright mission --json",
           "Operator executes scan/fix loop",
@@ -3929,13 +4113,29 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       mutating: false,
       summary: {
         seed: baseSeed,
-        challengeLevel: (rollA % 5) + 1
+        challengeLevel: (rollA % 5) + 1,
+        qualityScore: 70 + (rollB % 31)
       },
       details: {
         objective: objectives[rollA % objectives.length],
         constraint: constraints[rollB % constraints.length],
         rewardXp: 250 + (rollB % 350),
-        recommendedCommands: ["runwright mission --json", "runwright fix --plan --json", "runwright analytics journey --json"]
+        recommendedCommands: ["runwright mission --json", "runwright fix --plan --json", "runwright analytics journey --json"],
+        authoringTemplate: {
+          archetype: rollA % 2 === 0 ? "gauntlet" : "rescue",
+          requiredPhases: ["intro", "escalation", "resolution"],
+          validation: {
+            hasFailState: true,
+            hasCounterplay: true,
+            hasReward: true
+          }
+        },
+        qualityConstraints: {
+          noveltyScore: 60 + (rollA % 41),
+          repetitionRisk: Math.max(0, 35 - (rollB % 20)),
+          solvability: "validated",
+          antiPatternChecks: ["no-hard-locks", "bounded-rng", "recovery-path-present"]
+        }
       }
     };
   }
@@ -3967,18 +4167,26 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
   if (mode === "liveops") {
     const now = new Date();
     const seasonId = `S${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const operatorAction = getStringFlag(args, "scenario");
     const eventAActive = now.getUTCDate() % 2 === 0;
+    const forcedRotation =
+      operatorAction === "force-double-xp"
+        ? "double-xp"
+        : operatorAction === "force-trust-shield"
+          ? "trust-shield"
+          : null;
+    const killSwitch = operatorAction === "kill-switch";
     const eventsCatalog = [
       {
         id: `${seasonId}-double-xp`,
         title: "Double XP Gauntlet",
-        active: eventAActive,
+        active: killSwitch ? false : forcedRotation ? forcedRotation === "double-xp" : eventAActive,
         boost: 2
       },
       {
         id: `${seasonId}-trust-shield`,
         title: "Trust Shield Weekend",
-        active: !eventAActive,
+        active: killSwitch ? false : forcedRotation ? forcedRotation === "trust-shield" : !eventAActive,
         boost: 1.5
       }
     ];
@@ -3988,41 +4196,100 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       mutating: false,
       summary: {
         seasonId,
-        activeEvents: eventsCatalog.filter((entry) => entry.active).length
+        activeEvents: eventsCatalog.filter((entry) => entry.active).length,
+        controlState: killSwitch ? "paused" : forcedRotation ? "forced-rotation" : "scheduled"
       },
       details: {
         events: eventsCatalog,
-        featuredMission: eventsCatalog[0]?.active ? "Challenge mode with boosted rewards" : "Defensive trust-cleanup sprint"
+        featuredMission: eventsCatalog[0]?.active ? "Challenge mode with boosted rewards" : "Defensive trust-cleanup sprint",
+        controls: {
+          operatorAction: operatorAction ?? "none",
+          killSwitch,
+          rollbackCommand: "runwright gameplay liveops --scenario scheduled --json",
+          stagedRollout: ["1%", "10%", "25%", "50%", "100%"]
+        }
       }
     };
   }
 
   if (mode === "creator") {
     const now = new Date().toISOString();
+    const action = getStringFlag(args, "scenario") ?? "publish";
     const difficulty = parseGameplayDifficulty(getStringFlag(args, "difficulty"), "silver");
     const title = getStringFlag(args, "title") ?? `Custom Challenge ${state.creatorLevels.length + 1}`;
     const description = getStringFlag(args, "description") ?? "User-generated scenario for advanced operators.";
-    const id = `LVL-${String(state.creatorLevels.length + 1).padStart(3, "0")}`;
-    state.creatorLevels.push({
-      id,
-      title,
-      difficulty,
-      description,
-      createdAt: now
-    });
-    writeGameplayState(cwd, state);
+    const normalizeTag = (raw: string): string => raw.replace(/^\[[A-Z-]+\]\s*/, "");
+    const applyTag = (raw: string, tag: string): string => `[${tag}] ${normalizeTag(raw)}`.trim();
+    let createdLevelId = "";
+    let mutating = false;
+    if (action === "flag" || action === "appeal" || action === "approve" || action === "reject") {
+      const targetId = getStringFlag(args, "room") ?? state.creatorLevels[state.creatorLevels.length - 1]?.id;
+      const target = state.creatorLevels.find((entry) => entry.id === targetId);
+      if (target) {
+        const tag = action === "flag" ? "FLAGGED" : action === "appeal" ? "APPEALED" : action === "approve" ? "APPROVED" : "REJECTED";
+        target.description = applyTag(target.description, tag);
+        mutating = true;
+      }
+    } else {
+      const id = `LVL-${String(state.creatorLevels.length + 1).padStart(3, "0")}`;
+      const hasUniqueTitle = !state.creatorLevels.some((entry) => entry.title.trim().toLowerCase() === title.trim().toLowerCase());
+      const taggedDescription = applyTag(description, "PUBLISHED");
+      state.creatorLevels.push({
+        id,
+        title,
+        difficulty,
+        description: taggedDescription,
+        createdAt: now
+      });
+      createdLevelId = id;
+      mutating = true;
+      if (!hasUniqueTitle && state.creatorLevels[state.creatorLevels.length - 1]) {
+        state.creatorLevels[state.creatorLevels.length - 1]!.description = applyTag(taggedDescription, "REVIEW");
+      }
+    }
+    if (mutating) writeGameplayState(cwd, state);
+    const moderationSignals = {
+      flagged: state.creatorLevels.filter((entry) => entry.description.startsWith("[FLAGGED]")).length,
+      appealed: state.creatorLevels.filter((entry) => entry.description.startsWith("[APPEALED]")).length,
+      approved: state.creatorLevels.filter((entry) => entry.description.startsWith("[APPROVED]")).length,
+      rejected: state.creatorLevels.filter((entry) => entry.description.startsWith("[REJECTED]")).length
+    };
+    const qualitySignals = state.creatorLevels
+      .slice(-10)
+      .map((entry) => ({
+        id: entry.id,
+        title: entry.title,
+        qualityScore: Math.max(
+          40,
+          Math.min(
+            100,
+            65 +
+              (entry.difficulty === "legendary" ? 20 : entry.difficulty === "gold" ? 12 : entry.difficulty === "silver" ? 6 : 0) -
+              (entry.description.startsWith("[FLAGGED]") ? 25 : 0) -
+              (entry.description.startsWith("[REJECTED]") ? 35 : 0)
+          )
+        )
+      }))
+      .sort((left, right) => right.qualityScore - left.qualityScore);
     return {
       status: 0,
       mode,
-      mutating: true,
+      mutating,
       summary: {
-        createdLevelId: id,
+        createdLevelId: createdLevelId || "none",
         totalLevels: state.creatorLevels.length,
-        difficulty
+        difficulty,
+        action
       },
       details: {
         latestLevel: state.creatorLevels[state.creatorLevels.length - 1] ?? null,
-        catalog: state.creatorLevels.slice(-5)
+        catalog: state.creatorLevels.slice(-5),
+        moderationSignals,
+        discovery: {
+          ranked: qualitySignals.slice(0, 5),
+          abuseWeighting: "flagged/rejected levels receive ranking penalties",
+          validationChecklist: ["template-selected", "description-present", "duplicate-title-check"]
+        }
       }
     };
   }
@@ -4092,39 +4359,55 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       beat: `${event.command} (${event.status === 0 || event.status === 2 ? "success" : "failure"})`,
       timestampMs: event.timestampMs
     }));
+    const pacingMs = timeline.length > 1 ? Math.max(120, Math.round((timeline[timeline.length - 1]!.timestampMs - timeline[0]!.timestampMs) / timeline.length)) : 180;
     return {
       status: 0,
       mode,
       mutating: false,
       summary: {
         scenes: timeline.length,
-        failures: failedRuns
+        failures: failedRuns,
+        pacingMs
       },
       details: {
         tone: failedRuns === 0 ? "heroic" : failedRuns <= successfulRuns ? "resilient" : "high-stakes",
         timeline,
-        finale: journey.nextAction.command
+        finale: journey.nextAction.command,
+        gameFeel: {
+          animationTimingMs: pacingMs,
+          audioCueOffsetMs: Math.max(30, Math.round(pacingMs * 0.2)),
+          hapticPulseMs: Math.max(20, Math.round(pacingMs * 0.15))
+        }
       }
     };
   }
 
   const rating = 1000 + successfulRuns * 24 - failedRuns * 18 + blockedRuns * 8;
-  const division = mapRankDivision(rating);
+  const antiInflationCap = 2200;
+  const clampedRating = Math.min(antiInflationCap, Math.max(800, rating));
+  const division = mapRankDivision(clampedRating);
   return {
     status: 0,
     mode: "ranked",
     mutating: false,
     summary: {
-      rating,
-      division
+      rating: clampedRating,
+      division,
+      integrity: clampedRating === rating ? "clean" : "clamped"
     },
     details: {
       leaderboard: [
-        { handle: "you", rating },
-        { handle: "ghost-alpha", rating: rating + 34 },
-        { handle: "safety-bot", rating: Math.max(900, rating - 42) }
+        { handle: "you", rating: clampedRating },
+        { handle: "ghost-alpha", rating: clampedRating + 34 },
+        { handle: "safety-bot", rating: Math.max(900, clampedRating - 42) }
       ],
-      rankDeltaHint: failedRuns > 0 ? "Clear recent failures to gain rating momentum." : "Current streak supports rapid rank climb."
+      rankDeltaHint: failedRuns > 0 ? "Clear recent failures to gain rating momentum." : "Current streak supports rapid rank climb.",
+      antiInflation: {
+        rawRating: rating,
+        clampedRating,
+        cap: antiInflationCap,
+        policy: "rating increases are bounded to prevent score inflation spikes"
+      }
     }
   };
 }

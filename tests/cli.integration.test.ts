@@ -1669,6 +1669,18 @@ describe("cli integration", () => {
     );
   });
 
+  it("gameplay liveops supports operator override controls", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-liveops-override-");
+    const forced = runCli(["gameplay", "liveops", "--scenario", "force-double-xp", "--json"], projectDir);
+    expect(forced.status).toBe(0);
+    const forcedPayload = JSON.parse(forced.stdout);
+    expect(forcedPayload.summary.controlState).toBe("forced-rotation");
+    const paused = runCli(["gameplay", "liveops", "--scenario", "kill-switch", "--json"], projectDir);
+    expect(paused.status).toBe(0);
+    const pausedPayload = JSON.parse(paused.stdout);
+    expect(pausedPayload.summary.controlState).toBe("paused");
+  });
+
   it("gameplay creator publishes persistent custom levels", () => {
     const projectDir = makeTempDir("skillbase-cli-gameplay-creator-");
     const result = runCli(
@@ -1796,6 +1808,55 @@ describe("cli integration", () => {
     const moderationPayload = JSON.parse(moderation.stdout);
     expect(moderationPayload.mode).toBe("moderation");
     expect(Number(moderationPayload.summary.totalReports)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("gameplay social supports privacy, block, and mute controls", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-social-controls-");
+    expect(runCli(["gameplay", "social", "--title", "ally-one", "--json"], projectDir).status).toBe(0);
+    expect(runCli(["gameplay", "social", "--title", "ally-one", "--scenario", "block", "--json"], projectDir).status).toBe(0);
+    expect(runCli(["gameplay", "social", "--title", "ally-two", "--scenario", "mute", "--json"], projectDir).status).toBe(0);
+    const privacy = runCli(["gameplay", "social", "--scenario", "privacy-private", "--json"], projectDir);
+    expect(privacy.status).toBe(0);
+    const payload = JSON.parse(privacy.stdout);
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        privacyMode: "private",
+        blocked: expect.any(Number),
+        muted: expect.any(Number)
+      })
+    );
+  });
+
+  it("gameplay coop supports leave and reconnect flows", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-coop-reconnect-");
+    const created = runCli(["gameplay", "coop", "--json"], projectDir);
+    expect(created.status).toBe(0);
+    const createdPayload = JSON.parse(created.stdout);
+    const roomId = String(createdPayload.summary.roomId);
+    const left = runCli(["gameplay", "coop", "--scenario", "leave", "--room", roomId, "--json"], projectDir);
+    expect(left.status).toBe(0);
+    const leftPayload = JSON.parse(left.stdout);
+    expect(leftPayload.summary.action).toBe("leave");
+    const reconnected = runCli(["gameplay", "coop", "--scenario", "reconnect", "--room", roomId, "--json"], projectDir);
+    expect(reconnected.status).toBe(0);
+    const reconnectPayload = JSON.parse(reconnected.stdout);
+    expect(reconnectPayload.summary.action).toBe("reconnect");
+    expect(String(reconnectPayload.details.reconnectToken)).toMatch(/^RC-/);
+  });
+
+  it("gameplay creator supports moderation lifecycle actions", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-creator-lifecycle-");
+    const created = runCli(["gameplay", "creator", "--title", "Lifecycle Trial", "--difficulty", "silver", "--json"], projectDir);
+    expect(created.status).toBe(0);
+    const createdPayload = JSON.parse(created.stdout);
+    const levelId = String(createdPayload.summary.createdLevelId);
+    const flagged = runCli(["gameplay", "creator", "--scenario", "flag", "--room", levelId, "--json"], projectDir);
+    expect(flagged.status).toBe(0);
+    const appealed = runCli(["gameplay", "creator", "--scenario", "appeal", "--room", levelId, "--json"], projectDir);
+    expect(appealed.status).toBe(0);
+    const payload = JSON.parse(appealed.stdout);
+    expect(payload.details.moderationSignals).toEqual(expect.objectContaining({ appealed: expect.any(Number) }));
+    expect(Array.isArray(payload.details.discovery.ranked)).toBe(true);
   });
 
   it("gameplay moderation supports triage and escalation actions", () => {
