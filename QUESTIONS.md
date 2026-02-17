@@ -36,6 +36,7 @@
   - `CI`/`CodeQL` runs `22110929744`/`22110929736`
   - `CI`/`CodeQL` runs `22111146887`/`22111146880`
   - `CI`/`CodeQL` runs `22112492942`/`22112492922`
+  - `CI`/`CodeQL` runs `22112524863`/`22112524890`
   - Shared annotation: `job was not started because recent account payments have failed or spending limit needs to be increased`, with no actionable build/test logs.
 - Compensating local evidence on current workspace head:
   - `pnpm verify` (343/343 tests passing, build success)
