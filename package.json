@@ -10,6 +10,8 @@
   "scripts": {
     "build": "tsup src/cli.ts --format esm --dts",
     "dev": "tsx src/cli.ts",
+    "game:runtime": "pnpm tsx scripts/game_runtime.ts",
+    "game:runtime:json": "pnpm tsx scripts/game_runtime.ts --json",
     "test": "vitest run",
     "test:compat-matrix": "vitest run tests/compatibility-replay.test.ts tests/migration-compatibility.test.ts",
     "test:contracts": "vitest run tests/adapters.contract.test.ts tests/source-provider.contract.test.ts",

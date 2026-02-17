@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Runwright Runtime</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="aurora" aria-hidden="true"></div>
+    <main class="layout">
+      <section class="panel panel-primary" aria-labelledby="onboarding-title">
+        <p class="eyebrow">Runwright Runtime</p>
+        <h1 id="onboarding-title">First Success Control Room</h1>
+        <p class="lede">
+          Create a profile, finish tutorial hints, save once, then publish a level for your first success moment.
+        </p>
+
+        <form id="profile-form" class="stack" aria-describedby="profile-help">
+          <label for="handle">Player handle</label>
+          <input id="handle" name="handle" type="text" required minlength="2" maxlength="32" />
+
+          <label for="locale">Language</label>
+          <select id="locale" name="locale">
+            <option value="en-US">English (US)</option>
+            <option value="es-ES">Español</option>
+            <option value="fr-FR">Français</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="ja-JP">Japanese</option>
+            <option value="ko-KR">Korean</option>
+            <option value="pt-BR">Português (BR)</option>
+          </select>
+
+          <button type="submit" id="create-profile">Create Profile</button>
+          <p id="profile-help" class="muted">
+            This only creates local runtime state in your current workspace.
+          </p>
+        </form>
+
+        <div class="actions" aria-label="Primary gameplay actions">
+          <button type="button" id="run-tutorial" data-help="Records tutorial progress to unlock onboarding step 2.">
+            Run Tutorial Hint
+          </button>
+          <button type="button" id="save-progress" data-help="Creates a persistent save snapshot and sync record.">
+            Save Progress
+          </button>
+          <button type="button" id="publish-level" data-help="Publishes a starter UGC level to hit first success quickly.">
+            Publish Level
+          </button>
+          <button type="button" id="submit-ranked" data-help="Submits ranked score with anti-tamper protection.">
+            Submit Ranked Score
+          </button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="status-title">
+        <h2 id="status-title">Journey Status</h2>
+        <ol id="onboarding-steps" class="steps">
+          <li>Create your profile to begin.</li>
+        </ol>
+        <p id="next-action" class="next-action">Next action: Create profile</p>
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+      </section>
+
+      <aside class="panel panel-help" aria-labelledby="help-title">
+        <h2 id="help-title">Help & Tooltips</h2>
+        <p>Hover or focus action buttons to see contextual guidance.</p>
+        <ul id="tips"></ul>
+        <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime help JSON</a>
+        <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open docs/help/README.md</a>
+      </aside>
+    </main>
+
+    <script type="module">
+      const state = {
+        profileId: null,
+        score: 1200
+      };
+
+      const feedback = document.querySelector("#feedback");
+      const nextAction = document.querySelector("#next-action");
+      const stepsList = document.querySelector("#onboarding-steps");
+      const tipsList = document.querySelector("#tips");
+
+      async function api(path, init = {}) {
+        const response = await fetch(path, {
+          ...init,
+          headers: {
+            "content-type": "application/json",
+            ...(init.headers || {})
+          }
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          const error = payload?.error?.message || "Request failed";
+          throw new Error(error);
+        }
+        return payload;
+      }
+
+      function setFeedback(message, isError = false) {
+        feedback.textContent = message;
+        feedback.className = isError ? "feedback error" : "feedback";
+      }
+
+      async function refreshHelp() {
+        const help = await api("/v1/help");
+        tipsList.innerHTML = "";
+        for (const item of help.tooltips) {
+          const li = document.createElement("li");
+          li.textContent = item.copy;
+          tipsList.appendChild(li);
+        }
+      }
+
+      async function refreshOnboarding() {
+        if (!state.profileId) return;
+        const payload = await api(`/v1/onboarding/${state.profileId}`);
+        stepsList.innerHTML = "";
+        for (const step of payload.steps) {
+          const li = document.createElement("li");
+          li.textContent = `${step.complete ? "Done" : "Todo"}: ${step.title}`;
+          stepsList.appendChild(li);
+        }
+        nextAction.textContent = payload.nextAction
+          ? `Next action: ${payload.nextAction.title}`
+          : "Next action: Launch-ready onboarding complete";
+      }
+
+      document.querySelector("#profile-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          const form = event.currentTarget;
+          const handle = form.handle.value.trim();
+          const locale = form.locale.value;
+          const payload = await api("/v1/auth/signup", {
+            method: "POST",
+            body: JSON.stringify({ handle, locale })
+          });
+          state.profileId = payload.profile.id;
+          setFeedback(`Profile created: ${payload.profile.handle}`);
+          await refreshOnboarding();
+        } catch (error) {
+          setFeedback(error.message, true);
+        }
+      });
+
+      document.querySelector("#run-tutorial").addEventListener("click", async () => {
+        if (!state.profileId) return setFeedback("Create a profile first.", true);
+        try {
+          await api("/v1/telemetry/events", {
+            method: "POST",
+            body: JSON.stringify({
+              profileId: state.profileId,
+              type: "tutorial.started",
+              payload: { source: "web-shell" }
+            })
+          });
+          setFeedback("Tutorial progress recorded.");
+          await refreshOnboarding();
+        } catch (error) {
+          setFeedback(error.message, true);
+        }
+      });
+
+      document.querySelector("#save-progress").addEventListener("click", async () => {
+        if (!state.profileId) return setFeedback("Create a profile first.", true);
+        try {
+          await api("/v1/saves", {
+            method: "POST",
+            body: JSON.stringify({
+              profileId: state.profileId,
+              strategy: "last-write-wins",
+              baseVersion: 0,
+              payload: { chapter: 1, checkpoint: "shell-save" }
+            })
+          });
+          setFeedback("Progress saved.");
+          await refreshOnboarding();
+        } catch (error) {
+          setFeedback(error.message, true);
+        }
+      });
+
+      document.querySelector("#publish-level").addEventListener("click", async () => {
+        if (!state.profileId) return setFeedback("Create a profile first.", true);
+        try {
+          await api("/v1/ugc/levels", {
+            method: "POST",
+            body: JSON.stringify({
+              profileId: state.profileId,
+              title: "First Victory Sprint",
+              difficulty: "silver"
+            })
+          });
+          setFeedback("Level published. First success should now be complete.");
+          await refreshOnboarding();
+        } catch (error) {
+          setFeedback(error.message, true);
+        }
+      });
+
+      document.querySelector("#submit-ranked").addEventListener("click", async () => {
+        if (!state.profileId) return setFeedback("Create a profile first.", true);
+        try {
+          await api("/v1/ranked/submit", {
+            method: "POST",
+            body: JSON.stringify({
+              profileId: state.profileId,
+              score: state.score,
+              clientDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            })
+          });
+          setFeedback("Ranked score accepted.");
+          await refreshOnboarding();
+        } catch (error) {
+          setFeedback(`Ranked submission rejected: ${error.message}`, true);
+        }
+      });
+
+      for (const button of document.querySelectorAll("[data-help]")) {
+        const helpText = button.getAttribute("data-help");
+        button.setAttribute("title", helpText);
+      }
+
+      refreshHelp().catch(() => setFeedback("Help service unavailable.", true));
+    </script>
+  </body>
+</html>
