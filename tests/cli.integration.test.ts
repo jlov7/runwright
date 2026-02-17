@@ -1542,6 +1542,13 @@ describe("cli integration", () => {
       })
     );
     expect(Array.isArray(payload.details.missions)).toBe(true);
+    expect(Array.isArray(payload.details.chapters)).toBe(true);
+    expect(payload.details.economy.simulator).toEqual(
+      expect.objectContaining({
+        expectedXpPerHour: expect.any(Number),
+        inflationRisk: expect.any(String)
+      })
+    );
   });
 
   it("gameplay boss simulates hard encounter scenarios with recovery rotation", () => {
@@ -1565,6 +1572,61 @@ describe("cli integration", () => {
     expect(payload.mode).toBe("ghost");
     expect(payload.summary).toEqual(expect.objectContaining({ ghostSteps: expect.any(Number) }));
     expect(payload.details.replay).toEqual(expect.objectContaining({ recommendedRecovery: expect.any(String) }));
+  });
+
+  it("gameplay achievements reports milestone progress and next unlock", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-achievements-");
+    expect(runCli(["init"], projectDir).status).toBe(0);
+    const result = runCli(["gameplay", "achievements", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("achievements");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        achievements: expect.any(Number),
+        unlocked: expect.any(Number),
+        completionPercent: expect.any(Number)
+      })
+    );
+    expect(Array.isArray(payload.details.milestones)).toBe(true);
+  });
+
+  it("gameplay replay exports deterministic replay metadata and share code", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-replay-");
+    expect(runCli(["gameplay", "campaign", "--json"], projectDir).status).toBe(0);
+    expect(runCli(["gameplay", "quest", "--json"], projectDir).status).toBe(0);
+    const result = runCli(["gameplay", "replay", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("replay");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        steps: expect.any(Number),
+        replayDigest: expect.any(String)
+      })
+    );
+    expect(payload.details.export).toEqual(
+      expect.objectContaining({
+        formats: expect.arrayContaining(["json", "markdown", "share-code"]),
+        shareCode: expect.stringMatching(/^RPL-/)
+      })
+    );
+  });
+
+  it("gameplay spectate reports watchable sessions and stream policy", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-spectate-");
+    expect(runCli(["gameplay", "coop", "--json"], projectDir).status).toBe(0);
+    const result = runCli(["gameplay", "spectate", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("spectate");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        activeRoom: expect.any(String),
+        watchableSessions: expect.any(Number)
+      })
+    );
+    expect(payload.details.streamPolicy).toEqual(expect.objectContaining({ mode: "observer-readonly" }));
   });
 
   it("gameplay director outputs adaptive difficulty tuning", () => {
@@ -1667,6 +1729,13 @@ describe("cli integration", () => {
         })
       ])
     );
+    expect(payload.details.cadence).toEqual(
+      expect.objectContaining({
+        daily: expect.any(String),
+        weekly: expect.any(String)
+      })
+    );
+    expect(payload.details.ghostLadder).toEqual(expect.objectContaining({ id: expect.any(String), topShareCode: expect.stringMatching(/^GHOST-/) }));
   });
 
   it("gameplay liveops supports operator override controls", () => {
@@ -1844,6 +1913,19 @@ describe("cli integration", () => {
     expect(String(reconnectPayload.details.reconnectToken)).toMatch(/^RC-/);
   });
 
+  it("gameplay coop supports host migration handoff", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-coop-host-migrate-");
+    const created = runCli(["gameplay", "coop", "--json"], projectDir);
+    expect(created.status).toBe(0);
+    const createdPayload = JSON.parse(created.stdout);
+    const roomId = String(createdPayload.summary.roomId);
+    const migrated = runCli(["gameplay", "coop", "--scenario", "host-migrate", "--room", roomId, "--json"], projectDir);
+    expect(migrated.status).toBe(0);
+    const payload = JSON.parse(migrated.stdout);
+    expect(payload.summary.action).toBe("host-migrate");
+    expect(String(payload.details.hostMigrationToken)).toMatch(/^HM-/);
+  });
+
   it("gameplay creator supports moderation lifecycle actions", () => {
     const projectDir = makeTempDir("skillbase-cli-gameplay-creator-lifecycle-");
     const created = runCli(["gameplay", "creator", "--title", "Lifecycle Trial", "--difficulty", "silver", "--json"], projectDir);
@@ -1960,9 +2042,15 @@ describe("cli integration", () => {
         textScale: 1.25
       })
     );
+    expect(payload.details.controllerSupport).toEqual(
+      expect.objectContaining({
+        enabled: true,
+        profiles: expect.arrayContaining(["default", "southpaw"])
+      })
+    );
   });
 
-  it("gameplay launch reports full 35-item pre-release readiness matrix", () => {
+  it("gameplay launch reports full 40-item pre-release readiness matrix", () => {
     const projectDir = makeTempDir("skillbase-cli-gameplay-launch-matrix-");
     const result = runCli(["gameplay", "launch", "--json"], projectDir);
     expect(result.status).toBe(0);
@@ -1970,16 +2058,16 @@ describe("cli integration", () => {
     expect(payload.mode).toBe("launch");
     expect(payload.summary).toEqual(
       expect.objectContaining({
-        total: 35,
-        ready: 35,
+        total: 40,
+        ready: 40,
         pending: 0
       })
     );
-    expect(payload.details.requirements).toHaveLength(35);
+    expect(payload.details.requirements).toHaveLength(40);
     expect(payload.details.requirements).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "RX1", status: "ready" }),
-        expect.objectContaining({ id: "RX35", status: "ready" })
+        expect.objectContaining({ id: "RX40", status: "ready" })
       ])
     );
   });
@@ -2021,6 +2109,54 @@ describe("cli integration", () => {
         checks: expect.any(Number),
         passed: expect.any(Number),
         ready: expect.any(Boolean)
+      })
+    );
+    expect(qaPayload.details.signoffCriteria).toEqual(
+      expect.objectContaining({
+        crashFreeSessionsPercent: expect.any(Number),
+        p0OpenDefects: 0
+      })
+    );
+  });
+
+  it("gameplay experiment assigns deterministic variants and supports kill switch", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-experiment-");
+    expect(runCli(["gameplay", "profile", "--title", "pilot", "--json"], projectDir).status).toBe(0);
+    const assigned = runCli(["gameplay", "experiment", "--scenario", "onboarding-v2", "--json"], projectDir);
+    expect(assigned.status).toBe(0);
+    const assignedPayload = JSON.parse(assigned.stdout);
+    expect(assignedPayload.mode).toBe("experiment");
+    expect(assignedPayload.summary.variant).toMatch(/^(control|variant-a|variant-b)$/);
+
+    const disabled = runCli(
+      ["gameplay", "experiment", "--scenario", "onboarding-v2", "--description", "kill-switch", "--json"],
+      projectDir
+    );
+    expect(disabled.status).toBe(0);
+    const disabledPayload = JSON.parse(disabled.stdout);
+    expect(disabledPayload.summary).toEqual(
+      expect.objectContaining({
+        variant: "disabled",
+        killSwitch: true
+      })
+    );
+  });
+
+  it("gameplay helpdesk returns searchable help topics and reporting command", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-helpdesk-");
+    const result = runCli(["gameplay", "helpdesk", "--title", "release", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("helpdesk");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        query: "release",
+        results: expect.any(Number)
+      })
+    );
+    expect(payload.details.reporting).toEqual(
+      expect.objectContaining({
+        issueCommand: expect.stringContaining("gameplay moderation")
       })
     );
   });

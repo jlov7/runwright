@@ -124,6 +124,11 @@ type GameplayMode =
   | "liveops"
   | "creator"
   | "cinematic"
+  | "replay"
+  | "spectate"
+  | "achievements"
+  | "experiment"
+  | "helpdesk"
   | "matchmaking"
   | "ranked";
 
@@ -204,7 +209,7 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   gameplay: {
     summary: "World-class gameplay layer: quests, campaign progression, simulation, social, creator, and ranking systems.",
     usage: [
-      "runwright gameplay <client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|matchmaking|ranked> [--json]",
+      "runwright gameplay <client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|replay|spectate|achievements|experiment|helpdesk|matchmaking|ranked> [--json]",
       "                 [--scenario <name>] [--seed <number>] [--room <id>] [--title <name>] [--difficulty <tier>] [--description <text>]"
     ],
     examples: [
@@ -750,12 +755,17 @@ function validateAllowedFlags(args: ParsedArgs): void {
       "liveops",
       "creator",
       "cinematic",
+      "replay",
+      "spectate",
+      "achievements",
+      "experiment",
+      "helpdesk",
       "matchmaking",
       "ranked"
     ]);
     if (args.positionals.length !== 1 || !subcommand || !allowedModes.has(subcommand as GameplayMode)) {
       throw new CliError(
-        "gameplay command requires subcommand: gameplay client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|matchmaking|ranked",
+        "gameplay command requires subcommand: gameplay client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|replay|spectate|achievements|experiment|helpdesk|matchmaking|ranked",
         1,
         "invalid-argument"
       );
@@ -3649,7 +3659,12 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
           "text scaling",
           "contrast-ready theme",
           "motion reduction strategy"
-        ]
+        ],
+        controllerSupport: {
+          enabled: true,
+          profiles: ["default", "southpaw", "adaptive-single-stick"],
+          activeProfile: state.accessibility.remapProfile === "left-handed" ? "southpaw" : state.accessibility.remapProfile
+        }
       }
     };
   }
@@ -3718,6 +3733,11 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
           operatingSystems: ["macos", "linux", "windows", "ios-shell", "android-shell"],
           latencyProfiles: ["low", "moderate", "high", "lossy", "intermittent-offline"],
           locales: SUPPORTED_GAME_LOCALES
+        },
+        signoffCriteria: {
+          crashFreeSessionsPercent: 99.5,
+          firstTenMinuteCompletionPercent: 70,
+          p0OpenDefects: 0
         }
       }
     };
@@ -3759,7 +3779,12 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       ["RX32", "On-call operations playbook", "runwright gameplay crash --json"],
       ["RX33", "App-store release pack checklist", "runwright gameplay launch --json"],
       ["RX34", "Legal/compliance readiness bundle", "runwright gameplay launch --json"],
-      ["RX35", "Closed beta + balancing gate", "runwright gameplay launch --json"]
+      ["RX35", "Closed beta + balancing gate", "runwright gameplay launch --json"],
+      ["RX36", "Achievement and milestone progression", "runwright gameplay achievements --json"],
+      ["RX37", "Replay editor and highlight export", "runwright gameplay replay --json"],
+      ["RX38", "Spectator/session watch support", "runwright gameplay spectate --json"],
+      ["RX39", "Remote config and experimentation controls", "runwright gameplay experiment --json"],
+      ["RX40", "In-app searchable help and reporting", "runwright gameplay helpdesk --json"]
     ].map(([id, title, evidence]) => ({
       id,
       title,
@@ -3864,6 +3889,17 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       streakBonus: Math.min(300, streak * 25),
       riskRecoveryBonus: blockedRuns > 0 ? 90 : 0
     };
+    const chapters = [
+      { id: "chapter-1", title: "First Contact", unlocked: true, completion: Math.min(100, Math.round(journey.summary.completionPercent * 0.7)) },
+      { id: "chapter-2", title: "Containment Protocol", unlocked: successfulRuns >= 2, completion: successfulRuns >= 2 ? Math.min(100, successfulRuns * 12) : 0 },
+      { id: "chapter-3", title: "Launch Candidate", unlocked: successfulRuns >= 5, completion: successfulRuns >= 5 ? Math.min(100, successfulRuns * 8) : 0 }
+    ];
+    const economySimulator = {
+      expectedXpPerHour: Math.max(120, xpCurve.base + Math.round((xpCurve.streakBonus + xpCurve.riskRecoveryBonus) * 0.6)),
+      sinkRate: failedRuns * 45 + blockedRuns * 20,
+      sourceRate: successfulRuns * 90,
+      inflationRisk: successfulRuns > failedRuns * 3 + 4 ? "medium" : "low"
+    };
     return {
       status: 0,
       mode,
@@ -3876,6 +3912,7 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       },
       details: {
         missions,
+        chapters,
         loopHealth: failedRuns === 0 ? "stable" : failedRuns <= successfulRuns ? "recovering" : "fragile",
         economy: {
           xpCurve,
@@ -3885,7 +3922,12 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
             { tier: "elite", xpPerMission: 240 },
             { tier: "mythic", xpPerMission: 300 }
           ],
-          balancingNotes: "Rewards scale by streak and recovery behavior to avoid runaway inflation."
+          balancingNotes: "Rewards scale by streak and recovery behavior to avoid runaway inflation.",
+          simulator: economySimulator
+        },
+        retentionHooks: {
+          achievementsCommand: "runwright gameplay achievements --json",
+          replayCommand: "runwright gameplay replay --json"
         }
       }
     };
@@ -3999,6 +4041,113 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
     };
   }
 
+  if (mode === "achievements") {
+    const milestones = [
+      {
+        id: "first-quest",
+        title: "First Quest Complete",
+        unlocked: successfulRuns >= 1,
+        reward: "starter-banner"
+      },
+      {
+        id: "streak-5",
+        title: "Five-run Streak",
+        unlocked: successfulRuns >= 5 && failedRuns === 0,
+        reward: "streak-emblem"
+      },
+      {
+        id: "recovery-pro",
+        title: "Recovery Specialist",
+        unlocked: blockedRuns >= 1 && successfulRuns >= blockedRuns,
+        reward: "recovery-aura"
+      },
+      {
+        id: "rank-climber",
+        title: "Rank Ladder Debut",
+        unlocked: successfulRuns >= 3,
+        reward: "ranked-title"
+      }
+    ];
+    const unlocked = milestones.filter((entry) => entry.unlocked);
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        achievements: milestones.length,
+        unlocked: unlocked.length,
+        completionPercent: Math.round((unlocked.length / milestones.length) * 100)
+      },
+      details: {
+        milestones,
+        nextMilestone: milestones.find((entry) => !entry.unlocked) ?? null,
+        rewardClaimFlow: {
+          command: "runwright gameplay campaign --json",
+          policy: "unlocked rewards are deterministic from operation history"
+        }
+      }
+    };
+  }
+
+  if (mode === "replay") {
+    const timeline = events.slice(-20).map((event, index) => ({
+      step: index + 1,
+      command: event.command,
+      status: event.status,
+      timestampMs: event.timestampMs
+    }));
+    const replayDigest = sha256Hex(strToU8(JSON.stringify(timeline)));
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        steps: timeline.length,
+        replayDigest: replayDigest.slice(0, 12),
+        highlightMoments: Math.min(5, Math.max(0, successfulRuns - failedRuns + 1))
+      },
+      details: {
+        timeline,
+        export: {
+          formats: ["json", "markdown", "share-code"],
+          shareCode: `RPL-${replayDigest.slice(0, 10).toUpperCase()}`,
+          command: "runwright gameplay replay --json > reports/gameplay/replay.json"
+        },
+        editor: {
+          trimStartStep: 1,
+          trimEndStep: timeline.length,
+          highlightPolicy: "first success + latest recovery + latest rank update"
+        }
+      }
+    };
+  }
+
+  if (mode === "spectate") {
+    const activeRoom = state.coopRooms[state.coopRooms.length - 1] ?? null;
+    const liveTicket = state.matchmakingTickets[state.matchmakingTickets.length - 1] ?? null;
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        activeRoom: activeRoom?.roomId ?? "none",
+        activeMatchTicket: liveTicket?.ticketId ?? "none",
+        watchableSessions: Math.max(0, state.coopRooms.length + state.matchmakingTickets.filter((entry) => entry.status === "matched").length)
+      },
+      details: {
+        streamPolicy: {
+          mode: "observer-readonly",
+          privacyGuard: "private lobbies require invite token",
+          latencyBudgetMs: 300
+        },
+        actions: {
+          joinSpectator: activeRoom ? `runwright gameplay spectate --room ${activeRoom.roomId} --json` : "runwright gameplay coop --json",
+          captureHighlight: "runwright gameplay replay --json"
+        }
+      }
+    };
+  }
+
   if (mode === "director") {
     const totalRuns = successfulRuns + failedRuns;
     const failureRate = totalRuns === 0 ? 0 : failedRuns / totalRuns;
@@ -4029,6 +4178,86 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
     };
   }
 
+  if (mode === "experiment") {
+    const profileResult = ensureActiveGameplayProfile(state, getStringFlag(args, "title"), state.activeProfile?.locale ?? "en-US");
+    const requestedTrack = getStringFlag(args, "scenario") ?? "onboarding-v2";
+    const digest = sha256Hex(strToU8(`${requestedTrack}:${profileResult.profile.handle}`));
+    const bucket = Number.parseInt(digest.slice(0, 2), 16) % 100;
+    const variant = bucket < 50 ? "control" : bucket < 85 ? "variant-a" : "variant-b";
+    const killSwitch = getStringFlag(args, "description") === "kill-switch";
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        track: requestedTrack,
+        variant: killSwitch ? "disabled" : variant,
+        bucket,
+        killSwitch
+      },
+      details: {
+        remoteConfig: {
+          source: "runtime-config",
+          refreshPolicy: "startup + every 15m",
+          rollbackCommand: "runwright gameplay experiment --scenario onboarding-v2 --description kill-switch --json"
+        },
+        telemetry: {
+          exposureEvent: "experiment.exposed",
+          successMetric: requestedTrack === "onboarding-v2" ? "first-success-under-10m" : "retention-day1"
+        },
+        guardrails: {
+          maxExposurePercent: 50,
+          requiresKillSwitch: true
+        }
+      }
+    };
+  }
+
+  if (mode === "helpdesk") {
+    const query = (getStringFlag(args, "title") ?? "").trim().toLowerCase();
+    const catalog = [
+      {
+        id: "getting-started",
+        title: "Getting Started",
+        path: "docs/help/README.md",
+        keywords: ["start", "onboarding", "journey", "first run"]
+      },
+      {
+        id: "troubleshooting",
+        title: "Troubleshooting",
+        path: "docs/help/troubleshooting.md",
+        keywords: ["error", "failure", "blocked", "recovery"]
+      },
+      {
+        id: "release-ops",
+        title: "Release Operations",
+        path: "docs/release/rollout-and-rollback.md",
+        keywords: ["release", "rollback", "incident", "deploy"]
+      }
+    ];
+    const results = query.length === 0
+      ? catalog
+      : catalog.filter((entry) => entry.keywords.some((keyword) => keyword.includes(query) || query.includes(keyword)));
+    return {
+      status: 0,
+      mode,
+      mutating: false,
+      summary: {
+        query: query || "all",
+        results: results.length,
+        supportChannel: "in-app-helpdesk"
+      },
+      details: {
+        results,
+        reporting: {
+          issueCommand: "runwright gameplay moderation --title \"support-issue\" --description \"<details>\" --json",
+          escalationSlaHours: 12
+        },
+        guidance: "Use --title <keyword> to narrow help topics."
+      }
+    };
+  }
+
   if (mode === "coop") {
     const now = new Date().toISOString();
     const action = getStringFlag(args, "scenario") ?? "join";
@@ -4036,6 +4265,7 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
     let room = requestedRoom ? state.coopRooms.find((entry) => entry.roomId === requestedRoom) : undefined;
     let created = false;
     let transitioned = false;
+    let hostMigrationToken: string | null = null;
     if (!room) {
       const seed = sha256Hex(strToU8(`${cwd}:${events.length}:${state.coopRooms.length + 1}:${now}`));
       const roomId = `WR-${seed.slice(7, 13).toUpperCase()}`;
@@ -4052,6 +4282,15 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       room.members = Math.max(1, room.members - 1);
       room.updatedAt = now;
       transitioned = true;
+    } else if (action === "host-migrate") {
+      const captainIndex = room.roles.indexOf("captain");
+      if (captainIndex >= 0) {
+        room.roles.splice(captainIndex, 1);
+      }
+      room.roles.unshift("captain");
+      room.updatedAt = now;
+      transitioned = true;
+      hostMigrationToken = `HM-${sha256Hex(strToU8(`${room.roomId}:${room.updatedAt}:host`)).slice(0, 8).toUpperCase()}`;
     } else if (action === "reconnect") {
       room.updatedAt = now;
       transitioned = true;
@@ -4075,9 +4314,11 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       details: {
         room,
         reconnectToken,
+        hostMigrationToken,
         sessionResilience: {
           rejoinCommand: `runwright gameplay coop --scenario reconnect --room ${room.roomId} --json`,
           leaveCommand: `runwright gameplay coop --scenario leave --room ${room.roomId} --json`,
+          hostMigrateCommand: `runwright gameplay coop --scenario host-migrate --room ${room.roomId} --json`,
           transitioned
         },
         playbook: [
@@ -4190,6 +4431,18 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
         boost: 1.5
       }
     ];
+    const cadence = {
+      daily: "ops-daily-rotation",
+      weekly: "seasonal-ladder-reset",
+      nextDailyUtcHour: 9,
+      nextWeeklyResetDay: "monday"
+    };
+    const ghostLadder = {
+      id: `${seasonId}-ghost-ladder`,
+      active: !killSwitch,
+      entrants: Math.max(12, successfulRuns * 3 + state.matchmakingTickets.length),
+      topShareCode: `GHOST-${sha256Hex(strToU8(`${seasonId}:${successfulRuns}:${failedRuns}`)).slice(0, 10).toUpperCase()}`
+    };
     return {
       status: 0,
       mode,
@@ -4201,6 +4454,8 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       },
       details: {
         events: eventsCatalog,
+        cadence,
+        ghostLadder,
         featuredMission: eventsCatalog[0]?.active ? "Challenge mode with boosted rewards" : "Defensive trust-cleanup sprint",
         controls: {
           operatorAction: operatorAction ?? "none",
