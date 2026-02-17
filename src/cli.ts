@@ -124,6 +124,7 @@ type GameplayMode =
   | "liveops"
   | "creator"
   | "cinematic"
+  | "matchmaking"
   | "ranked";
 
 type FixAction = {
@@ -203,7 +204,7 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
   gameplay: {
     summary: "World-class gameplay layer: quests, campaign progression, simulation, social, creator, and ranking systems.",
     usage: [
-      "runwright gameplay <client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|ranked> [--json]",
+      "runwright gameplay <client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|matchmaking|ranked> [--json]",
       "                 [--scenario <name>] [--seed <number>] [--room <id>] [--title <name>] [--difficulty <tier>] [--description <text>]"
     ],
     examples: [
@@ -211,6 +212,7 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
       "runwright gameplay profile --title ace-operator --scenario en-US --json",
       "runwright gameplay quest --json",
       "runwright gameplay boss --scenario trust-breach --json",
+      "runwright gameplay matchmaking --scenario us-west --room 3 --description ethernet --json",
       "runwright gameplay creator --title \"Zero-Downtime Gauntlet\" --difficulty legendary --json"
     ]
   },
@@ -748,11 +750,12 @@ function validateAllowedFlags(args: ParsedArgs): void {
       "liveops",
       "creator",
       "cinematic",
+      "matchmaking",
       "ranked"
     ]);
     if (args.positionals.length !== 1 || !subcommand || !allowedModes.has(subcommand as GameplayMode)) {
       throw new CliError(
-        "gameplay command requires subcommand: gameplay client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|ranked",
+        "gameplay command requires subcommand: gameplay client|profile|sync|tutorial|recovery|social|moderation|telemetry|crash|accessibility|localization|qa|launch|quest|campaign|boss|ghost|director|coop|challenge|skilltree|liveops|creator|cinematic|matchmaking|ranked",
         1,
         "invalid-argument"
       );
@@ -2779,6 +2782,18 @@ type GameplayState = {
     createdAt: string;
     updatedAt: string;
   }>;
+  matchmakingTickets: Array<{
+    ticketId: string;
+    handle: string;
+    mmr: number;
+    region: "us-east" | "us-west" | "eu-west" | "ap-south";
+    partySize: number;
+    networkProfile: "ethernet" | "wifi" | "cellular";
+    estimatedLatencyMs: number;
+    status: "queued" | "matched";
+    createdAt: string;
+    updatedAt: string;
+  }>;
 };
 
 type GameplayResult = {
@@ -2810,7 +2825,8 @@ function readGameplayState(cwd: string): GameplayState {
         remapProfile: "default"
       },
       creatorLevels: [],
-      coopRooms: []
+      coopRooms: [],
+      matchmakingTickets: []
     };
   }
   try {
@@ -2906,6 +2922,34 @@ function readGameplayState(cwd: string): GameplayState {
         updatedAt: typeof entry.updatedAt === "string" ? entry.updatedAt : new Date(0).toISOString()
       }))
       .filter((entry) => entry.roomId.length > 0);
+    const matchmakingRaw = Array.isArray(parsed.matchmakingTickets) ? parsed.matchmakingTickets : [];
+    const matchmakingTickets: GameplayState["matchmakingTickets"] = matchmakingRaw
+      .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+      .map((entry) => {
+        const region: GameplayState["matchmakingTickets"][number]["region"] =
+          entry.region === "us-west" || entry.region === "eu-west" || entry.region === "ap-south" ? entry.region : "us-east";
+        const partySizeRaw = typeof entry.partySize === "number" && Number.isFinite(entry.partySize) ? Math.floor(entry.partySize) : 1;
+        const partySize = Math.min(5, Math.max(1, partySizeRaw));
+        const networkProfile: GameplayState["matchmakingTickets"][number]["networkProfile"] =
+          entry.networkProfile === "ethernet" || entry.networkProfile === "cellular" ? entry.networkProfile : "wifi";
+        const status: GameplayState["matchmakingTickets"][number]["status"] = entry.status === "matched" ? "matched" : "queued";
+        return {
+          ticketId: typeof entry.ticketId === "string" ? entry.ticketId : "",
+          handle: typeof entry.handle === "string" ? entry.handle : "player-one",
+          mmr: typeof entry.mmr === "number" && Number.isFinite(entry.mmr) ? Math.round(entry.mmr) : 1000,
+          region,
+          partySize,
+          networkProfile,
+          estimatedLatencyMs:
+            typeof entry.estimatedLatencyMs === "number" && Number.isFinite(entry.estimatedLatencyMs)
+              ? Math.max(20, Math.round(entry.estimatedLatencyMs))
+              : 80,
+          status,
+          createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date(0).toISOString(),
+          updatedAt: typeof entry.updatedAt === "string" ? entry.updatedAt : new Date(0).toISOString()
+        };
+      })
+      .filter((entry) => entry.ticketId.length > 0);
     return {
       schemaVersion: "1.0",
       activeProfile,
@@ -2914,7 +2958,8 @@ function readGameplayState(cwd: string): GameplayState {
       moderationQueue,
       accessibility,
       creatorLevels,
-      coopRooms
+      coopRooms,
+      matchmakingTickets
     };
   } catch {
     return {
@@ -2931,7 +2976,8 @@ function readGameplayState(cwd: string): GameplayState {
         remapProfile: "default"
       },
       creatorLevels: [],
-      coopRooms: []
+      coopRooms: [],
+      matchmakingTickets: []
     };
   }
 }
@@ -2957,11 +3003,24 @@ function mapRankDivision(rating: number): "bronze" | "silver" | "gold" | "platin
 }
 
 const SUPPORTED_GAME_LOCALES = ["en-US", "es-ES", "fr-FR", "de-DE", "ja-JP", "ko-KR", "pt-BR"] as const;
+const SUPPORTED_MATCHMAKING_REGIONS = ["us-east", "us-west", "eu-west", "ap-south"] as const;
+type MatchmakingRegion = (typeof SUPPORTED_MATCHMAKING_REGIONS)[number];
 
 function parseSupportedLocale(raw: string | undefined, fallback: (typeof SUPPORTED_GAME_LOCALES)[number]): (typeof SUPPORTED_GAME_LOCALES)[number] {
   if (!raw) return fallback;
   const match = SUPPORTED_GAME_LOCALES.find((locale) => locale === raw);
   return match ?? fallback;
+}
+
+function parseMatchmakingRegion(raw: string | undefined): MatchmakingRegion {
+  if (!raw) return "us-east";
+  const match = SUPPORTED_MATCHMAKING_REGIONS.find((entry) => entry === raw);
+  return match ?? "us-east";
+}
+
+function parseMatchmakingNetworkProfile(raw: string | undefined): "ethernet" | "wifi" | "cellular" {
+  if (raw === "ethernet" || raw === "cellular") return raw;
+  return "wifi";
 }
 
 function ensureActiveGameplayProfile(state: GameplayState, requestedHandle?: string, requestedLocale?: string): {
@@ -3776,6 +3835,65 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       details: {
         latestLevel: state.creatorLevels[state.creatorLevels.length - 1] ?? null,
         catalog: state.creatorLevels.slice(-5)
+      }
+    };
+  }
+
+  if (mode === "matchmaking") {
+    const profileResult = ensureActiveGameplayProfile(state, getStringFlag(args, "title"), state.activeProfile?.locale ?? "en-US");
+    const region = parseMatchmakingRegion(getStringFlag(args, "scenario"));
+    const networkProfile = parseMatchmakingNetworkProfile(getStringFlag(args, "description"));
+    const partySizeRaw = Number.parseInt(getStringFlag(args, "room") ?? "1", 10);
+    const partySize = Number.isFinite(partySizeRaw) ? Math.min(5, Math.max(1, partySizeRaw)) : 1;
+    const mmr = Math.max(800, Math.min(2400, 1000 + successfulRuns * 24 - failedRuns * 18 + blockedRuns * 8));
+    const regionBaseLatency: Record<MatchmakingRegion, number> = {
+      "us-east": 52,
+      "us-west": 67,
+      "eu-west": 94,
+      "ap-south": 136
+    };
+    const networkPenalty = networkProfile === "ethernet" ? -10 : networkProfile === "cellular" ? 32 : 10;
+    const estimatedLatencyMs = Math.max(20, regionBaseLatency[region] + partySize * 8 + networkPenalty);
+    const queueWindow = mmr >= 1600 ? 55 : mmr >= 1300 ? 90 : 120;
+    const populationSignal = Math.max(0, state.friendCodes.length + successfulRuns - failedRuns);
+    const queueStatus: "queued" | "matched" = populationSignal >= Math.max(1, partySize - 1) ? "matched" : "queued";
+    const ticketId = `MM-${sha256Hex(strToU8(`${profileResult.profile.handle}:${region}:${nowIso}:${state.matchmakingTickets.length + 1}`))
+      .slice(0, 8)
+      .toUpperCase()}`;
+    state.matchmakingTickets.push({
+      ticketId,
+      handle: profileResult.profile.handle,
+      mmr,
+      region,
+      partySize,
+      networkProfile,
+      estimatedLatencyMs,
+      status: queueStatus,
+      createdAt: nowIso,
+      updatedAt: nowIso
+    });
+    state.matchmakingTickets = state.matchmakingTickets.slice(-100);
+    writeGameplayState(cwd, state);
+    return {
+      status: 0,
+      mode,
+      mutating: true,
+      summary: {
+        ticketId,
+        region,
+        partySize,
+        queueStatus,
+        estimatedLatencyMs
+      },
+      details: {
+        latestTicket: state.matchmakingTickets[state.matchmakingTickets.length - 1] ?? null,
+        queueDepth: state.matchmakingTickets.filter((entry) => entry.region === region && entry.status === "queued").length,
+        orchestration: {
+          mmrWindow: `${Math.max(0, mmr - queueWindow)}-${mmr + queueWindow}`,
+          reconnectPolicy: "reuse ticketId for 90s; fall back to nearest region if queue exceeds SLA",
+          fallbackRegion: region === "us-east" ? "us-west" : "us-east",
+          networkPolicy: "cellular adds latency penalty and widens MMR window"
+        }
       }
     };
   }

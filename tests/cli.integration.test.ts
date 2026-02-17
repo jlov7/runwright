@@ -1597,6 +1597,35 @@ describe("cli integration", () => {
     expect(Number(joinedPayload.summary.members)).toBeGreaterThanOrEqual(2);
   });
 
+  it("gameplay matchmaking creates region-aware queue tickets with reconnect guidance", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-matchmaking-");
+    expect(runCli(["gameplay", "profile", "--title", "pilot", "--scenario", "en-US", "--json"], projectDir).status).toBe(0);
+
+    const result = runCli(
+      ["gameplay", "matchmaking", "--scenario", "us-west", "--room", "3", "--description", "ethernet", "--json"],
+      projectDir
+    );
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("matchmaking");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        ticketId: expect.stringMatching(/^MM-/),
+        region: "us-west",
+        partySize: 3,
+        queueStatus: expect.stringMatching(/^(queued|matched)$/),
+        estimatedLatencyMs: expect.any(Number)
+      })
+    );
+    expect(payload.details.orchestration).toEqual(
+      expect.objectContaining({
+        mmrWindow: expect.any(String),
+        reconnectPolicy: expect.stringContaining("ticketId"),
+        fallbackRegion: expect.any(String)
+      })
+    );
+  });
+
   it("gameplay challenge generation is deterministic for a fixed seed", () => {
     const projectDir = makeTempDir("skillbase-cli-gameplay-challenge-");
     const first = runCli(["gameplay", "challenge", "--seed", "4242", "--json"], projectDir);

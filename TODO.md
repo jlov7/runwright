@@ -7,7 +7,7 @@
 - [ ] WRX-003 Full account/auth lifecycle
 - [ ] WRX-004 Cross-device identity linking/merge flow
 - [ ] WRX-005 Authoritative progression/ranked write validation
-- [ ] WRX-006 Matchmaking orchestration (MMR + latency/region + reconnect)
+- [x] WRX-006 Matchmaking orchestration (MMR + latency/region + reconnect)
 - [ ] WRX-007 Durable cloud save with conflict audit trail
 - [ ] WRX-008 Anti-cheat anomaly detection and enforcement hooks
 - [ ] WRX-009 Telemetry ingestion validation and durability

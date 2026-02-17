@@ -24,7 +24,7 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 - [ ] WRX-003 Full auth system (email/OAuth/session lifecycle/password reset/device revocation).
 - [ ] WRX-004 Account linking and cross-device identity merge flow.
 - [ ] WRX-005 Authoritative server validation for ranked/progression writes.
-- [ ] WRX-006 Matchmaking orchestration (MMR + region/latency aware queueing + reconnect rules).
+- [x] WRX-006 Matchmaking orchestration (MMR + region/latency aware queueing + reconnect rules).
 - [ ] WRX-007 Durable cloud save with conflict resolution UX and audit history.
 - [ ] WRX-008 Anti-cheat pipeline (anomaly detection + moderation hooks + ban state model).
 - [ ] WRX-009 Telemetry ingestion hardening with event contract validation and delivery guarantees.
@@ -76,3 +76,4 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 
 ## Evidence Log
 - 2026-02-17: Program initialized and linked to active TODO queue.
+- 2026-02-17: WRX-006 implemented via `runwright gameplay matchmaking` with persisted queue tickets, region/latency estimation, reconnect policy guidance, and integration test coverage.

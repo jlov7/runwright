@@ -139,7 +139,7 @@ Execute the full expansion backlog required to move from release-ready v1 to a f
 
 ## Progress
 - [x] M0: Program tracker created and synced into `TODO.md`.
-- [ ] M1: In progress.
+- [ ] M1: In progress (WRX-006 complete; remaining WRX-001..005, WRX-007..012 pending).
 - [ ] M2: Pending.
 - [ ] M3: Pending.
 - [ ] M4: Pending.
