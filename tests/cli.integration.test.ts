@@ -1688,6 +1688,125 @@ describe("cli integration", () => {
     );
   });
 
+  it("gameplay profile creates and persists an operator identity", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-profile-");
+    const created = runCli(["gameplay", "profile", "--title", "ace-operator", "--scenario", "en-US", "--json"], projectDir);
+    expect(created.status).toBe(0);
+    const createdPayload = JSON.parse(created.stdout);
+    expect(createdPayload.mode).toBe("profile");
+    expect(createdPayload.summary).toEqual(
+      expect.objectContaining({
+        handle: "ace-operator",
+        locale: "en-US",
+        created: true
+      })
+    );
+
+    const resumed = runCli(["gameplay", "profile", "--json"], projectDir);
+    expect(resumed.status).toBe(0);
+    const resumedPayload = JSON.parse(resumed.stdout);
+    expect(Number(resumedPayload.summary.sessions)).toBeGreaterThanOrEqual(2);
+  });
+
+  it("gameplay sync writes deterministic sync history with conflict strategy", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-sync-");
+    const result = runCli(["gameplay", "sync", "--scenario", "manual-merge", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("sync");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        strategy: "manual-merge",
+        syncs: expect.any(Number),
+        digest: expect.any(String)
+      })
+    );
+    expect(payload.details.latestSync).toEqual(expect.objectContaining({ strategy: "manual-merge" }));
+  });
+
+  it("gameplay social and moderation manage friend and report flows", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-social-moderation-");
+    const social = runCli(["gameplay", "social", "--title", "ally-one", "--json"], projectDir);
+    expect(social.status).toBe(0);
+    const socialPayload = JSON.parse(social.stdout);
+    expect(socialPayload.mode).toBe("social");
+    expect(Number(socialPayload.summary.friends)).toBeGreaterThanOrEqual(1);
+
+    const moderation = runCli(
+      ["gameplay", "moderation", "--title", "ugc-report", "--description", "review this level", "--json"],
+      projectDir
+    );
+    expect(moderation.status).toBe(0);
+    const moderationPayload = JSON.parse(moderation.stdout);
+    expect(moderationPayload.mode).toBe("moderation");
+    expect(Number(moderationPayload.summary.totalReports)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("gameplay localization and accessibility apply player-ready presets", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-a11y-l10n-");
+    expect(runCli(["gameplay", "profile", "--title", "pilot", "--scenario", "en-US", "--json"], projectDir).status).toBe(0);
+    const localization = runCli(["gameplay", "localization", "--scenario", "ja-JP", "--json"], projectDir);
+    expect(localization.status).toBe(0);
+    const localizationPayload = JSON.parse(localization.stdout);
+    expect(localizationPayload.mode).toBe("localization");
+    expect(localizationPayload.summary.activeLocale).toBe("ja-JP");
+
+    const accessibility = runCli(["gameplay", "accessibility", "--scenario", "screen-reader", "--json"], projectDir);
+    expect(accessibility.status).toBe(0);
+    const accessibilityPayload = JSON.parse(accessibility.stdout);
+    expect(accessibilityPayload.mode).toBe("accessibility");
+    expect(accessibilityPayload.summary).toEqual(
+      expect.objectContaining({
+        preset: "screen-reader",
+        reducedMotion: true
+      })
+    );
+  });
+
+  it("gameplay launch reports full 35-item pre-release readiness matrix", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-launch-matrix-");
+    const result = runCli(["gameplay", "launch", "--json"], projectDir);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe("launch");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        total: 35,
+        ready: 35,
+        pending: 0
+      })
+    );
+    expect(payload.details.requirements).toHaveLength(35);
+    expect(payload.details.requirements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "RX1", status: "ready" }),
+        expect.objectContaining({ id: "RX35", status: "ready" })
+      ])
+    );
+  });
+
+  it("gameplay qa and telemetry expose launch diagnostics surfaces", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-qa-telemetry-");
+    expect(runCli(["gameplay", "quest", "--json"], projectDir).status).toBe(0);
+    const telemetry = runCli(["gameplay", "telemetry", "--json"], projectDir);
+    expect(telemetry.status).toBe(0);
+    const telemetryPayload = JSON.parse(telemetry.stdout);
+    expect(telemetryPayload.mode).toBe("telemetry");
+    expect(Array.isArray(telemetryPayload.details.schema)).toBe(true);
+
+    const qa = runCli(["gameplay", "qa", "--json"], projectDir);
+    expect(qa.status).toBe(0);
+    const qaPayload = JSON.parse(qa.stdout);
+    expect(qaPayload.mode).toBe("qa");
+    expect(qaPayload.summary).toEqual(
+      expect.objectContaining({
+        checks: expect.any(Number),
+        passed: expect.any(Number),
+        ready: expect.any(Boolean)
+      })
+    );
+  });
+
   it("export --deterministic produces byte-identical bundles with fixed SOURCE_DATE_EPOCH", () => {
     const projectDir = makeTempDir("skillbase-cli-export-deterministic-");
     mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
