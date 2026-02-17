@@ -46,9 +46,11 @@
 - [x] README includes deploy/release notes.
 - [x] README includes required/optional environment variables.
 
-## Latest Evidence (2026-02-15)
-- [x] Latest ship gate run is green: `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-16T02:34:53.220Z`, `overall.ok: true`).
-- [x] Final convergence gate is green: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, and `pnpm ship:gate` all passed in sequence on `2026-02-16`.
+## Latest Evidence (2026-02-17)
+- [x] Latest ship gate run is green: `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-17T14:56:40.649Z`, `overall.ok: true`).
+- [x] Final convergence gate is green: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, and `pnpm ship:gate` all passed in sequence on `2026-02-17`.
+- [x] Pre-release world-class program shipped: 35 readiness features implemented and tracked in `docs/plans/2026-02-16-world-class-game-pre-release-program.md`.
+- [x] Gameplay now includes release-readiness modes (`client`, `profile`, `sync`, `tutorial`, `recovery`, `social`, `moderation`, `telemetry`, `crash`, `accessibility`, `localization`, `qa`, `launch`) plus existing progression modes.
 - [x] Gameplay feature suite shipped with twelve new modes under `runwright gameplay` (`quest`, `campaign`, `boss`, `ghost`, `director`, `coop`, `challenge`, `skilltree`, `liveops`, `creator`, `cinematic`, `ranked`) and integration coverage.
 - [x] Legacy triple-feature backlog was revalidated and closed with targeted workstream tests (`199/199` passing across manifest/lockfile/trust/resolver/policy/workflow/CLI integration suites).
 - [x] Session replay analytics shipped with integration coverage: `runwright analytics journey --json` (funnel metrics, recovery replay, persona scorecard) in `tests/cli.integration.test.ts`.
@@ -56,7 +58,7 @@
 - [x] Lightweight UX tests were updated for touched journeys in `tests/journey-ux.test.ts`, `tests/help-ux.test.ts`, and `tests/error-guidance-ux.test.ts`.
 - [x] Verification commands passed: `pnpm vitest run tests/journey-ux.test.ts tests/help-ux.test.ts tests/error-guidance-ux.test.ts`, `pnpm vitest run tests/cli.integration.test.ts`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm run doctor`.
 - [x] Deep multi-persona product + backend scorecards were completed and recorded in `docs/audits/2026-02-14-product-and-backend-scorecard.md`.
-- [x] Latest local gate reruns are green: `pnpm verify` (316/316 tests) and `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-16T02:32:27.382Z`, `overall.ok: true`).
+- [x] Latest local gate reruns are green: `pnpm verify` (322/322 tests) and `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-17T14:53:49.568Z`, `overall.ok: true`).
 - [x] `pnpm quality:evidence:verify` now works without manual CLI arguments and is covered by script tests.
 - [x] Onboarding journey step 2 now emits a copy-paste-safe skill scaffolding command (`skills/example-skill`) with regression coverage in `tests/journey-ux.test.ts`.
 - [x] `scripts/verify_quality_evidence.ts` now fails fast on unknown flags and missing flag values with explicit messages; coverage added in `tests/quality-evidence-script.test.ts`.

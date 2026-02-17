@@ -49,31 +49,31 @@ Ship a launch-grade, player-facing world-class game readiness layer across gamep
 ## Milestones
 
 ### M1: Program tracking + command envelope
-- [ ] Add gameplay subcommand surfaces for release-readiness domains.
-- [ ] Add deterministic state storage for profile/social/moderation/sync.
-- [ ] Add text/json UX outputs with recovery hints.
+- [x] Add gameplay subcommand surfaces for release-readiness domains.
+- [x] Add deterministic state storage for profile/social/moderation/sync.
+- [x] Add text/json UX outputs with recovery hints.
 
 ### M2: Core player systems
-- [ ] RX1, RX2, RX3, RX4, RX5, RX6, RX7.
+- [x] RX1, RX2, RX3, RX4, RX5, RX6, RX7.
 
 ### M3: Progression and challenge systems
-- [ ] RX8, RX9, RX10, RX11, RX12, RX13.
+- [x] RX8, RX9, RX10, RX11, RX12, RX13.
 
 ### M4: Social, trust, and competitive systems
-- [ ] RX14, RX15, RX16, RX17, RX18, RX19, RX20.
+- [x] RX14, RX15, RX16, RX17, RX18, RX19, RX20.
 
 ### M5: Observability, accessibility, and launch governance
-- [ ] RX21, RX22, RX23, RX24, RX25, RX26, RX27, RX28, RX29, RX30, RX31, RX32, RX33, RX34, RX35.
+- [x] RX21, RX22, RX23, RX24, RX25, RX26, RX27, RX28, RX29, RX30, RX31, RX32, RX33, RX34, RX35.
 
 ### M6: Test and release convergence
-- [ ] Expand integration tests for all added readiness/gameplay modes.
-- [ ] Run `pnpm verify`.
-- [ ] Run `pnpm run doctor`.
-- [ ] Run `pnpm quality:evidence:verify`.
-- [ ] Run `pnpm ship:gate`.
-- [ ] Sync `TODO.md` and `RELEASE_CHECKLIST.md`.
+- [x] Expand integration tests for all added readiness/gameplay modes.
+- [x] Run `pnpm verify`.
+- [x] Run `pnpm run doctor`.
+- [x] Run `pnpm quality:evidence:verify`.
+- [x] Run `pnpm ship:gate`.
+- [x] Sync `TODO.md` and `RELEASE_CHECKLIST.md`.
 
 ## Status Ledger
 - Started: 2026-02-16
-- Current phase: M1 Program tracking + command envelope
-- Completion target: all 35 items implemented + verified + tracked
+- Current phase: Completed
+- Completion target: Met on 2026-02-17
