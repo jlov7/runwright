@@ -40,6 +40,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - [x] M5: Multi-persona deep UX audit with transcript evidence and prioritized gap capture.
 - [x] M6: Remediate all discovered P0/P1 UX gaps (journey freshness, error semantics, text-mode failures, onboarding command correctness).
 - [x] M7: Publish product + backend scorecards with explicit evidence mapping.
+- [x] M8: Replace simulated gameplay readiness with a real runtime API + web shell + script-level and UI-level test coverage.
 
 ## Surprises & Discoveries
 - Repo already has broad automated coverage (240 tests) and strong CI workflows.
@@ -49,6 +50,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - Windows CI surfaced two nondeterministic checks (`resolver.benchmark` timing strictness and soak script runner portability) that required deterministic hardening.
 - `journey` correctness depends on freshness, not just historical success events; stale-success states can silently erode operator trust.
 - Frozen lockfile failures were technically correct (exit code) but text copy could still mislead humans into treating failures as successful apply output.
+- Long-running full gates (`verify`, `doctor`, `ship:gate`) still complete cleanly after introducing runtime/web surfaces, but now run against 331 tests and require longer patience before final build outputs.
 
 ## Decision Log
 - 2026-02-14: Treat CLI output as product UX surface; prioritize copy clarity and recovery guidance over structural refactors.
@@ -57,6 +59,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - 2026-02-14: Execute soak runs via `node + tsx` directly rather than shelling through `pnpm` to avoid Windows command resolution variance.
 - 2026-02-14: Treat freshness as first-class onboarding UX; step completion now requires up-to-date evidence relative to manifest/skills/lockfile changes.
 - 2026-02-14: Prefer explicit failure headings in text mode (`Apply Failed`, `Bundle Verification Failed`) to avoid human misreads despite correct exit codes.
+- 2026-02-17: Prioritize shipping a minimal but real runtime/web foundation over adding more CLI simulation modes; evidence must come from executable runtime flows.
 
 ## Outcomes & Retrospective
 - Done:
@@ -66,6 +69,10 @@ Runwright already has strong policy, testing, and release-integrity foundations.
   - Hardened README with setup/run/test/release/env-var sections.
   - Ran full verification repeatedly (`pnpm verify`) and final `pnpm ship:gate`.
   - Confirmed remote CI + CodeQL are green on commit `358fffc` (`CI` run `22019975631`, `CodeQL` run `22019975630`).
+  - Added validated runtime contracts/store/server under `src/game/`, with onboarding, sync conflict, anti-tamper ranked, social/UGC/moderation, telemetry, crash, and readiness endpoints.
+  - Added launchable runtime command `pnpm game:runtime` via `scripts/game_runtime.ts`.
+  - Added accessible web shell in `apps/web/` with first-success flow, tooltips/help, and explicit error-state UX.
+  - Added runtime coverage (`tests/game-runtime.test.ts`, `tests/game-runtime-shell.test.ts`, `tests/game-runtime-script.test.ts`) and updated CLI integration to tie `gameplay client` readiness to real assets.
 - Not done:
   - None for v1 definition-of-done gates.
 - Lessons:

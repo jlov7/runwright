@@ -2,6 +2,12 @@
 
 ## P0
 
+### P0-011: Pre-release "game client shell" coverage was still CLI-simulated, not a launchable web runtime
+- Evidence: `runwright gameplay client --json` previously reported shell readiness without checking real web/runtime assets; no dedicated runtime server or web shell tests existed.
+- Impacted journey: App-store style player onboarding (profile -> tutorial -> first success), in-app help/tooltips, and web/UX failure-state recovery.
+- Fix strategy: Ship a real runtime API + persistent state model + launcher script + accessible web shell; wire CLI readiness checks to actual assets and add integration/UI shell tests.
+- Status: Done
+
 ### P0-010: Doctor cannot run because dependencies are not installable (registry DNS)
 - Evidence: `pnpm run doctor` succeeded; `reports/doctor/doctor.json` generated `2026-02-15T15:41:09.200Z` with `overall.ok: true`.
 - Impacted journey: Release gate evidence collection (`reports/doctor/doctor.json`) and all local quality verification.
