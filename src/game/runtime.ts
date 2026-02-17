@@ -52,6 +52,40 @@ const SignupRequestSchema = z.object({
   locale: LocaleSchema.default("en-US")
 });
 
+const LoginRequestSchema = z.object({
+  handle: z.string().min(1).max(32),
+  provider: z.enum(["email", "google", "apple", "github"]).default("email"),
+  deviceId: z.string().min(2).max(120)
+});
+
+const LogoutRequestSchema = z.object({
+  sessionId: z.string().min(1)
+});
+
+const PasswordResetRequestSchema = z.object({
+  handle: z.string().min(1).max(32)
+});
+
+const PasswordResetConfirmSchema = z.object({
+  ticketId: z.string().min(1)
+});
+
+const DeviceRevokeRequestSchema = z.object({
+  profileId: z.string().min(1),
+  deviceId: z.string().min(2).max(120)
+});
+
+const AuthLinkRequestSchema = z.object({
+  profileId: z.string().min(1),
+  provider: z.enum(["email", "google", "apple", "github"]),
+  externalId: z.string().min(3).max(160)
+});
+
+const AuthMergeRequestSchema = z.object({
+  primaryProfileId: z.string().min(1),
+  secondaryProfileId: z.string().min(1)
+});
+
 const SaveRequestSchema = z.object({
   profileId: z.string().min(1),
   strategy: z.enum(["last-write-wins", "manual-merge", "server-authoritative"]).default("last-write-wins"),
@@ -93,6 +127,7 @@ const ModerationRequestSchema = z.object({
 
 const TelemetryRequestSchema = z.object({
   profileId: z.string().min(1),
+  eventId: z.string().min(1).max(120).optional(),
   type: z.string().min(1).max(120),
   payload: z.record(z.union([z.string(), z.number(), z.boolean()]))
 });
@@ -170,10 +205,33 @@ function getProfile(state: RuntimeState, profileId: string): Profile | undefined
   return state.profiles.find((profile) => profile.id === profileId);
 }
 
+function getProfileByHandle(state: RuntimeState, handle: string): Profile | undefined {
+  const normalized = handle.trim().toLowerCase();
+  return state.profiles.find((profile) => profile.handle.trim().toLowerCase() === normalized);
+}
+
 function requireProfile(state: RuntimeState, profileId: string): Profile {
   const profile = getProfile(state, profileId);
   if (!profile) throw new HttpError(404, "profile-not-found", `Profile '${profileId}' was not found`);
   return profile;
+}
+
+function redactSensitiveText(raw: string | undefined): { text: string | undefined; redacted: boolean } {
+  if (!raw) return { text: raw, redacted: false };
+  const replacements: Array<{ pattern: RegExp; replacement: string }> = [
+    { pattern: /\bsk-[A-Za-z0-9]{20,}\b/g, replacement: "[redacted-openai-key]" },
+    { pattern: /\bghp_[A-Za-z0-9]{20,}\b/g, replacement: "[redacted-github-token]" },
+    { pattern: /\bAKIA[0-9A-Z]{16}\b/g, replacement: "[redacted-aws-key]" },
+    { pattern: /\b(api[_-]?key|token|secret)\s*[:=]\s*([^\s,;]+)/gi, replacement: "$1=[redacted]" }
+  ];
+  let next = raw;
+  let changed = false;
+  for (const rule of replacements) {
+    const replaced = next.replace(rule.pattern, rule.replacement);
+    if (replaced !== next) changed = true;
+    next = replaced;
+  }
+  return { text: next, redacted: changed };
 }
 
 function computeLeaderboard(state: RuntimeState): Array<{
@@ -414,9 +472,11 @@ async function handleRequest(
   const pathname = url.pathname;
 
   if (pathname === "/v1/health" && method === "GET") {
+    const state = readRuntimeState(options.stateFile);
     sendJson(res, 200, {
       ok: true,
-      schemaVersion: "1.0"
+      schemaVersion: state.schemaVersion,
+      persistence: state.persistence.backend
     });
     return;
   }
@@ -434,10 +494,215 @@ async function handleRequest(
       accessibility: buildDefaultAccessibility()
     };
     state.profiles.push(profile);
+    state.authLinks.push({
+      profileId: profile.id,
+      provider: "email",
+      externalId: profile.handle.trim().toLowerCase(),
+      linkedAt: createdAt
+    });
     writeRuntimeState(options.stateFile, state);
     sendJson(res, 201, {
       profile,
       tokenHint: sha256Digest(`${profile.id}:${createdAt}`).slice(0, 24)
+    });
+    return;
+  }
+
+  if (pathname === "/v1/auth/login" && method === "POST") {
+    const body = LoginRequestSchema.parse(await parseBodyChunks(req));
+    const state = readRuntimeState(options.stateFile);
+    const profile = getProfileByHandle(state, body.handle);
+    if (!profile) throw new HttpError(404, "profile-not-found", `Profile '${body.handle}' was not found`);
+    const createdAt = nowIso(options.clock);
+    const expiresAt = new Date(Date.parse(createdAt) + 1000 * 60 * 60 * 24 * 30).toISOString();
+    const session = {
+      id: `SES-${randomUUID().slice(0, 10).toUpperCase()}`,
+      profileId: profile.id,
+      provider: body.provider,
+      deviceId: body.deviceId,
+      createdAt,
+      expiresAt
+    };
+    state.authSessions.push(session);
+    state.authSessions = state.authSessions.slice(-1000);
+    profile.sessions += 1;
+    writeRuntimeState(options.stateFile, state);
+    sendJson(res, 201, {
+      session,
+      tokenHint: sha256Digest(`${session.id}:${profile.id}:${session.createdAt}`).slice(0, 32)
+    });
+    return;
+  }
+
+  if (pathname === "/v1/auth/logout" && method === "POST") {
+    const body = LogoutRequestSchema.parse(await parseBodyChunks(req));
+    const state = readRuntimeState(options.stateFile);
+    const session = state.authSessions.find((entry) => entry.id === body.sessionId);
+    if (!session) throw new HttpError(404, "session-not-found", `Session '${body.sessionId}' was not found`);
+    if (!session.revokedAt) session.revokedAt = nowIso(options.clock);
+    writeRuntimeState(options.stateFile, state);
+    sendJson(res, 200, { revoked: true, session });
+    return;
+  }
+
+  if (pathname === "/v1/auth/password-reset/request" && method === "POST") {
+    const body = PasswordResetRequestSchema.parse(await parseBodyChunks(req));
+    const state = readRuntimeState(options.stateFile);
+    const profile = getProfileByHandle(state, body.handle);
+    if (!profile) throw new HttpError(404, "profile-not-found", `Profile '${body.handle}' was not found`);
+    const requestedAt = nowIso(options.clock);
+    const expiresAt = new Date(Date.parse(requestedAt) + 1000 * 60 * 15).toISOString();
+    const ticket = {
+      id: `RST-${randomUUID().slice(0, 8).toUpperCase()}`,
+      profileId: profile.id,
+      requestedAt,
+      expiresAt
+    };
+    state.passwordResetTickets.push(ticket);
+    state.passwordResetTickets = state.passwordResetTickets.slice(-200);
+    writeRuntimeState(options.stateFile, state);
+    sendJson(res, 201, {
+      ticketId: ticket.id,
+      expiresAt: ticket.expiresAt,
+      nextAction: "POST /v1/auth/password-reset/confirm"
+    });
+    return;
+  }
+
+  if (pathname === "/v1/auth/password-reset/confirm" && method === "POST") {
+    const body = PasswordResetConfirmSchema.parse(await parseBodyChunks(req));
+    const state = readRuntimeState(options.stateFile);
+    const ticket = state.passwordResetTickets.find((entry) => entry.id === body.ticketId);
+    if (!ticket) throw new HttpError(404, "reset-ticket-not-found", `Ticket '${body.ticketId}' was not found`);
+    if (ticket.consumedAt) throw new HttpError(409, "reset-ticket-used", "Password reset ticket has already been consumed");
+    if (Date.parse(ticket.expiresAt) < Date.now()) throw new HttpError(410, "reset-ticket-expired", "Password reset ticket expired");
+    ticket.consumedAt = nowIso(options.clock);
+    writeRuntimeState(options.stateFile, state);
+    sendJson(res, 200, { ok: true, profileId: ticket.profileId });
+    return;
+  }
+
+  if (pathname === "/v1/auth/device/revoke" && method === "POST") {
+    const body = DeviceRevokeRequestSchema.parse(await parseBodyChunks(req));
+    const state = readRuntimeState(options.stateFile);
+    requireProfile(state, body.profileId);
+    const revokedAt = nowIso(options.clock);
+    const revoked = state.authSessions
+      .filter((entry) => entry.profileId === body.profileId && entry.deviceId === body.deviceId && !entry.revokedAt)
+      .map((entry) => {
+        entry.revokedAt = revokedAt;
+        return entry.id;
+      });
+    writeRuntimeState(options.stateFile, state);
+    sendJson(res, 200, { revokedSessions: revoked, revokedAt });
+    return;
+  }
+
+  if (pathname === "/v1/auth/link" && method === "POST") {
+    const body = AuthLinkRequestSchema.parse(await parseBodyChunks(req));
+    const state = readRuntimeState(options.stateFile);
+    requireProfile(state, body.profileId);
+    const existing = state.authLinks.find(
+      (entry) =>
+        entry.profileId === body.profileId &&
+        entry.provider === body.provider &&
+        entry.externalId.toLowerCase() === body.externalId.toLowerCase()
+    );
+    if (!existing) {
+      state.authLinks.push({
+        profileId: body.profileId,
+        provider: body.provider,
+        externalId: body.externalId,
+        linkedAt: nowIso(options.clock)
+      });
+      writeRuntimeState(options.stateFile, state);
+    }
+    sendJson(res, 201, {
+      linked: !existing,
+      links: state.authLinks.filter((entry) => entry.profileId === body.profileId)
+    });
+    return;
+  }
+
+  if (pathname === "/v1/auth/merge" && method === "POST") {
+    const body = AuthMergeRequestSchema.parse(await parseBodyChunks(req));
+    if (body.primaryProfileId === body.secondaryProfileId) {
+      throw new HttpError(400, "invalid-merge", "Primary and secondary profile IDs must differ");
+    }
+    const state = readRuntimeState(options.stateFile);
+    requireProfile(state, body.primaryProfileId);
+    requireProfile(state, body.secondaryProfileId);
+    const mergedAt = nowIso(options.clock);
+    for (const save of state.saves) {
+      if (save.profileId === body.secondaryProfileId) save.profileId = body.primaryProfileId;
+    }
+    for (const sync of state.syncHistory) {
+      if (sync.profileId === body.secondaryProfileId) sync.profileId = body.primaryProfileId;
+    }
+    for (const conflict of state.saveConflicts) {
+      if (conflict.profileId === body.secondaryProfileId) conflict.profileId = body.primaryProfileId;
+    }
+    for (const friend of state.friends) {
+      if (friend.profileId === body.secondaryProfileId) friend.profileId = body.primaryProfileId;
+    }
+    for (const ranked of state.ranked) {
+      if (ranked.profileId === body.secondaryProfileId) ranked.profileId = body.primaryProfileId;
+    }
+    for (const decision of state.antiCheat) {
+      if (decision.profileId === body.secondaryProfileId) decision.profileId = body.primaryProfileId;
+    }
+    for (const report of state.moderation) {
+      if (report.profileId === body.secondaryProfileId) report.profileId = body.primaryProfileId;
+    }
+    for (const event of state.telemetry) {
+      if (event.profileId === body.secondaryProfileId) event.profileId = body.primaryProfileId;
+    }
+    for (const receipt of state.telemetryReceipts) {
+      if (receipt.profileId === body.secondaryProfileId) receipt.profileId = body.primaryProfileId;
+    }
+    for (const crash of state.crashes) {
+      if (crash.profileId === body.secondaryProfileId) crash.profileId = body.primaryProfileId;
+    }
+    for (const room of state.coopRooms) {
+      room.members = room.members.map((member) => (member === body.secondaryProfileId ? body.primaryProfileId : member));
+      room.members = [...new Set(room.members)];
+    }
+    for (const level of state.ugcLevels) {
+      if (level.authorProfileId === body.secondaryProfileId) level.authorProfileId = body.primaryProfileId;
+    }
+    for (const session of state.authSessions) {
+      if (session.profileId === body.secondaryProfileId) session.profileId = body.primaryProfileId;
+    }
+    for (const link of state.authLinks) {
+      if (link.profileId === body.secondaryProfileId) link.profileId = body.primaryProfileId;
+    }
+    for (const ticket of state.passwordResetTickets) {
+      if (ticket.profileId === body.secondaryProfileId) ticket.profileId = body.primaryProfileId;
+    }
+    state.profiles = state.profiles.filter((entry) => entry.id !== body.secondaryProfileId);
+    state.mergeAudits.push({
+      id: `MERGE-${randomUUID().slice(0, 8).toUpperCase()}`,
+      primaryProfileId: body.primaryProfileId,
+      secondaryProfileId: body.secondaryProfileId,
+      mergedAt
+    });
+    writeRuntimeState(options.stateFile, state);
+    sendJson(res, 200, {
+      merged: true,
+      primaryProfileId: body.primaryProfileId,
+      secondaryProfileId: body.secondaryProfileId
+    });
+    return;
+  }
+
+  if (pathname === "/v1/auth/sessions" && method === "GET") {
+    const state = readRuntimeState(options.stateFile);
+    const profileId = url.searchParams.get("profileId");
+    const sessions = profileId
+      ? state.authSessions.filter((entry) => entry.profileId === profileId)
+      : state.authSessions;
+    sendJson(res, 200, {
+      sessions: [...sessions].reverse().slice(0, 200)
     });
     return;
   }
@@ -495,6 +760,18 @@ async function handleRequest(
     const hasConflict = typeof body.baseVersion === "number" && latestSave && body.baseVersion < latestSave.version;
 
     if (hasConflict && body.strategy === "manual-merge") {
+      state.saveConflicts.push({
+        id: `SCF-${randomUUID().slice(0, 8).toUpperCase()}`,
+        profileId: body.profileId,
+        strategy: body.strategy,
+        localDigest,
+        cloudDigest,
+        baseVersion: body.baseVersion ?? 0,
+        latestVersion: latestSave?.version ?? 0,
+        createdAt: nowIso(options.clock)
+      });
+      state.saveConflicts = state.saveConflicts.slice(-400);
+      writeRuntimeState(options.stateFile, state);
       sendJson(res, 409, {
         error: {
           code: "sync-conflict",
@@ -536,6 +813,18 @@ async function handleRequest(
         digest: resolvedDigest
       },
       conflictResolved: hasConflict
+    });
+    return;
+  }
+
+  if (pathname === "/v1/saves/conflicts" && method === "GET") {
+    const state = readRuntimeState(options.stateFile);
+    const profileId = url.searchParams.get("profileId");
+    const conflicts = profileId
+      ? state.saveConflicts.filter((entry) => entry.profileId === profileId)
+      : state.saveConflicts;
+    sendJson(res, 200, {
+      conflicts: [...conflicts].reverse().slice(0, 100)
     });
     return;
   }
@@ -675,16 +964,47 @@ async function handleRequest(
     const body = TelemetryRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
     requireProfile(state, body.profileId);
+    const duplicate = Boolean(
+      body.eventId &&
+        state.telemetry.some((entry) => entry.profileId === body.profileId && entry.eventId === body.eventId)
+    );
+    const receipt = {
+      id: `RCPT-${randomUUID().slice(0, 10).toUpperCase()}`,
+      profileId: body.profileId,
+      eventType: body.type,
+      duplicate,
+      receivedAt: nowIso(options.clock)
+    };
+    state.telemetryReceipts.push(receipt);
+    state.telemetryReceipts = state.telemetryReceipts.slice(-2000);
+    if (duplicate) {
+      writeRuntimeState(options.stateFile, state);
+      sendJson(res, 202, { ok: true, duplicate: true, receiptId: receipt.id });
+      return;
+    }
     state.telemetry.push({
       id: `EVT-${randomUUID().slice(0, 10).toUpperCase()}`,
       profileId: body.profileId,
+      eventId: body.eventId,
       type: body.type,
       payload: body.payload,
       createdAt: nowIso(options.clock)
     });
     state.telemetry = state.telemetry.slice(-1000);
     writeRuntimeState(options.stateFile, state);
-    sendJson(res, 202, { ok: true });
+    sendJson(res, 202, { ok: true, duplicate: false, receiptId: receipt.id });
+    return;
+  }
+
+  if (pathname === "/v1/telemetry/receipts" && method === "GET") {
+    const state = readRuntimeState(options.stateFile);
+    const profileId = url.searchParams.get("profileId");
+    const receipts = profileId
+      ? state.telemetryReceipts.filter((entry) => entry.profileId === profileId)
+      : state.telemetryReceipts;
+    sendJson(res, 200, {
+      receipts: [...receipts].reverse().slice(0, 200)
+    });
     return;
   }
 
@@ -717,17 +1037,20 @@ async function handleRequest(
     const body = CrashRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
     requireProfile(state, body.profileId);
+    const sanitizedMessage = redactSensitiveText(body.message);
+    const sanitizedStack = redactSensitiveText(body.stack);
     state.crashes.push({
       id: `CRASH-${randomUUID().slice(0, 10).toUpperCase()}`,
       profileId: body.profileId,
       surface: body.surface,
-      message: body.message,
-      stack: body.stack,
+      message: sanitizedMessage.text ?? "",
+      stack: sanitizedStack.text,
+      redacted: sanitizedMessage.redacted || sanitizedStack.redacted,
       createdAt: nowIso(options.clock)
     });
     state.crashes = state.crashes.slice(-500);
     writeRuntimeState(options.stateFile, state);
-    sendJson(res, 202, { ok: true });
+    sendJson(res, 202, { ok: true, redacted: sanitizedMessage.redacted || sanitizedStack.redacted });
     return;
   }
 
@@ -742,7 +1065,25 @@ async function handleRequest(
     const state = readRuntimeState(options.stateFile);
     requireProfile(state, body.profileId);
     const expected = createRankedDigest(body.profileId, body.score, options.rankedSalt);
-    const accepted = body.clientDigest === expected;
+    const digestAccepted = body.clientDigest === expected;
+    const recentSubmissions = state.ranked.filter((entry) => entry.profileId === body.profileId).slice(-3);
+    const lastAccepted = [...state.ranked]
+      .reverse()
+      .find((entry) => entry.profileId === body.profileId && entry.accepted);
+    const isScoreSpike =
+      body.score >= 4500 || (lastAccepted ? body.score - lastAccepted.score >= 650 : body.score >= 3000);
+    const rapidBurst = recentSubmissions.some((entry) => {
+      const elapsedMs = Date.now() - Date.parse(entry.createdAt);
+      return Number.isFinite(elapsedMs) && elapsedMs >= 0 && elapsedMs < 1500;
+    });
+    const rejectionReason: "digest-mismatch" | "score-spike" | "rate-limit" | null = !digestAccepted
+      ? "digest-mismatch"
+      : isScoreSpike
+        ? "score-spike"
+        : rapidBurst
+          ? "rate-limit"
+          : null;
+    const accepted = rejectionReason === null;
     state.ranked.push({
       profileId: body.profileId,
       score: body.score,
@@ -751,13 +1092,29 @@ async function handleRequest(
       createdAt: nowIso(options.clock)
     });
     state.ranked = state.ranked.slice(-1000);
+    if (rejectionReason) {
+      state.antiCheat.push({
+        id: `AC-${randomUUID().slice(0, 8).toUpperCase()}`,
+        profileId: body.profileId,
+        score: body.score,
+        reason: rejectionReason,
+        action: "reject",
+        createdAt: nowIso(options.clock)
+      });
+      state.antiCheat = state.antiCheat.slice(-1000);
+    }
     writeRuntimeState(options.stateFile, state);
     if (!accepted) {
       sendJson(res, 422, {
         accepted: false,
         error: {
-          code: "anti-tamper-failed",
-          message: "Submitted digest did not match server-side authoritative digest."
+          code: rejectionReason === "digest-mismatch" ? "anti-tamper-failed" : "anti-cheat-blocked",
+          message:
+            rejectionReason === "digest-mismatch"
+              ? "Submitted digest did not match server-side authoritative digest."
+              : rejectionReason === "score-spike"
+                ? "Submitted score exceeded anti-cheat spike threshold."
+                : "Submission was rate-limited by anti-cheat protections."
         }
       });
       return;
@@ -766,6 +1123,16 @@ async function handleRequest(
       accepted: true,
       leaderboard: computeLeaderboard(state).slice(0, 10)
     });
+    return;
+  }
+
+  if (pathname === "/v1/ranked/anti-cheat" && method === "GET") {
+    const state = readRuntimeState(options.stateFile);
+    const profileId = url.searchParams.get("profileId");
+    const decisions = profileId
+      ? state.antiCheat.filter((entry) => entry.profileId === profileId)
+      : state.antiCheat;
+    sendJson(res, 200, { decisions: [...decisions].reverse().slice(0, 200) });
     return;
   }
 

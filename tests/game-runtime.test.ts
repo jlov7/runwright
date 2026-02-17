@@ -146,6 +146,17 @@ describe("game runtime", () => {
       expect(conflict.status).toBe(409);
       expect(conflict.payload.error.code).toBe("sync-conflict");
       expect(conflict.payload.error.nextAction).toContain("manual merge");
+
+      const conflicts = await jsonRequest<{ conflicts: Array<{ profileId: string; latestVersion: number }> }>(
+        `${runtime.baseUrl}/v1/saves/conflicts?profileId=${profileId}`
+      );
+      expect(conflicts.status).toBe(200);
+      expect(conflicts.payload.conflicts[0]).toEqual(
+        expect.objectContaining({
+          profileId,
+          latestVersion: 1
+        })
+      );
     } finally {
       await runtime.close();
     }
@@ -192,6 +203,116 @@ describe("game runtime", () => {
       const persisted = JSON.parse(readFileSync(stateFile, "utf8")) as { ranked: Array<{ accepted: boolean }> };
       expect(persisted.ranked).toHaveLength(1);
       expect(persisted.ranked[0]?.accepted).toBe(false);
+
+      const antiCheat = await jsonRequest<{ decisions: Array<{ profileId: string; reason: string }> }>(
+        `${runtime.baseUrl}/v1/ranked/anti-cheat?profileId=${profileId}`
+      );
+      expect(antiCheat.status).toBe(200);
+      expect(antiCheat.payload.decisions[0]).toEqual(
+        expect.objectContaining({
+          profileId,
+          reason: "digest-mismatch"
+        })
+      );
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("supports auth lifecycle, account linking/merge, telemetry dedupe, and crash redaction", async () => {
+    const projectDir = makeTempDir("runwright-runtime-auth-lifecycle-");
+    const stateFile = join(projectDir, ".skillbase", "runtime-state.json");
+    const runtime = await createGameRuntimeServer({
+      host: "127.0.0.1",
+      port: 0,
+      stateFile,
+      rankedSalt: "test-salt"
+    });
+    try {
+      const first = await jsonRequest<{ profile: { id: string } }>(`${runtime.baseUrl}/v1/auth/signup`, {
+        method: "POST",
+        body: JSON.stringify({ handle: "pilot-one", locale: "en-US" })
+      });
+      const second = await jsonRequest<{ profile: { id: string } }>(`${runtime.baseUrl}/v1/auth/signup`, {
+        method: "POST",
+        body: JSON.stringify({ handle: "pilot-two", locale: "en-US" })
+      });
+      const primaryProfileId = first.payload.profile.id;
+      const secondaryProfileId = second.payload.profile.id;
+
+      const login = await jsonRequest<{ session: { id: string } }>(`${runtime.baseUrl}/v1/auth/login`, {
+        method: "POST",
+        body: JSON.stringify({ handle: "pilot-one", provider: "email", deviceId: "macbook-pro" })
+      });
+      expect(login.status).toBe(201);
+      const sessionId = login.payload.session.id;
+
+      const link = await jsonRequest<{ linked: boolean; links: Array<{ provider: string }> }>(
+        `${runtime.baseUrl}/v1/auth/link`,
+        {
+          method: "POST",
+          body: JSON.stringify({ profileId: primaryProfileId, provider: "github", externalId: "pilot-gh" })
+        }
+      );
+      expect(link.status).toBe(201);
+      expect(link.payload.links).toEqual(expect.arrayContaining([expect.objectContaining({ provider: "github" })]));
+
+      const merge = await jsonRequest<{ merged: boolean }>(`${runtime.baseUrl}/v1/auth/merge`, {
+        method: "POST",
+        body: JSON.stringify({ primaryProfileId, secondaryProfileId })
+      });
+      expect(merge.status).toBe(200);
+      expect(merge.payload.merged).toBe(true);
+
+      const telemetryFirst = await jsonRequest<{ duplicate: boolean }>(`${runtime.baseUrl}/v1/telemetry/events`, {
+        method: "POST",
+        body: JSON.stringify({
+          profileId: primaryProfileId,
+          eventId: "evt-onboarding-1",
+          type: "tutorial.started",
+          payload: { surface: "intro" }
+        })
+      });
+      const telemetryDuplicate = await jsonRequest<{ duplicate: boolean }>(`${runtime.baseUrl}/v1/telemetry/events`, {
+        method: "POST",
+        body: JSON.stringify({
+          profileId: primaryProfileId,
+          eventId: "evt-onboarding-1",
+          type: "tutorial.started",
+          payload: { surface: "intro" }
+        })
+      });
+      expect(telemetryFirst.status).toBe(202);
+      expect(telemetryFirst.payload.duplicate).toBe(false);
+      expect(telemetryDuplicate.status).toBe(202);
+      expect(telemetryDuplicate.payload.duplicate).toBe(true);
+
+      const crash = await jsonRequest<{ redacted: boolean }>(`${runtime.baseUrl}/v1/crash/report`, {
+        method: "POST",
+        body: JSON.stringify({
+          profileId: primaryProfileId,
+          surface: "web-shell",
+          message: "fatal token=sk-abcdefghijklmnopqrstuvwxyz1234 exposed",
+          stack: "api_key=super-secret-value"
+        })
+      });
+      expect(crash.status).toBe(202);
+      expect(crash.payload.redacted).toBe(true);
+
+      const recent = await jsonRequest<{ crashes: Array<{ message: string; stack?: string; redacted: boolean }> }>(
+        `${runtime.baseUrl}/v1/crash/recent`
+      );
+      expect(recent.status).toBe(200);
+      expect(recent.payload.crashes[0]?.redacted).toBe(true);
+      expect(String(recent.payload.crashes[0]?.message)).not.toContain("sk-");
+      expect(String(recent.payload.crashes[0]?.stack ?? "")).toContain("[redacted]");
+
+      const logout = await jsonRequest<{ revoked: boolean }>(`${runtime.baseUrl}/v1/auth/logout`, {
+        method: "POST",
+        body: JSON.stringify({ sessionId })
+      });
+      expect(logout.status).toBe(200);
+      expect(logout.payload.revoked).toBe(true);
     } finally {
       await runtime.close();
     }
