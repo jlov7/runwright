@@ -31,13 +31,9 @@
 - Status: Resolved
 
 ### Q4 update (2026-02-17)
-- Latest pushed commit: `e2f2af2d85f49180cdedf3fc693938c1ddd0555a`.
-- New GitHub workflow failures remain platform-startup style:
-  - `CI` run `22104490175` (rerun failed jobs include `63883415895`, `63883415899`, `63883415905`; all `steps: []`).
-  - `CodeQL` run `22104490239` (rerun failed job `63883417179`; `steps: []`).
-- Prior rerun on same head also failed with zero-step jobs:
-  - `CI` run `22104490175` earlier failed jobs `63883137400`, `63883137464`, `63883137475` (`steps: []`).
-  - `CodeQL` run `22104490239` earlier failed job `63883137597` (`steps: []`).
+- Recent pushed heads continue to fail with startup-only signals:
+  - Head `01c3f21b9f86a1d62e0c4f93b348267805f3095b`: `CI` run `22106792532` (jobs `63891729063`, `63891729149`, `63891729238` all `steps: []`), `CodeQL` run `22106792526` (job `63891729212`, `steps: []`).
+  - Prior head `e2f2af2d85f49180cdedf3fc693938c1ddd0555a`: `CI` run `22104490175`, `CodeQL` run `22104490239` also failed with `steps: []`.
 - Compensating local evidence on this commit:
   - `pnpm verify` (331/331 tests passing, build success)
   - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-17T15:19:40.587Z`, `overall.ok: true`)
