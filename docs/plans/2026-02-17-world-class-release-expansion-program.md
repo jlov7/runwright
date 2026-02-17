@@ -57,7 +57,7 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 ### UGC, Moderation, and Operations
 - [ ] WRX-031 Creator moderation lifecycle (review queue/state transitions/appeals).
 - [ ] WRX-032 UGC discovery/ranking quality signals and abuse weighting.
-- [ ] WRX-033 Abuse reporting workflow hardening with triage SLAs and escalation paths.
+- [x] WRX-033 Abuse reporting workflow hardening with triage SLAs and escalation paths.
 - [ ] WRX-034 Analytics dashboard maturity (funnels, retention, mode health, balancing visibility).
 - [ ] WRX-035 QA automation matrix expansion (device/OS/locale/network profile coverage).
 - [ ] WRX-036 Release pipeline maturity (staged rollout controls + instant rollback).
@@ -77,3 +77,4 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 ## Evidence Log
 - 2026-02-17: Program initialized and linked to active TODO queue.
 - 2026-02-17: WRX-006 implemented via `runwright gameplay matchmaking` with persisted queue tickets, region/latency estimation, reconnect policy guidance, and integration test coverage.
+- 2026-02-17: WRX-033 implemented via moderation report severity/SLA metadata and `triage`/`escalate` action support with integration coverage.

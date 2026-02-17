@@ -2759,7 +2759,11 @@ type GameplayState = {
     title: string;
     description: string;
     status: "open" | "triaged";
+    severity: "low" | "medium" | "high";
+    escalated: boolean;
+    slaHours: number;
     createdAt: string;
+    updatedAt: string;
   }>;
   accessibility: {
     preset: "default" | "high-contrast" | "reduced-motion" | "screen-reader";
@@ -2866,13 +2870,24 @@ function readGameplayState(cwd: string): GameplayState {
     const moderationQueue = Array.isArray(parsed.moderationQueue)
       ? parsed.moderationQueue
           .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
-          .map((entry) => ({
-            id: typeof entry.id === "string" ? entry.id : "",
-            title: typeof entry.title === "string" ? entry.title : "Untitled Report",
-            description: typeof entry.description === "string" ? entry.description : "",
-            status: (entry.status === "triaged" ? "triaged" : "open") as "open" | "triaged",
-            createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date(0).toISOString()
-          }))
+          .map((entry) => {
+            const severity: GameplayState["moderationQueue"][number]["severity"] =
+              entry.severity === "low" || entry.severity === "high" ? entry.severity : "medium";
+            return {
+              id: typeof entry.id === "string" ? entry.id : "",
+              title: typeof entry.title === "string" ? entry.title : "Untitled Report",
+              description: typeof entry.description === "string" ? entry.description : "",
+              status: (entry.status === "triaged" ? "triaged" : "open") as "open" | "triaged",
+              severity,
+              escalated: entry.escalated === true,
+              slaHours:
+                typeof entry.slaHours === "number" && Number.isFinite(entry.slaHours) && entry.slaHours >= 1
+                  ? Math.floor(entry.slaHours)
+                  : 24,
+              createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date(0).toISOString(),
+              updatedAt: typeof entry.updatedAt === "string" ? entry.updatedAt : new Date(0).toISOString()
+            };
+          })
           .filter((entry) => entry.id.length > 0)
       : [];
     const accessibilityRaw = parsed.accessibility as Record<string, unknown> | undefined;
@@ -3253,14 +3268,33 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
 
   if (mode === "moderation") {
     const ticketTitle = getStringFlag(args, "title");
+    const action = getStringFlag(args, "scenario") ?? "report";
+    const severityTier = parseGameplayDifficulty(getStringFlag(args, "difficulty"), "silver");
+    const severity: "low" | "medium" | "high" =
+      severityTier === "bronze" ? "low" : severityTier === "silver" ? "medium" : "high";
+    const slaHours = severity === "high" ? 4 : severity === "medium" ? 12 : 24;
     let createdTicket: GameplayState["moderationQueue"][number] | null = null;
-    if (ticketTitle && ticketTitle.trim().length > 0) {
+    let transitionedTicket: GameplayState["moderationQueue"][number] | null = null;
+    if (action === "triage" || action === "escalate") {
+      const nextTicket = state.moderationQueue.find((entry) => entry.status === "open");
+      if (nextTicket) {
+        nextTicket.status = "triaged";
+        nextTicket.updatedAt = nowIso;
+        if (action === "escalate") nextTicket.escalated = true;
+        transitionedTicket = nextTicket;
+      }
+      if (transitionedTicket) writeGameplayState(cwd, state);
+    } else if (ticketTitle && ticketTitle.trim().length > 0) {
       const ticket = {
         id: `REP-${String(state.moderationQueue.length + 1).padStart(4, "0")}`,
         title: ticketTitle.trim(),
         description: getStringFlag(args, "description") ?? "Player-submitted report requiring moderation review.",
         status: "open" as const,
-        createdAt: nowIso
+        severity,
+        escalated: false,
+        slaHours,
+        createdAt: nowIso,
+        updatedAt: nowIso
       };
       state.moderationQueue.push(ticket);
       createdTicket = ticket;
@@ -3269,18 +3303,27 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
     return {
       status: 0,
       mode,
-      mutating: Boolean(createdTicket),
+      mutating: Boolean(createdTicket || transitionedTicket),
       summary: {
         openReports: state.moderationQueue.filter((entry) => entry.status === "open").length,
+        triagedReports: state.moderationQueue.filter((entry) => entry.status === "triaged").length,
+        escalatedReports: state.moderationQueue.filter((entry) => entry.escalated).length,
         totalReports: state.moderationQueue.length
       },
       details: {
+        action,
         createdTicket,
+        transitionedTicket,
         queue: state.moderationQueue.slice(-10),
         policy: {
           ugcReview: "required",
           abuseEscalation: "priority-high",
-          publishGate: "approved-only"
+          publishGate: "approved-only",
+          defaultSlaHours: {
+            low: 24,
+            medium: 12,
+            high: 4
+          }
         }
       }
     };

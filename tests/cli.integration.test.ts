@@ -1771,6 +1771,46 @@ describe("cli integration", () => {
     expect(Number(moderationPayload.summary.totalReports)).toBeGreaterThanOrEqual(1);
   });
 
+  it("gameplay moderation supports triage and escalation actions", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-moderation-actions-");
+    const created = runCli(
+      ["gameplay", "moderation", "--title", "abuse-report", "--description", "harassment in chat", "--difficulty", "gold", "--json"],
+      projectDir
+    );
+    expect(created.status).toBe(0);
+    const createdPayload = JSON.parse(created.stdout);
+    expect(createdPayload.details.createdTicket).toEqual(
+      expect.objectContaining({
+        severity: "high",
+        slaHours: 4,
+        status: "open"
+      })
+    );
+    expect(
+      runCli(["gameplay", "moderation", "--title", "spam-report", "--description", "bot spam", "--difficulty", "silver", "--json"], projectDir).status
+    ).toBe(0);
+
+    const triaged = runCli(["gameplay", "moderation", "--scenario", "triage", "--json"], projectDir);
+    expect(triaged.status).toBe(0);
+    const triagedPayload = JSON.parse(triaged.stdout);
+    expect(triagedPayload.summary).toEqual(
+      expect.objectContaining({
+        openReports: 1,
+        triagedReports: expect.any(Number)
+      })
+    );
+
+    const escalated = runCli(["gameplay", "moderation", "--scenario", "escalate", "--json"], projectDir);
+    expect(escalated.status).toBe(0);
+    const escalatedPayload = JSON.parse(escalated.stdout);
+    expect(escalatedPayload.summary).toEqual(
+      expect.objectContaining({
+        escalatedReports: 1,
+        totalReports: 2
+      })
+    );
+  });
+
   it("gameplay localization and accessibility apply player-ready presets", () => {
     const projectDir = makeTempDir("skillbase-cli-gameplay-a11y-l10n-");
     expect(runCli(["gameplay", "profile", "--title", "pilot", "--scenario", "en-US", "--json"], projectDir).status).toBe(0);

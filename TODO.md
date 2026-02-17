@@ -34,7 +34,7 @@
 - [ ] WRX-030 LiveOps controls expansion
 - [ ] WRX-031 Creator moderation lifecycle and appeals
 - [ ] WRX-032 UGC discovery/ranking quality signals
-- [ ] WRX-033 Abuse reporting workflow hardening
+- [x] WRX-033 Abuse reporting workflow hardening
 - [ ] WRX-034 Gameplay analytics dashboard maturity
 - [ ] WRX-035 QA matrix automation expansion
 - [ ] WRX-036 Staged rollout + rollback operations maturity
