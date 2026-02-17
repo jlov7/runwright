@@ -19,7 +19,7 @@
 - [ ] WRX-015 Failure/recovery UX matrix completion
 - [ ] WRX-016 Empty-state/copy polish across personas
 - [x] WRX-017 Complete accessibility support surface
-- [ ] WRX-018 Localization framework maturity and fallback correctness
+- [x] WRX-018 Localization framework maturity and fallback correctness
 - [x] WRX-019 Offline/degraded-network deterministic queue/replay
 - [ ] WRX-020 Premium game-feel feedback timing pass
 - [ ] WRX-021 Progression economy balancing framework

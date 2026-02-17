@@ -1845,7 +1845,13 @@ describe("cli integration", () => {
     expect(localization.status).toBe(0);
     const localizationPayload = JSON.parse(localization.stdout);
     expect(localizationPayload.mode).toBe("localization");
-    expect(localizationPayload.summary.activeLocale).toBe("ja-JP");
+    expect(localizationPayload.summary).toEqual(
+      expect.objectContaining({
+        activeLocale: "ja-JP",
+        coveragePercent: expect.any(Number),
+        fallbackUsed: false
+      })
+    );
 
     const accessibility = runCli(["gameplay", "accessibility", "--scenario", "screen-reader", "--json"], projectDir);
     expect(accessibility.status).toBe(0);
@@ -1858,6 +1864,23 @@ describe("cli integration", () => {
         remapProfile: "single-stick"
       })
     );
+  });
+
+  it("gameplay localization falls back to supported locales when requested locale is unavailable", () => {
+    const projectDir = makeTempDir("skillbase-cli-gameplay-localization-fallback-");
+    expect(runCli(["gameplay", "profile", "--title", "pilot", "--scenario", "en-US", "--json"], projectDir).status).toBe(0);
+    const localization = runCli(["gameplay", "localization", "--scenario", "it-IT", "--json"], projectDir);
+    expect(localization.status).toBe(0);
+    const payload = JSON.parse(localization.stdout);
+    expect(payload.mode).toBe("localization");
+    expect(payload.summary).toEqual(
+      expect.objectContaining({
+        activeLocale: "en-US",
+        fallbackUsed: true,
+        coveragePercent: 100
+      })
+    );
+    expect(payload.details.fallbackChain).toEqual(expect.arrayContaining(["it-IT", "en-US"]));
   });
 
   it("gameplay accessibility supports explicit remap and text-scale overrides", () => {

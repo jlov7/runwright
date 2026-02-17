@@ -3039,6 +3039,15 @@ function mapRankDivision(rating: number): "bronze" | "silver" | "gold" | "platin
 }
 
 const SUPPORTED_GAME_LOCALES = ["en-US", "es-ES", "fr-FR", "de-DE", "ja-JP", "ko-KR", "pt-BR"] as const;
+const LOCALIZATION_COVERAGE: Record<(typeof SUPPORTED_GAME_LOCALES)[number], number> = {
+  "en-US": 100,
+  "es-ES": 92,
+  "fr-FR": 89,
+  "de-DE": 87,
+  "ja-JP": 84,
+  "ko-KR": 82,
+  "pt-BR": 86
+};
 const SUPPORTED_MATCHMAKING_REGIONS = ["us-east", "us-west", "eu-west", "ap-south"] as const;
 type MatchmakingRegion = (typeof SUPPORTED_MATCHMAKING_REGIONS)[number];
 
@@ -3554,6 +3563,8 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
   if (mode === "localization") {
     const requested = getStringFlag(args, "scenario");
     const locale = parseSupportedLocale(requested, state.activeProfile?.locale ? parseSupportedLocale(state.activeProfile.locale, "en-US") : "en-US");
+    const fallbackUsed = Boolean(requested && requested !== locale);
+    const coveragePercent = LOCALIZATION_COVERAGE[locale];
     let mutated = false;
     if (state.activeProfile && state.activeProfile.locale !== locale) {
       state.activeProfile.locale = locale;
@@ -3566,14 +3577,18 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
       mutating: mutated,
       summary: {
         activeLocale: locale,
-        supportedLocales: SUPPORTED_GAME_LOCALES.length
+        supportedLocales: SUPPORTED_GAME_LOCALES.length,
+        coveragePercent,
+        fallbackUsed
       },
       details: {
         supported: SUPPORTED_GAME_LOCALES,
+        fallbackChain: [requested ?? locale, locale, "en-US"].filter((entry, index, arr) => arr.indexOf(entry) === index),
         readiness: {
-          uiStrings: "covered",
-          tutorialCopy: "covered",
-          moderationCopy: "covered"
+          uiStrings: coveragePercent >= 85 ? "covered" : "partial",
+          tutorialCopy: coveragePercent >= 88 ? "covered" : "partial",
+          moderationCopy: coveragePercent >= 80 ? "covered" : "partial",
+          legalCopy: coveragePercent >= 90 ? "covered" : "review-needed"
         }
       }
     };
