@@ -380,6 +380,28 @@ function serveStatic(staticRoot: string, req: IncomingMessage, res: ServerRespon
   return true;
 }
 
+function serveDocsFile(req: IncomingMessage, res: ServerResponse, pathname: string): boolean {
+  if (!pathname.startsWith("/docs/")) return false;
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+  const docsRoot = resolve(process.cwd(), "docs");
+  const candidate = resolve(process.cwd(), `.${pathname}`);
+  if (!candidate.startsWith(docsRoot)) {
+    sendJson(res, 403, {
+      error: {
+        code: "forbidden-docs-path",
+        message: "Requested docs path is outside the docs directory."
+      }
+    });
+    return true;
+  }
+  if (!existsSync(candidate) || !statSync(candidate).isFile()) return false;
+  const body = readFileSync(candidate);
+  res.statusCode = 200;
+  res.setHeader("content-type", mimeType(candidate));
+  res.end(req.method === "HEAD" ? undefined : body);
+  return true;
+}
+
 async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -827,6 +849,7 @@ async function handleRequest(
     return;
   }
 
+  if (serveDocsFile(req, res, pathname)) return;
   if (options.staticRoot && serveStatic(options.staticRoot, req, res, pathname)) return;
   throw new HttpError(404, "not-found", `Route not found for ${method} ${pathname}`);
 }

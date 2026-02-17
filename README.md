@@ -65,6 +65,22 @@ pnpm tsx src/cli.ts fix --plan --json
 pnpm tsx src/cli.ts apply --target all --scope project --mode copy --dry-run --json
 ```
 
+## Web Runtime Shell
+
+Run the player-facing shell and runtime API:
+
+```bash
+pnpm game:runtime
+```
+
+Then open the printed URL in your browser (default `http://127.0.0.1:4242`).
+
+Runtime endpoints:
+- Web shell: `/`
+- Health: `/v1/health`
+- Help payload: `/v1/help`
+- Release matrix: `/v1/release/readiness`
+
 ## Test and Verify
 
 ```bash
@@ -99,6 +115,7 @@ CI release verification is defined in `.github/workflows/release-verify.yml` and
 | `SOURCE_DATE_EPOCH` | Optional | Fixed Unix timestamp (seconds) for deterministic exports. |
 | `SKILLBASE_SOURCE_DATE_EPOCH` | Optional | Fallback deterministic timestamp if `SOURCE_DATE_EPOCH` is not set. |
 | `SKILLBASE_OPERATION_LOG_PATH` | Optional | Override operations log path (default `.skillbase/operations.jsonl`). |
+| `RUNWRIGHT_RANKED_SALT` | Optional local / required shared envs | Server-side salt for ranked anti-tamper digest verification in runtime API. |
 | `SKILLBASE_RELEASE_PRIVATE_KEY` | CI only | Private ed25519 key secret used by release verification workflow. |
 | `SKILLBASE_RELEASE_PUBLIC_KEY` | CI only | Public ed25519 key secret used by release verification workflow. |
 
@@ -145,6 +162,7 @@ Compatibility note:
 - Non-technical onboarding: `docs/getting-started/non-technical-onboarding.md`
 - Persona journeys: `docs/getting-started/user-journeys.md`
 - Help center: `docs/help/README.md`
+- Game runtime guide: `docs/help/game-runtime.md`
 - Practical command recipes: `docs/help/cli-recipes.md`
 - Troubleshooting: `docs/help/troubleshooting.md`
 

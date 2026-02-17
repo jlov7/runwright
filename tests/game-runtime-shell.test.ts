@@ -44,6 +44,10 @@ describe("game runtime web shell", () => {
       const html = await response.text();
       expect(html).toContain("First Success Control Room");
       expect(html).toContain("Help & Tooltips");
+
+      const docs = await fetch(`${runtime.baseUrl}/docs/help/README.md`);
+      expect(docs.status).toBe(200);
+      expect(await docs.text()).toContain("# Help Center");
     } finally {
       await runtime.close();
     }

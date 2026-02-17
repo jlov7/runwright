@@ -19,6 +19,7 @@ It also detects stale evidence: if skills or manifest changed after `update`/`sc
 ## Help topics
 - Command recipes: `docs/help/cli-recipes.md`
 - Failure recovery: `docs/help/troubleshooting.md`
+- Game runtime shell: `docs/help/game-runtime.md`
 - Technical onboarding: `docs/getting-started/quickstart.md`
 - Non-technical onboarding: `docs/getting-started/non-technical-onboarding.md`
 
