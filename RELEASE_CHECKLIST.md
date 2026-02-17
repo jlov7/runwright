@@ -54,7 +54,7 @@
 - [x] Fresh doctor evidence: `pnpm run doctor` -> `reports/doctor/doctor.json` generated `2026-02-17T18:39:35.630Z`.
 - [x] Fresh quality evidence verification: `pnpm quality:evidence:verify` -> `reports/quality/evidence-verification.json`.
 - [x] Fresh ship gate evidence: `pnpm ship:gate` -> `reports/quality/ship-gate.summary.json` generated `2026-02-17T18:42:25.973Z`, `overall.ok: true`.
-- [x] RG-007 platform incident exception documented with latest-head evidence: `CI` run `22110929744` and `CodeQL` run `22110929736` (plus prior rerun `22109118266`/`22109118280`) failed because GitHub Actions jobs were not started due to account billing/spending-limit restrictions; incident evidence recorded in `QUESTIONS.md` and `GAPS.md`.
+- [x] RG-007 platform incident exception documented with repeated recent-run evidence: `CI`/`CodeQL` runs `22109118266`/`22109118280`, `22110929744`/`22110929736`, and `22111146887`/`22111146880` all failed because GitHub Actions jobs were not started due to account billing/spending-limit restrictions; incident evidence recorded in `QUESTIONS.md` and `GAPS.md`.
 - [x] Required RG-007 compensating local command passed on latest head: `pnpm release:verify-local` (`release artifact verification: ok`).
 - [x] Latest ship gate run is green: `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-17T14:56:40.649Z`, `overall.ok: true`).
 - [x] Final convergence gate is green: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, and `pnpm ship:gate` all passed in sequence on `2026-02-17`.

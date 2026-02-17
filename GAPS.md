@@ -56,8 +56,8 @@
 - Fix strategy: Push branch head, wait for `CI` and `CodeQL` to succeed, then record run IDs in docs.
 - Status: Done
 
-### P0-004: External GitHub Actions account/billing block on latest head
-- Evidence: Recent pushed heads fail before workflow steps execute because GitHub Actions cannot start jobs due to account billing limits (for example head `8ed3007` -> `CI` run `22109118266`, `CodeQL` run `22109118280`; head `095f507` -> `CI` run `22110929744`, `CodeQL` run `22110929736`; all runs annotate `job was not started` with billing/spending-limit guidance).
+### P0-004: External GitHub Actions account/billing block on release branch heads
+- Evidence: Recent pushed heads fail before workflow steps execute because GitHub Actions cannot start jobs due to account billing limits (for example `CI`/`CodeQL` runs `22109118266`/`22109118280`, `22110929744`/`22110929736`, and `22111146887`/`22111146880`; all annotate `job was not started` with billing/spending-limit guidance).
 - Impacted journey: Final CI gate sign-off on most recent commit.
 - Fix strategy: Restore GitHub billing/quota, rerun required workflows on latest head, and keep RG-007 exception evidence current until remote execution resumes.
 - Status: Blocked (external platform)

@@ -31,10 +31,12 @@
 - Status: Resolved
 
 ### Q4 update (2026-02-17)
-- Recent pushed heads continue to fail before any CI job execution due to external billing/quota gating on GitHub Actions:
-  - Head `8ed3007`: `CI` run `22109118266`, `CodeQL` run `22109118280` (`job was not started because recent account payments have failed or spending limit needs to be increased`).
-  - Head `095f507`: `CI` run `22110929744`, `CodeQL` run `22110929736` (same annotation and no actionable build/test logs).
-- Compensating local evidence on latest head:
+- Recent release-branch pushes continue to fail before any CI job execution due to external billing/quota gating on GitHub Actions:
+  - `CI`/`CodeQL` runs `22109118266`/`22109118280`
+  - `CI`/`CodeQL` runs `22110929744`/`22110929736`
+  - `CI`/`CodeQL` runs `22111146887`/`22111146880`
+  - Shared annotation: `job was not started because recent account payments have failed or spending limit needs to be increased`, with no actionable build/test logs.
+- Compensating local evidence on current workspace head:
   - `pnpm verify` (343/343 tests passing, build success)
   - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-17T18:39:35.630Z`)
   - `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`, `ok: true`)
