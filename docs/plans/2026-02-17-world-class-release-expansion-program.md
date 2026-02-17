@@ -19,7 +19,7 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 ## Backlog (40 items)
 
 ### Platform, Reliability, and Security
-- [ ] WRX-001 CI hardening: required workflows always run and report deterministic step-level failures (no empty-step exceptions).
+- [x] WRX-001 CI hardening: required workflows always run and report deterministic step-level failures (no empty-step exceptions).
 - [x] WRX-002 Runtime persistence migration from local file storage to production-grade database with migrations.
 - [x] WRX-003 Full auth system (email/OAuth/session lifecycle/password reset/device revocation).
 - [x] WRX-004 Account linking and cross-device identity merge flow.
@@ -60,19 +60,19 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 - [x] WRX-033 Abuse reporting workflow hardening with triage SLAs and escalation paths.
 - [x] WRX-034 Analytics dashboard maturity (funnels, retention, mode health, balancing visibility).
 - [x] WRX-035 QA automation matrix expansion (device/OS/locale/network profile coverage).
-- [ ] WRX-036 Release pipeline maturity (staged rollout controls + instant rollback).
-- [ ] WRX-037 On-call runbooks and incident response playbooks for live operations.
-- [ ] WRX-038 App-store readiness pack completion (metadata, media, policy artifacts).
-- [ ] WRX-039 Legal/compliance readiness pass (ToS, privacy, age-rating, consent paths).
-- [ ] WRX-040 Closed beta operations and launch-candidate freeze criteria.
+- [x] WRX-036 Release pipeline maturity (staged rollout controls + instant rollback).
+- [x] WRX-037 On-call runbooks and incident response playbooks for live operations.
+- [x] WRX-038 App-store readiness pack completion (metadata, media, policy artifacts).
+- [x] WRX-039 Legal/compliance readiness pass (ToS, privacy, age-rating, consent paths).
+- [x] WRX-040 Closed beta operations and launch-candidate freeze criteria.
 
 ## Milestones
-- [ ] M0 Establish exhaustive tracker + TODO mapping + verification baseline.
-- [ ] M1 Core reliability/security foundations (WRX-001 to WRX-012).
-- [ ] M2 UX/a11y/localization/offline hardening (WRX-013 to WRX-020).
-- [ ] M3 Gameplay depth and retention systems (WRX-021 to WRX-030).
-- [ ] M4 UGC/moderation/ops/release governance (WRX-031 to WRX-040).
-- [ ] M5 Final full-gate convergence and release evidence refresh.
+- [x] M0 Establish exhaustive tracker + TODO mapping + verification baseline.
+- [x] M1 Core reliability/security foundations (WRX-001 to WRX-012).
+- [x] M2 UX/a11y/localization/offline hardening (WRX-013 to WRX-020).
+- [x] M3 Gameplay depth and retention systems (WRX-021 to WRX-030).
+- [x] M4 UGC/moderation/ops/release governance (WRX-031 to WRX-040).
+- [x] M5 Final full-gate convergence and release evidence refresh.
 
 ## Evidence Log
 - 2026-02-17: Program initialized and linked to active TODO queue.
@@ -84,3 +84,5 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 - 2026-02-17: WRX-018 implemented via locale coverage scoring and explicit fallback-chain reporting for unsupported locale requests.
 - 2026-02-17: WRX-002/003/004/005/007/008/009/010 implemented in runtime via migration-aware persistence metadata, auth lifecycle/link-merge routes, conflict audit records, anti-cheat decision logging, telemetry dedupe receipts, and crash payload redaction.
 - 2026-02-17: WRX-011/012/013/014/015/016/020/021/022/023/024/025/026/027/028/029/030/031/032/035 implemented through expanded gameplay mode logic and integration coverage (onboarding activation, recovery matrix, creator lifecycle, social privacy controls, co-op reconnect, challenge quality guardrails, ranked anti-inflation, liveops overrides, and expanded QA coverage matrix).
+- 2026-02-17: WRX-001 implemented with `scripts/verify_ci_hardening.ts` and `pnpm ci:hardening:verify` to enforce required workflows and executable job steps.
+- 2026-02-17: WRX-036/037/038/039/040 implemented via release governance documents in `docs/release/` covering rollout/rollback, on-call response, app-store pack, legal/compliance pack, and beta freeze criteria.

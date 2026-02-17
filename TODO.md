@@ -1,8 +1,8 @@
 # Five-star TODO (Post-v1)
 
 ## P0 (Active world-class release expansion backlog)
-- [ ] Execute full 40-item program from `docs/plans/2026-02-17-world-class-release-expansion-program.md`
-- [ ] WRX-001 CI hardening and deterministic workflow execution
+- [x] Execute full 40-item program from `docs/plans/2026-02-17-world-class-release-expansion-program.md`
+- [x] WRX-001 CI hardening and deterministic workflow execution
 - [x] WRX-002 Production-grade runtime persistence and migration path
 - [x] WRX-003 Full account/auth lifecycle
 - [x] WRX-004 Cross-device identity linking/merge flow
@@ -37,11 +37,11 @@
 - [x] WRX-033 Abuse reporting workflow hardening
 - [x] WRX-034 Gameplay analytics dashboard maturity
 - [x] WRX-035 QA matrix automation expansion
-- [ ] WRX-036 Staged rollout + rollback operations maturity
-- [ ] WRX-037 On-call/incident playbook completion
-- [ ] WRX-038 App-store readiness pack
-- [ ] WRX-039 Legal/compliance readiness pass
-- [ ] WRX-040 Closed beta operations + launch-candidate freeze
+- [x] WRX-036 Staged rollout + rollback operations maturity
+- [x] WRX-037 On-call/incident playbook completion
+- [x] WRX-038 App-store readiness pack
+- [x] WRX-039 Legal/compliance readiness pass
+- [x] WRX-040 Closed beta operations + launch-candidate freeze
 
 Tracker: `docs/plans/2026-02-17-world-class-release-expansion-program.md`
 
