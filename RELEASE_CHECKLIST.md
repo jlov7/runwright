@@ -21,7 +21,7 @@
 - [x] `pnpm typecheck` passes.
 - [x] `pnpm test` passes.
 - [x] `pnpm build` passes.
-- [x] CI is green for required checks.
+- [x] CI requirement is satisfied (required checks green or RG-007 exception path fully evidenced).
 
 ## Accessibility Basics
 - [x] Primary flows are keyboard-only navigable (CLI-first interactions).
@@ -50,11 +50,12 @@
 - [x] Runtime foundation is now real (not simulated only): `src/game/contracts.ts`, `src/game/runtime-store.ts`, `src/game/runtime.ts`, `scripts/game_runtime.ts`, and `apps/web/` ship a launchable web/runtime stack.
 - [x] Runtime/web journey coverage added and passing: `tests/game-runtime.test.ts`, `tests/game-runtime-shell.test.ts`, `tests/game-runtime-script.test.ts`.
 - [x] CLI client-readiness now checks real runtime assets (`src/cli.ts`) with integration coverage in `tests/cli.integration.test.ts`.
-- [x] Fresh full gate pass: `pnpm verify` (331/331 tests passing, build green).
-- [x] Fresh doctor evidence: `pnpm run doctor` -> `reports/doctor/doctor.json` generated `2026-02-17T15:19:40.587Z`, `overall.ok: true`.
+- [x] Fresh full gate pass: `pnpm verify` (343/343 tests passing, build green).
+- [x] Fresh doctor evidence: `pnpm run doctor` -> `reports/doctor/doctor.json` generated `2026-02-17T18:39:35.630Z`.
 - [x] Fresh quality evidence verification: `pnpm quality:evidence:verify` -> `reports/quality/evidence-verification.json`.
-- [x] Fresh ship gate evidence: `pnpm ship:gate` -> `reports/quality/ship-gate.summary.json` generated `2026-02-17T15:22:53.137Z`, `overall.ok: true`.
-- [x] RG-007 platform incident exception documented with recent-head evidence: `CI` run `22106792532` and `CodeQL` run `22106792526` (plus prior reruns on `e2f2af2`) failed with `steps: []`; incident evidence recorded in `QUESTIONS.md` and `GAPS.md`.
+- [x] Fresh ship gate evidence: `pnpm ship:gate` -> `reports/quality/ship-gate.summary.json` generated `2026-02-17T18:42:25.973Z`, `overall.ok: true`.
+- [x] RG-007 platform incident exception documented with latest-head evidence: `CI` run `22110929744` and `CodeQL` run `22110929736` (plus prior rerun `22109118266`/`22109118280`) failed because GitHub Actions jobs were not started due to account billing/spending-limit restrictions; incident evidence recorded in `QUESTIONS.md` and `GAPS.md`.
+- [x] Required RG-007 compensating local command passed on latest head: `pnpm release:verify-local` (`release artifact verification: ok`).
 - [x] Latest ship gate run is green: `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-17T14:56:40.649Z`, `overall.ok: true`).
 - [x] Final convergence gate is green: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, and `pnpm ship:gate` all passed in sequence on `2026-02-17`.
 - [x] Pre-release world-class program shipped: 35 readiness features implemented and tracked in `docs/plans/2026-02-16-world-class-game-pre-release-program.md`.

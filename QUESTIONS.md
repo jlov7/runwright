@@ -31,15 +31,16 @@
 - Status: Resolved
 
 ### Q4 update (2026-02-17)
-- Recent pushed heads continue to fail with startup-only signals:
-  - Head `01c3f21b9f86a1d62e0c4f93b348267805f3095b`: `CI` run `22106792532` (jobs `63891729063`, `63891729149`, `63891729238` all `steps: []`), `CodeQL` run `22106792526` (job `63891729212`, `steps: []`).
-  - Prior head `e2f2af2d85f49180cdedf3fc693938c1ddd0555a`: `CI` run `22104490175`, `CodeQL` run `22104490239` also failed with `steps: []`.
-- Compensating local evidence on this commit:
-  - `pnpm verify` (331/331 tests passing, build success)
-  - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-17T15:19:40.587Z`, `overall.ok: true`)
-  - `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`)
-  - `pnpm ship:gate` (`reports/quality/ship-gate.summary.json`, generated `2026-02-17T15:22:53.137Z`, `overall.ok: true`)
-- Status: Exception path active pending platform recovery rerun.
+- Recent pushed heads continue to fail before any CI job execution due to external billing/quota gating on GitHub Actions:
+  - Head `8ed3007`: `CI` run `22109118266`, `CodeQL` run `22109118280` (`job was not started because recent account payments have failed or spending limit needs to be increased`).
+  - Head `095f507`: `CI` run `22110929744`, `CodeQL` run `22110929736` (same annotation and no actionable build/test logs).
+- Compensating local evidence on latest head:
+  - `pnpm verify` (343/343 tests passing, build success)
+  - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-17T18:39:35.630Z`)
+  - `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`, `ok: true`)
+  - `pnpm ship:gate` (`reports/quality/ship-gate.summary.json`, generated `2026-02-17T18:42:25.973Z`, `overall.ok: true`)
+  - `pnpm release:verify-local` (passed on `2026-02-17`, release artifact verification: `ok`)
+- Status: Exception path active pending billing restoration and CI rerun on latest head.
 
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?

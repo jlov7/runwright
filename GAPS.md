@@ -56,10 +56,10 @@
 - Fix strategy: Push branch head, wait for `CI` and `CodeQL` to succeed, then record run IDs in docs.
 - Status: Done
 
-### P0-004: External GitHub Actions startup instability on latest head
-- Evidence: Recent pushed heads continue to fail immediately in both workflows with zero executed steps (for example head `01c3f21` -> `CI` run `22106792532`, `CodeQL` run `22106792526`, all observed jobs `steps: []`; prior head `e2f2af2` showed the same failure mode).
+### P0-004: External GitHub Actions account/billing block on latest head
+- Evidence: Recent pushed heads fail before workflow steps execute because GitHub Actions cannot start jobs due to account billing limits (for example head `8ed3007` -> `CI` run `22109118266`, `CodeQL` run `22109118280`; head `095f507` -> `CI` run `22110929744`, `CodeQL` run `22110929736`; all runs annotate `job was not started` with billing/spending-limit guidance).
 - Impacted journey: Final CI gate sign-off on most recent commit.
-- Fix strategy: Retry once service stabilizes; keep release evidence anchored to last known-good CI head (`669df6d`) plus fresh local doctor artifacts.
+- Fix strategy: Restore GitHub billing/quota, rerun required workflows on latest head, and keep RG-007 exception evidence current until remote execution resumes.
 - Status: Blocked (external platform)
 
 ### P0-002: Release gate definitions not formalized

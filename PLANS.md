@@ -51,6 +51,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 - `journey` correctness depends on freshness, not just historical success events; stale-success states can silently erode operator trust.
 - Frozen lockfile failures were technically correct (exit code) but text copy could still mislead humans into treating failures as successful apply output.
 - Long-running full gates (`verify`, `doctor`, `ship:gate`) still complete cleanly after introducing runtime/web surfaces, but now run against 331 tests and require longer patience before final build outputs.
+- GitHub Actions failures on latest heads moved from startup-only anomalies to explicit billing/quota job-start blocks; release governance now relies on RG-007 exception evidence until billing is restored.
 
 ## Decision Log
 - 2026-02-14: Treat CLI output as product UX surface; prioritize copy clarity and recovery guidance over structural refactors.
@@ -73,6 +74,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
   - Added launchable runtime command `pnpm game:runtime` via `scripts/game_runtime.ts`.
   - Added accessible web shell in `apps/web/` with first-success flow, tooltips/help, and explicit error-state UX.
   - Added runtime coverage (`tests/game-runtime.test.ts`, `tests/game-runtime-shell.test.ts`, `tests/game-runtime-script.test.ts`) and updated CLI integration to tie `gameplay client` readiness to real assets.
+  - Refreshed RG-007 exception evidence on latest head (`095f507`) with passing local compensating gates: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`, `pnpm release:verify-local`.
 - Not done:
   - None for v1 definition-of-done gates.
 - Lessons:
