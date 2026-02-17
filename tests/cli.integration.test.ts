@@ -1861,7 +1861,26 @@ describe("cli integration", () => {
     expect(telemetry.status).toBe(0);
     const telemetryPayload = JSON.parse(telemetry.stdout);
     expect(telemetryPayload.mode).toBe("telemetry");
+    expect(telemetryPayload.summary).toEqual(
+      expect.objectContaining({
+        weightedHealth: expect.any(Number),
+        dropoffRisk: expect.stringMatching(/^(low|medium|high)$/)
+      })
+    );
     expect(Array.isArray(telemetryPayload.details.schema)).toBe(true);
+    expect(telemetryPayload.details.analytics).toEqual(
+      expect.objectContaining({
+        funnel: expect.objectContaining({
+          completionPercent: expect.any(Number)
+        }),
+        recovery: expect.objectContaining({
+          recoveryRate: expect.any(Number)
+        }),
+        modeHealth: expect.any(Array),
+        weightedHealth: expect.any(Number),
+        dropoffRisk: expect.stringMatching(/^(low|medium|high)$/)
+      })
+    );
 
     const qa = runCli(["gameplay", "qa", "--json"], projectDir);
     expect(qa.status).toBe(0);

@@ -142,5 +142,5 @@ Execute the full expansion backlog required to move from release-ready v1 to a f
 - [ ] M1: In progress (WRX-006 complete; remaining WRX-001..005, WRX-007..012 pending).
 - [ ] M2: In progress (WRX-033 complete; remaining WRX-013..020 and WRX-017..019 validation pending).
 - [ ] M3: Pending.
-- [ ] M4: In progress (WRX-033 complete; remaining WRX-031..032, WRX-034..040 pending).
+- [ ] M4: In progress (WRX-033 and WRX-034 complete; remaining WRX-031..032 and WRX-035..040 pending).
 - [ ] M5: Pending.

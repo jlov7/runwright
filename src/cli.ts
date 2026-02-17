@@ -3331,13 +3331,37 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
 
   if (mode === "telemetry") {
     const gameplayEvents = events.filter((entry) => entry.command === "gameplay");
+    const completionPercent = journey.summary.completionPercent;
+    const totalRuns = successfulRuns + failedRuns;
+    const recoveryRate = totalRuns === 0 ? 1 : successfulRuns / totalRuns;
+    const dropoffRisk = completionPercent < 50 || recoveryRate < 0.6 ? "high" : completionPercent < 80 || recoveryRate < 0.8 ? "medium" : "low";
+    const modeHealth = [
+      {
+        id: "onboarding",
+        score: Math.max(0, Math.min(100, completionPercent)),
+        kpi: "journey.completionPercent"
+      },
+      {
+        id: "reliability",
+        score: Math.max(0, Math.min(100, Math.round(recoveryRate * 100))),
+        kpi: "command.successRate"
+      },
+      {
+        id: "safety",
+        score: Math.max(0, Math.min(100, 100 - Math.min(60, blockedRuns * 12 + failedRuns * 4))),
+        kpi: "moderation.incidents"
+      }
+    ];
+    const weightedHealth = Math.round(modeHealth.reduce((sum, entry) => sum + entry.score, 0) / modeHealth.length);
     return {
       status: 0,
       mode,
       mutating: false,
       summary: {
         totalEvents: events.length,
-        gameplayEvents: gameplayEvents.length
+        gameplayEvents: gameplayEvents.length,
+        weightedHealth,
+        dropoffRisk
       },
       details: {
         schema: [
@@ -3353,7 +3377,26 @@ function runGameplay(args: ParsedArgs, cwd: string): GameplayResult {
           "difficulty.balance",
           "ugc.safety",
           "release.readiness"
-        ]
+        ],
+        analytics: {
+          funnel: {
+            steps: journey.steps.map((step, index) => ({
+              id: `F-${index + 1}`,
+              title: step.title,
+              status: step.status
+            })),
+            completionPercent
+          },
+          recovery: {
+            successfulRuns,
+            failedRuns,
+            blockedRuns,
+            recoveryRate: Number(recoveryRate.toFixed(2))
+          },
+          modeHealth,
+          weightedHealth,
+          dropoffRisk
+        }
       }
     };
   }

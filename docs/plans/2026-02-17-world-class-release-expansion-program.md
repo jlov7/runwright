@@ -58,7 +58,7 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 - [ ] WRX-031 Creator moderation lifecycle (review queue/state transitions/appeals).
 - [ ] WRX-032 UGC discovery/ranking quality signals and abuse weighting.
 - [x] WRX-033 Abuse reporting workflow hardening with triage SLAs and escalation paths.
-- [ ] WRX-034 Analytics dashboard maturity (funnels, retention, mode health, balancing visibility).
+- [x] WRX-034 Analytics dashboard maturity (funnels, retention, mode health, balancing visibility).
 - [ ] WRX-035 QA automation matrix expansion (device/OS/locale/network profile coverage).
 - [ ] WRX-036 Release pipeline maturity (staged rollout controls + instant rollback).
 - [ ] WRX-037 On-call runbooks and incident response playbooks for live operations.
@@ -78,3 +78,4 @@ Execute the full post-v1 pre-release expansion backlog required for a five-star 
 - 2026-02-17: Program initialized and linked to active TODO queue.
 - 2026-02-17: WRX-006 implemented via `runwright gameplay matchmaking` with persisted queue tickets, region/latency estimation, reconnect policy guidance, and integration test coverage.
 - 2026-02-17: WRX-033 implemented via moderation report severity/SLA metadata and `triage`/`escalate` action support with integration coverage.
+- 2026-02-17: WRX-034 implemented by upgrading telemetry output with computed funnel completion, recovery rates, drop-off risk, and weighted mode health analytics.

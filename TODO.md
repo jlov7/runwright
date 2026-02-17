@@ -35,7 +35,7 @@
 - [ ] WRX-031 Creator moderation lifecycle and appeals
 - [ ] WRX-032 UGC discovery/ranking quality signals
 - [x] WRX-033 Abuse reporting workflow hardening
-- [ ] WRX-034 Gameplay analytics dashboard maturity
+- [x] WRX-034 Gameplay analytics dashboard maturity
 - [ ] WRX-035 QA matrix automation expansion
 - [ ] WRX-036 Staged rollout + rollback operations maturity
 - [ ] WRX-037 On-call/incident playbook completion
