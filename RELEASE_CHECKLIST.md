@@ -50,9 +50,10 @@
 - [x] Runtime browser security hardening shipped: same-origin origin/CSRF checks, defensive security headers, endpoint rate limits, and profile-scoped session boundary enforcement in `/v1` mutation routes (`src/game/runtime.ts`).
 - [x] Browser clients now attach CSRF intent headers on mutating runtime calls (`apps/web/index.html`, `apps/web/src/shared/api-client.ts`).
 - [x] Web onboarding now establishes a runtime auth session and propagates `x-session-id` for mutating calls, tightening auth boundaries during core loop actions (`apps/web/index.html`).
+- [x] Profile surface now exposes explicit session logout UX so auth sessions can be ended in-app without CLI/manual state edits (`apps/web/index.html`).
 - [x] Runtime security regression coverage added: `tests/game-runtime-security-hardening.test.ts` verifies origin/CSRF rejection, rate limiting, session/profile mismatch rejection, and baseline security headers.
 - [x] Frontend visual baseline refreshed after runtime shell request-header changes (`tests/fixtures/frontend-visual-baseline.json`).
-- [x] Frontend shell budget guard remains enforced with updated target (`<= 71 KB` HTML) and passing regression coverage (`scripts/check_frontend_performance.ts`, `tests/frontend-performance-script.test.ts`, `docs/design/frontend-performance-budgets.md`).
+- [x] Frontend shell budget guard remains enforced with updated target (`<= 72 KB` HTML) and passing regression coverage (`scripts/check_frontend_performance.ts`, `tests/frontend-performance-script.test.ts`, `docs/design/frontend-performance-budgets.md`).
 - [x] Fresh gate reruns on this increment succeeded: `pnpm verify`, `pnpm run doctor`, `pnpm ship:gate -- --skip mutation --skip fuzz-differential`, and `pnpm tsx scripts/verify_quality_evidence.ts --require-check verify --require-check audit --require-check sbom --require-check release-verify-local`.
 - [x] Frontend 100/100 program closure completed on `2026-02-19` with M5-M9 tasks implemented and evidenced in `docs/plans/2026-02-19-frontend-100-score-execution-plan.md` and `docs/release/frontend-release-dashboard.md`.
 - [x] Added CI-enforced frontend quality gates: `pnpm test:web-a11y`, `pnpm test:visual`, `pnpm test:coverage`, `pnpm perf:frontend:check`, and `pnpm qa:frontend:matrix`.

@@ -171,6 +171,7 @@
           <h3>Account Profile And Settings</h3>
           <p class="muted">Manage handle, locale, and accessibility defaults before advanced modes.</p>
           <p id="profile-summary">No profile is active yet.</p>
+          <p id="profile-session-status" class="muted">Session: none (mutating requests run in local mode).</p>
           <form id="accessibility-form" class="rw-stack" aria-describedby="accessibility-help">
             <label for="text-scale">Text scale</label>
             <select id="text-scale" name="text-scale">
@@ -197,6 +198,7 @@
             </select>
 
             <button type="submit" id="save-accessibility">Save Accessibility Preferences</button>
+            <button type="button" id="logout-session">Log Out Session</button>
             <p id="accessibility-help" class="muted">Accessibility updates are persisted to your runtime profile.</p>
           </form>
         </article>
@@ -504,6 +506,8 @@
       const emptyAction = document.querySelector("#surface-empty-action");
       const dashboardSummary = document.querySelector("#dashboard-summary");
       const profileSummary = document.querySelector("#profile-summary");
+      const profileSessionStatus = document.querySelector("#profile-session-status");
+      const logoutSessionButton = document.querySelector("#logout-session");
       const challengeBrief = document.querySelector("#challenge-brief");
       const campaignSummary = document.querySelector("#campaign-summary");
       const onboardingDiagnostics = document.querySelector("#onboarding-diagnostics");
@@ -756,6 +760,10 @@
         profileSummary.textContent = profileReady()
           ? `Handle: ${state.profileHandle} | Locale: ${state.locale}`
           : "No profile is active yet.";
+        profileSessionStatus.textContent = state.sessionId
+          ? "Session: active and attached to mutating requests."
+          : "Session: none (mutating requests run in local mode).";
+        logoutSessionButton.disabled = !state.sessionId;
         campaignSummary.textContent = state.progress.campaignStarted
           ? "Campaign chapter active: Chapter 1 - Stabilize the relay line."
           : "Campaign has not started yet.";
@@ -1290,6 +1298,28 @@
           setFeedback("Accessibility preferences saved.");
         } catch (error) {
           setFeedback(`Accessibility update failed: ${error.message}`, true);
+        }
+      });
+
+      document.querySelector("#logout-session").addEventListener("click", async () => {
+        if (!state.sessionId) {
+          setFeedback("No active session to log out.");
+          return;
+        }
+        try {
+          await api(
+            "/v1/auth/logout",
+            {
+              method: "POST",
+              body: JSON.stringify({ sessionId: state.sessionId })
+            },
+            { label: "logout session" }
+          );
+          state.sessionId = null;
+          renderSummaries();
+          setFeedback("Session logged out.");
+        } catch (error) {
+          setFeedback(`Session logout failed: ${error.message}`, true);
         }
       });
 

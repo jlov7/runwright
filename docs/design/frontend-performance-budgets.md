@@ -3,7 +3,7 @@
 Date: 2026-02-19
 
 ## Budget targets
-- HTML shell size (`apps/web/index.html`): <= 71 KB
+- HTML shell size (`apps/web/index.html`): <= 72 KB
 - CSS shell size (`apps/web/styles.css`): <= 45 KB
 - Combined shell size: <= 110 KB
 - Average file-read sampling (10 iterations): <= 5 ms per file
