@@ -34,6 +34,11 @@ describe("game runtime web shell", () => {
     expect(html).toContain('id="profile-surface"');
     expect(html).toContain('id="onboarding-surface"');
     expect(html).toContain('id="challenge-surface"');
+    expect(html).toContain('id="campaign-surface"');
+    expect(html).toContain('id="onboarding-skip"');
+    expect(html).toContain('id="onboarding-resume"');
+    expect(html).toContain('id="onboarding-bootstrap"');
+    expect(html).toContain('id="onboarding-diagnostics"');
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain("docs/help/README.md");
@@ -56,6 +61,7 @@ describe("game runtime web shell", () => {
       const html = await response.text();
       expect(html).toContain("First Success Control Room");
       expect(html).toContain("Surface Command Bar");
+      expect(html).toContain("Campaign Progression");
       expect(html).toContain("Help & Tooltips");
 
       const docs = await fetch(`${runtime.baseUrl}/docs/help/README.md`);

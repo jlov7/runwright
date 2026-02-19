@@ -32,6 +32,10 @@
           <span class="nav-glyph" aria-hidden="true">#</span>
           Challenge
         </button>
+        <button type="button" class="nav-item" data-surface="campaign" data-label="Campaign">
+          <span class="nav-glyph" aria-hidden="true">%</span>
+          Campaign
+        </button>
         <button type="button" class="nav-item" data-surface="ranked" data-label="Ranked">
           <span class="nav-glyph" aria-hidden="true">^</span>
           Ranked
@@ -59,6 +63,7 @@
           <option value="profile"></option>
           <option value="onboarding"></option>
           <option value="challenge"></option>
+          <option value="campaign"></option>
           <option value="ranked"></option>
           <option value="creator"></option>
           <option value="help"></option>
@@ -139,6 +144,13 @@
             </button>
           </div>
 
+          <div class="rw-inline onboarding-controls" aria-label="Onboarding controls">
+            <button type="button" id="onboarding-skip">Skip For Now</button>
+            <button type="button" id="onboarding-resume">Resume Checklist</button>
+            <button type="button" id="onboarding-bootstrap">Load Sample Progress</button>
+          </div>
+          <p id="onboarding-diagnostics" class="muted">Diagnostics: no onboarding blockers recorded.</p>
+
           <h4>Journey Status</h4>
           <ol id="onboarding-steps" class="steps rw-stack">
             <li>Create your profile to begin.</li>
@@ -152,6 +164,13 @@
           <p class="muted">Generate challenge runs once onboarding prerequisites are complete.</p>
           <button type="button" id="challenge-generate">Generate Challenge Brief</button>
           <p id="challenge-brief" class="muted">No challenge generated yet.</p>
+        </article>
+
+        <article id="campaign-surface" data-surface-panel="campaign" class="surface-panel rw-stack" hidden>
+          <h3>Campaign Progression</h3>
+          <p class="muted">Track chapter progression and lock in a repeatable long-loop objective.</p>
+          <button type="button" id="campaign-start">Start Campaign Chapter</button>
+          <p id="campaign-summary" class="muted">Campaign has not started yet.</p>
         </article>
       </section>
 
@@ -176,7 +195,8 @@
         progress: {
           tutorial: false,
           saved: false,
-          published: false
+          published: false,
+          campaignStarted: false
         }
       };
 
@@ -200,6 +220,11 @@
           label: "Challenge",
           intent: "Generate challenge runs and validate progression depth.",
           primaryAction: "generate-challenge"
+        },
+        campaign: {
+          label: "Campaign",
+          intent: "Run chapter progression to transition from onboarding into core loop play.",
+          primaryAction: "start-campaign"
         },
         ranked: {
           label: "Ranked",
@@ -238,6 +263,8 @@
       const dashboardSummary = document.querySelector("#dashboard-summary");
       const profileSummary = document.querySelector("#profile-summary");
       const challengeBrief = document.querySelector("#challenge-brief");
+      const campaignSummary = document.querySelector("#campaign-summary");
+      const onboardingDiagnostics = document.querySelector("#onboarding-diagnostics");
 
       function profileReady() {
         return Boolean(state.profileId);
@@ -247,12 +274,17 @@
         return state.progress.tutorial && state.progress.saved && state.progress.published;
       }
 
+      function campaignReady() {
+        return state.progress.published;
+      }
+
       function successCriteriaRows() {
         return [
           { label: "Profile created", complete: profileReady() },
           { label: "Tutorial hint recorded", complete: state.progress.tutorial },
           { label: "Progress saved", complete: state.progress.saved },
-          { label: "First level published", complete: state.progress.published }
+          { label: "First level published", complete: state.progress.published },
+          { label: "Campaign chapter started", complete: state.progress.campaignStarted }
         ];
       }
 
@@ -272,6 +304,9 @@
         if (surface === "challenge") {
           return onboardingReady() ? "Status: Ready to generate" : "Status: Blocked - onboarding incomplete";
         }
+        if (surface === "campaign") {
+          return campaignReady() ? "Status: Ready for chapter start" : "Status: Blocked - publish level first";
+        }
         if (surface === "profile") {
           return profileReady() ? "Status: Profile active" : "Status: No profile";
         }
@@ -285,6 +320,7 @@
         if (actionId === "create-profile") return "Create profile";
         if (actionId === "run-onboarding") return "Open onboarding controls";
         if (actionId === "generate-challenge") return "Generate challenge";
+        if (actionId === "start-campaign") return "Start campaign chapter";
         if (actionId === "open-help") return "Open help docs";
         return "Open onboarding controls";
       }
@@ -298,6 +334,7 @@
           settings: "profile",
           tutorial: "onboarding",
           quest: "challenge",
+          progression: "campaign",
           support: "help"
         };
         if (aliases[value]) return aliases[value];
@@ -323,6 +360,10 @@
           emptyMessage = "Onboarding actions are locked until you create a profile.";
         } else if (surface === "challenge" && !onboardingReady()) {
           emptyMessage = "Challenge generation unlocks after tutorial, save, and publish are complete.";
+          actionLabel = "Open onboarding controls";
+          actionTarget = "onboarding";
+        } else if (surface === "campaign" && !campaignReady()) {
+          emptyMessage = "Campaign starts after you publish your first level.";
           actionLabel = "Open onboarding controls";
           actionTarget = "onboarding";
         } else if (surface === "ranked" || surface === "creator" || surface === "help") {
@@ -372,6 +413,9 @@
         profileSummary.textContent = profileReady()
           ? `Handle: ${state.profileHandle} | Locale: ${state.locale}`
           : "No profile is active yet.";
+        campaignSummary.textContent = state.progress.campaignStarted
+          ? "Campaign chapter active: Chapter 1 - Stabilize the relay line."
+          : "Campaign has not started yet.";
       }
 
       function setActiveSurface(surface, stepLabel = null) {
@@ -411,6 +455,22 @@
         }
       }
 
+      async function emitOnboardingTelemetry(type, payload = {}) {
+        if (!state.profileId) return;
+        try {
+          await api("/v1/telemetry/events", {
+            method: "POST",
+            body: JSON.stringify({
+              profileId: state.profileId,
+              type,
+              payload
+            })
+          });
+        } catch {
+          // Telemetry failures should not block user progression flows.
+        }
+      }
+
       async function refreshOnboarding() {
         if (!state.profileId) return;
         const payload = await api(`/v1/onboarding/${state.profileId}`);
@@ -436,6 +496,7 @@
         state.profileId = payload.profile.id;
         state.profileHandle = payload.profile.handle;
         state.locale = payload.profile.locale;
+        await emitOnboardingTelemetry("onboarding.profile_created", { surface: "web-shell" });
         setActiveSurface("onboarding", "Profile Created");
         setFeedback(`Profile created: ${payload.profile.handle}`);
         await refreshOnboarding();
@@ -455,6 +516,11 @@
         if (actionId === "generate-challenge") {
           setActiveSurface("challenge", "Challenge Brief");
           document.querySelector("#challenge-generate").click();
+          return;
+        }
+        if (actionId === "start-campaign") {
+          setActiveSurface("campaign", "Chapter Start");
+          document.querySelector("#campaign-start").click();
           return;
         }
         if (actionId === "open-help") {
@@ -485,10 +551,13 @@
             })
           });
           state.progress.tutorial = true;
+          onboardingDiagnostics.textContent = "Diagnostics: tutorial transition passed.";
+          await emitOnboardingTelemetry("onboarding.tutorial_recorded", { surface: "web-shell" });
           setActiveSurface("onboarding", "Tutorial Hint");
           setFeedback("Tutorial progress recorded.");
           await refreshOnboarding();
         } catch (error) {
+          onboardingDiagnostics.textContent = "Diagnostics: tutorial step failed; retry recommended.";
           setFeedback(error.message, true);
         }
       });
@@ -506,10 +575,13 @@
             })
           });
           state.progress.saved = true;
+          onboardingDiagnostics.textContent = "Diagnostics: save transition passed.";
+          await emitOnboardingTelemetry("onboarding.progress_saved", { strategy: "last-write-wins" });
           setActiveSurface("onboarding", "Save Progress");
           setFeedback("Progress saved.");
           await refreshOnboarding();
         } catch (error) {
+          onboardingDiagnostics.textContent = "Diagnostics: save step failed; inspect sync state.";
           setFeedback(error.message, true);
         }
       });
@@ -526,10 +598,13 @@
             })
           });
           state.progress.published = true;
+          onboardingDiagnostics.textContent = "Diagnostics: publish transition passed.";
+          await emitOnboardingTelemetry("onboarding.level_published", { difficulty: "silver" });
           setActiveSurface("creator", "Publish Level");
           setFeedback("Level published. First success should now be complete.");
           await refreshOnboarding();
         } catch (error) {
+          onboardingDiagnostics.textContent = "Diagnostics: publish step failed; retry with valid level metadata.";
           setFeedback(error.message, true);
         }
       });
@@ -562,6 +637,42 @@
         }
         challengeBrief.textContent = "Challenge: Iron Relay. Objective: Clear three waves without dropping below 40% stability.";
         setFeedback("Challenge brief generated.");
+      });
+
+      document.querySelector("#campaign-start").addEventListener("click", async () => {
+        if (!campaignReady()) {
+          campaignSummary.textContent = "Campaign start blocked: publish your first level to unlock progression.";
+          setFeedback("Publish a level before starting campaign progression.", true);
+          onboardingDiagnostics.textContent = "Diagnostics: campaign start blocked by missing publish milestone.";
+          return;
+        }
+        state.progress.campaignStarted = true;
+        await emitOnboardingTelemetry("onboarding.campaign_started", { chapter: 1 });
+        setActiveSurface("campaign", "Chapter 1");
+        setFeedback("Campaign chapter started.");
+      });
+
+      document.querySelector("#onboarding-skip").addEventListener("click", async () => {
+        onboardingDiagnostics.textContent = "Diagnostics: onboarding skipped; resume when ready.";
+        await emitOnboardingTelemetry("onboarding.skip_requested", { surface: "web-shell" });
+        setActiveSurface("dashboard", "Skipped");
+        setFeedback("Onboarding skipped for now. Resume anytime from the onboarding surface.");
+      });
+
+      document.querySelector("#onboarding-resume").addEventListener("click", async () => {
+        onboardingDiagnostics.textContent = "Diagnostics: onboarding resumed.";
+        await emitOnboardingTelemetry("onboarding.resume_requested", { surface: "web-shell" });
+        setActiveSurface("onboarding", "Resumed");
+        setFeedback("Onboarding resumed.");
+      });
+
+      document.querySelector("#onboarding-bootstrap").addEventListener("click", async () => {
+        state.progress.tutorial = true;
+        state.progress.saved = true;
+        onboardingDiagnostics.textContent = "Diagnostics: bootstrap loaded (tutorial + save complete).";
+        await emitOnboardingTelemetry("onboarding.bootstrap_loaded", { preset: "sample-progress" });
+        setActiveSurface("onboarding", "Bootstrap");
+        setFeedback("Sample progress loaded.");
       });
 
       document.querySelector("#surface-command").addEventListener("submit", (event) => {
