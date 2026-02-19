@@ -58,6 +58,10 @@ Define a stable visual language for the runtime shell so new surfaces stay cohes
 - `Inline`: horizontal alignment for compact control rows.
 - `Grid`: responsive card/section composition.
 
+## Implementation Guardrails
+- New screens and components must use tokenized styles from `apps/web/styles.css`; avoid one-off inline styles.
+- Any intentional visual change requires a baseline refresh via `pnpm visual:baseline:capture`.
+
 ## Icon Set Rules
 - Use a small canonical icon set for the primary navigation:
   - `dashboard`, `onboarding`, `challenge`, `ranked`, `creator`, `help`.
