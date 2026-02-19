@@ -99,6 +99,24 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:compat-matrix
 
+  coverage:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:coverage
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: coverage-report
+          path: reports/coverage/
+
   performance-trend:
     runs-on: ubuntu-latest
     needs: verify
@@ -178,6 +196,7 @@ jobs:
       - fuzz-differential
       - sbom
       - compatibility-matrix
+      - coverage
       - performance-trend
       - sarif
     timeout-minutes: 10
@@ -199,6 +218,7 @@ jobs:
             --check fuzz-differential=${{ needs.fuzz-differential.result }} \
             --check sbom=${{ needs.sbom.result }} \
             --check compatibility-matrix=${{ needs.compatibility-matrix.result }} \
+            --check coverage=${{ needs.coverage.result }} \
             --check performance-trend=${{ needs.performance-trend.result }} \
             --check sarif=${{ needs.sarif.result }}
       - name: Verify quality evidence gate
@@ -210,6 +230,7 @@ jobs:
             --require-check fuzz-differential \
             --require-check sbom \
             --require-check compatibility-matrix \
+            --require-check coverage \
             --require-check performance-trend \
             --require-check sarif \
             --out reports/quality/ci-evidence.verify.json
