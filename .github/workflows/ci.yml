@@ -27,6 +27,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit:deps
       - run: pnpm test:web-a11y
+      - run: pnpm test:visual
       - run: pnpm verify
 
   mutation:
