@@ -40,11 +40,15 @@ Per milestone:
 - Targeted tests for changed areas.
 - Full gate: `pnpm verify`.
 - Evidence refresh: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
+- Coverage gate: `pnpm test:coverage` (frontend/runtime module thresholds enforced in CI).
+- Visual regression gate: `pnpm test:visual`.
+- Accessibility/mobile regression gate: `pnpm test:web-a11y`.
 
 ## Flake Policy
 - Any flaky E2E test is quarantined within one day.
 - Quarantined tests require a follow-up fix issue.
 - No release candidate can ship with unresolved high-impact flakes.
+- Process reference: `docs/testing/frontend-deflake-policy.md`.
 
 ## Coverage Targets
 - Unit/integration: >= 85% lines on frontend modules.
@@ -54,3 +58,4 @@ Per milestone:
 - Test summary report.
 - Failure screenshots/traces for E2E.
 - Coverage report with trend deltas.
+- Journey matrix reference: `docs/testing/frontend-integration-journeys.md`.
