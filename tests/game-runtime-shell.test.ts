@@ -43,6 +43,9 @@ describe("game runtime web shell", () => {
     expect(html).toContain('id="coachmark-dismiss"');
     expect(html).toContain('id="coachmark-revisit"');
     expect(html).toContain('id="celebration-banner"');
+    expect(html).toContain('id="network-banner"');
+    expect(html).toContain('id="toast-stack"');
+    expect(html).toContain('id="undo-last-action"');
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain("docs/help/README.md");

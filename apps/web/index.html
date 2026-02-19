@@ -73,6 +73,10 @@
       </form>
     </header>
 
+    <div id="network-banner" class="network-banner rw-page" hidden role="status" aria-live="polite">
+      Offline mode: actions will retry when connectivity returns.
+    </div>
+
     <main class="layout rw-page">
       <section class="panel panel-wayfinding rw-panel" aria-labelledby="wayfinding-title">
         <h2 id="wayfinding-title">Where You Are</h2>
@@ -84,7 +88,10 @@
         <h2 id="surface-title">Dashboard</h2>
         <p id="surface-intent" class="muted">View launch readiness and choose your next gameplay loop.</p>
         <p id="surface-status" class="status-pill">Status: Needs action</p>
-        <button type="button" id="surface-primary-action">Create profile</button>
+        <div class="rw-inline">
+          <button type="button" id="surface-primary-action">Create profile</button>
+          <button type="button" id="undo-last-action" hidden>Undo Last Action</button>
+        </div>
         <ul id="surface-success-criteria" class="criteria-list rw-stack" aria-label="Success criteria"></ul>
       </section>
 
@@ -192,6 +199,7 @@
         </div>
       </aside>
     </main>
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-label="Notifications"></div>
 
     <script type="module">
       const state = {
@@ -206,7 +214,8 @@
           published: false,
           campaignStarted: false
         },
-        coachmarkDismissed: false
+        coachmarkDismissed: false,
+        lastReversibleAction: null
       };
       const ONBOARDING_STORAGE_KEY = "runwright-onboarding-v1";
 
@@ -277,6 +286,9 @@
       const onboardingDiagnostics = document.querySelector("#onboarding-diagnostics");
       const coachmarkBanner = document.querySelector("#coachmark-banner");
       const celebrationBanner = document.querySelector("#celebration-banner");
+      const networkBanner = document.querySelector("#network-banner");
+      const toastStack = document.querySelector("#toast-stack");
+      const undoLastActionButton = document.querySelector("#undo-last-action");
 
       function profileReady() {
         return Boolean(state.profileId);
@@ -423,6 +435,10 @@
         celebrationBanner.hidden = !onboardingReady();
       }
 
+      function renderUndoAvailability() {
+        undoLastActionButton.hidden = !state.lastReversibleAction;
+      }
+
       function renderSummaries() {
         dashboardSummary.textContent = profileReady()
           ? `Profile ${state.profileHandle} is active. Continue onboarding to unlock full challenge depth.`
@@ -434,6 +450,7 @@
           ? "Campaign chapter active: Chapter 1 - Stabilize the relay line."
           : "Campaign has not started yet.";
         renderOnboardingGuidance();
+        renderUndoAvailability();
         persistLocalState();
       }
 
@@ -498,6 +515,15 @@
       function setFeedback(message, isError = false) {
         feedback.textContent = message;
         feedback.className = isError ? "feedback error" : "feedback success";
+        pushToast(message, isError ? "error" : "info");
+      }
+
+      function pushToast(message, tone) {
+        const item = document.createElement("p");
+        item.className = `toast-item ${tone}`;
+        item.textContent = message;
+        toastStack.prepend(item);
+        setTimeout(() => item.remove(), 3800);
       }
 
       async function refreshHelp() {
@@ -551,6 +577,7 @@
         state.profileId = payload.profile.id;
         state.profileHandle = payload.profile.handle;
         state.locale = payload.profile.locale;
+        state.lastReversibleAction = null;
         await emitOnboardingTelemetry("onboarding.profile_created", { surface: "web-shell" });
         setActiveSurface("onboarding", "Profile Created");
         setFeedback(`Profile created: ${payload.profile.handle}`);
@@ -653,6 +680,7 @@
             })
           });
           state.progress.published = true;
+          state.lastReversibleAction = { type: "publish-level", previousPublished: false };
           onboardingDiagnostics.textContent = "Diagnostics: publish transition passed.";
           await emitOnboardingTelemetry("onboarding.level_published", { difficulty: "silver" });
           setActiveSurface("creator", "Publish Level");
@@ -744,6 +772,22 @@
         setFeedback("Coachmark tips restored.");
       });
 
+      undoLastActionButton.addEventListener("click", () => {
+        const action = state.lastReversibleAction;
+        if (!action) return;
+        if (action.type === "publish-level") {
+          state.progress.published = action.previousPublished;
+          state.progress.campaignStarted = false;
+          state.lastReversibleAction = null;
+          onboardingDiagnostics.textContent = "Diagnostics: last publish action was reverted.";
+          setActiveSurface("onboarding", "Undo");
+          setFeedback("Last reversible action has been undone.");
+          return;
+        }
+        state.lastReversibleAction = null;
+        renderUndoAvailability();
+      });
+
       document.querySelector("#surface-command").addEventListener("submit", (event) => {
         event.preventDefault();
         const surface = normalizeSurface(surfaceSearch.value);
@@ -779,6 +823,16 @@
           event.preventDefault();
           surfaceSearch.focus();
         }
+      });
+
+      window.addEventListener("offline", () => {
+        networkBanner.hidden = false;
+        setFeedback("Network offline. Actions will retry when the connection returns.", true);
+      });
+
+      window.addEventListener("online", () => {
+        networkBanner.hidden = true;
+        setFeedback("Connection restored.");
       });
 
       restoreLocalState();

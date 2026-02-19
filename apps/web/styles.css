@@ -247,6 +247,16 @@ h4 {
   margin-left: auto;
 }
 
+.network-banner {
+  position: relative;
+  z-index: 2;
+  margin-top: var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--color-state-warning) 60%, var(--color-border-muted));
+  border-radius: var(--radius-md);
+  padding: 0.56rem 0.75rem;
+  background: color-mix(in srgb, var(--color-state-warning) 18%, transparent);
+}
+
 .layout {
   position: relative;
   z-index: 1;
@@ -413,6 +423,30 @@ a:focus-visible,
 
 .panel-links {
   margin-top: var(--space-3);
+}
+
+.toast-stack {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  max-width: min(380px, calc(100vw - 2rem));
+  z-index: 4;
+}
+
+.toast-item {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--color-state-info) 50%, var(--color-border-muted));
+  background: color-mix(in srgb, var(--color-bg-panel) 95%, transparent);
+  padding: 0.56rem 0.7rem;
+  box-shadow: var(--elevation-1);
+  font-size: var(--font-size-200);
+}
+
+.toast-item.error {
+  border-color: color-mix(in srgb, var(--color-state-error) 55%, var(--color-border-muted));
 }
 
 a {
