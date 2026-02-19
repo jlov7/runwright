@@ -11,7 +11,8 @@ In Progress
 4. [x] Implement M1 architecture modernization (`ARC-05`..`ARC-10`, `TST-02`..`TST-03`).
 5. [x] Implement M2 visual design + IA foundation (`VD-01`..`VD-06`, `IA-01`..`IA-04`).
 6. [x] Implement M3 IA structure + core surface set (`IA-05`..`IA-10`, `CMP-01`..`CMP-04`).
-7. [ ] Implement M4 onboarding perfection and telemetry coverage (`ON-01`..`ON-10`, `CMP-05`).
+7. [x] Implement M4 onboarding perfection and telemetry coverage (`ON-01`..`ON-10`, `CMP-05`).
+8. [ ] Implement M5 interaction and recovery UX (`IX-01`..`IX-10`, `ER-01`..`ER-05`).
 
 ## Decisions Made
 - Execute in strict milestone order from the 2026-02-19 plan.

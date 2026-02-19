@@ -75,16 +75,16 @@
 - [x] IA-10: Validate IA with five persona walkthrough scripts.
 
 ### WS-03 Onboarding / First Success Journey (ON)
-- [ ] ON-01: Define persona-based onboarding funnels and success moments.
-- [ ] ON-02: Implement onboarding state machine (not ad hoc UI booleans).
-- [ ] ON-03: Add step-by-step interactive checklist with persistence.
-- [ ] ON-04: Add contextual coachmarks with dismiss/revisit behavior.
-- [ ] ON-05: Add “skip for now” and “resume later” journey controls.
-- [ ] ON-06: Add sample data/bootstrap mode for instant first success.
-- [ ] ON-07: Add progress celebration states at key milestones.
-- [ ] ON-08: Add onboarding diagnostics view for funnel drop-off causes.
-- [ ] ON-09: Add telemetry for each onboarding step transition.
-- [ ] ON-10: Add E2E tests for happy path + top 5 failure paths.
+- [x] ON-01: Define persona-based onboarding funnels and success moments.
+- [x] ON-02: Implement onboarding state machine (not ad hoc UI booleans).
+- [x] ON-03: Add step-by-step interactive checklist with persistence.
+- [x] ON-04: Add contextual coachmarks with dismiss/revisit behavior.
+- [x] ON-05: Add “skip for now” and “resume later” journey controls.
+- [x] ON-06: Add sample data/bootstrap mode for instant first success.
+- [x] ON-07: Add progress celebration states at key milestones.
+- [x] ON-08: Add onboarding diagnostics view for funnel drop-off causes.
+- [x] ON-09: Add telemetry for each onboarding step transition.
+- [x] ON-10: Add E2E tests for happy path + top 5 failure paths.
 
 ### WS-04 Interaction Quality (IX)
 - [ ] IX-01: Define interaction state model for all async actions (idle/loading/success/error/retrying).
@@ -175,7 +175,7 @@
 - [x] CMP-02: Ship account/profile/settings surface.
 - [x] CMP-03: Ship onboarding center surface.
 - [x] CMP-04: Ship challenge/quest surface.
-- [ ] CMP-05: Ship campaign/progression surface.
+- [x] CMP-05: Ship campaign/progression surface.
 - [ ] CMP-06: Ship co-op/social surface.
 - [ ] CMP-07: Ship ranked/leaderboard surface.
 - [ ] CMP-08: Ship creator studio surface.
@@ -252,7 +252,7 @@ A criterion reaches 100 only when:
 
 ## 9) Immediate Next Execution Command
 
-Begin with M4:
-1. ON-01..ON-04 onboarding funnel and state machine hardening.
-2. ON-05..ON-08 skip/resume + diagnostics and celebration states.
-3. ON-09..ON-10 telemetry and E2E failure-path coverage.
+Begin with M5:
+1. IX-01..IX-04 async interaction model, control-state standardization, and unified feedback system.
+2. IX-05..IX-07 undo, keyboard shortcuts, and loading-skeleton/progressive reveal patterns.
+3. ER-01..ER-05 frontend error taxonomy, formatter, and recovery surfaces for key failure modes.

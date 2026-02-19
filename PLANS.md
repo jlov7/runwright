@@ -172,7 +172,8 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
 - [x] F100-8: M1 complete (state store, UI primitives, architecture boundary rules, maintainability checklist, and unit tests).
 - [x] F100-9: M2 complete (brand/tokens docs, navigation map, persistent nav shell, breadcrumbs, and M2 gate evidence).
 - [x] F100-10: M3 complete (page hierarchy pattern, command bar, decision-tree empty states, success criteria, and core dashboard/profile/onboarding/challenge surfaces).
-- [ ] F100-11: M4 execution started (ON-01..ON-10, CMP-05).
+- [x] F100-11: M4 complete (onboarding funnels/state-machine, persistence, coachmarks, skip/resume/bootstrap, diagnostics, telemetry transitions, and campaign surface).
+- [ ] F100-12: M5 execution started (IX-01..IX-10, ER-01..ER-05).
 
 ## Risks
 - Architecture transition could create temporary delivery slowdown.

@@ -240,7 +240,7 @@ Milestone tracking:
 - [x] M1 Frontend architecture modernization
 - [x] M2 Design system + visual language
 - [x] M3 IA + navigation + clarity
-- [ ] M4 Onboarding + first-success perfection
+- [x] M4 Onboarding + first-success perfection
 - [ ] M5 Interaction quality + recovery UX
 - [ ] M6 Accessibility + mobile/responsive excellence
 - [ ] M7 Product surface completeness
