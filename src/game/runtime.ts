@@ -229,9 +229,13 @@ function validateOriginAndCsrf(req: IncomingMessage, res: ServerResponse): boole
   }
 
   if (method === "OPTIONS") {
+    if (origin && (!allowedOrigin || origin !== allowedOrigin)) {
+      throw new HttpError(403, "origin-not-allowed", "Request origin is not allowed");
+    }
     res.statusCode = 204;
     res.setHeader("access-control-allow-methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
     res.setHeader("access-control-allow-headers", "content-type,x-session-id,x-runwright-csrf");
+    res.setHeader("access-control-max-age", "300");
     res.end();
     return true;
   }
@@ -284,6 +288,12 @@ function enforceRateLimit(
           : pathname === "/v1/telemetry/events"
             ? config.telemetryEvents
             : config.defaultMutating;
+
+  if (rateLimitBuckets.size > 5000) {
+    for (const [bucketKey, bucket] of rateLimitBuckets.entries()) {
+      if (nowMs >= bucket.resetAt) rateLimitBuckets.delete(bucketKey);
+    }
+  }
 
   const hostKey =
     headerValue(req, "host") ?? `${req.socket.localAddress ?? "local"}:${String(req.socket.localPort ?? 0)}`;
@@ -1441,6 +1451,15 @@ export async function createGameRuntimeServer(options: RuntimeServerOptions): Pr
       rateLimitConfig
     }).catch((error) => {
       const normalized = normalizeError(error);
+      if (normalized.code === "rate-limit-exceeded") {
+        const retryAfterRaw =
+          normalized.details && typeof normalized.details === "object"
+            ? Reflect.get(normalized.details, "retryAfterMs")
+            : undefined;
+        if (typeof retryAfterRaw === "number" && Number.isFinite(retryAfterRaw)) {
+          res.setHeader("retry-after", String(Math.max(1, Math.ceil(retryAfterRaw / 1000))));
+        }
+      }
       sendJson(res, normalized.status, {
         error: {
           code: normalized.code,

@@ -93,6 +93,28 @@ describe("game runtime security hardening", () => {
     }
   });
 
+  it("rejects foreign-origin preflight requests", async () => {
+    const projectDir = makeTempDir("runwright-runtime-preflight-origin-");
+    const runtime = await createGameRuntimeServer({
+      host: "127.0.0.1",
+      port: 0,
+      stateFile: join(projectDir, ".skillbase", "runtime-state.json")
+    });
+
+    try {
+      const blocked = await jsonRequest<{ error: { code: string } }>(`${runtime.baseUrl}/v1/auth/signup`, {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://evil.example"
+        }
+      });
+      expect(blocked.status).toBe(403);
+      expect(blocked.payload.error.code).toBe("origin-not-allowed");
+    } finally {
+      await runtime.close();
+    }
+  });
+
   it("enforces configured endpoint rate limits", async () => {
     const projectDir = makeTempDir("runwright-runtime-rate-limit-");
     const runtime = await createGameRuntimeServer({
@@ -127,6 +149,9 @@ describe("game runtime security hardening", () => {
       expect(secondLogin.status).toBe(429);
       expect(secondLogin.payload.error.code).toBe("rate-limit-exceeded");
       expect(secondLogin.payload.error.details.limit).toBe(1);
+      const retryAfter = Number(secondLogin.headers.get("retry-after"));
+      expect(Number.isFinite(retryAfter)).toBe(true);
+      expect(retryAfter).toBeGreaterThanOrEqual(1);
     } finally {
       await runtime.close();
     }
