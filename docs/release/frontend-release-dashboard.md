@@ -4,17 +4,17 @@
 
 | Criterion | Score | Target | Status |
 | --- | ---: | ---: | --- |
-| Visual design language & brand polish | 58 | 100 | In progress |
-| Information architecture & clarity | 66 | 100 | In progress |
+| Visual design language & brand polish | 76 | 100 | In progress |
+| Information architecture & clarity | 85 | 100 | In progress |
 | Onboarding / first-success journey | 74 | 100 | In progress |
 | Interaction quality | 60 | 100 | In progress |
 | Error handling & recovery UX | 68 | 100 | In progress |
 | Accessibility fundamentals | 72 | 100 | In progress |
 | Mobile/responsive quality | 59 | 100 | In progress |
-| Frontend architecture maintainability | 52 | 100 | In progress |
+| Frontend architecture maintainability | 78 | 100 | In progress |
 | Performance basics | 84 | 100 | In progress |
-| Frontend testing depth | 67 | 100 | In progress |
-| Product completeness of core UI surfaces | 49 | 100 | In progress |
+| Frontend testing depth | 74 | 100 | In progress |
+| Product completeness of core UI surfaces | 68 | 100 | In progress |
 | World-class feel (craft/delight/cohesion) | 54 | 100 | In progress |
 
 ## Evidence Links
@@ -22,6 +22,9 @@
 - Scoring rubric: `docs/design/frontend-score-rubric.md`
 - Frontend architecture ADR: `docs/architecture/frontend-architecture-adr.md`
 - Frontend test strategy: `docs/testing/frontend-test-strategy.md`
+- Brand and token rules: `docs/design/brand-principles.md`
+- Navigation and IA rules: `docs/architecture/frontend-navigation-map.md`, `docs/design/content-design-rules.md`
+- Persona walkthrough scripts: `docs/audits/frontend-ia-persona-walkthroughs.md`
 - Runtime/web shell baseline: `apps/web/index.html`, `apps/web/styles.css`
 
 ## Gate Rules

@@ -67,12 +67,12 @@
 - [x] IA-02: Define top-level product areas and canonical naming.
 - [x] IA-03: Implement persistent navigation shell with active state.
 - [x] IA-04: Add breadcrumbs/wayfinding for deep workflows.
-- [ ] IA-05: Standardize page-level hierarchy pattern (title, intent, status, primary CTA).
-- [ ] IA-06: Define content design rules for labels, helper text, and empty states.
-- [ ] IA-07: Implement decision-tree empty states with contextual next actions.
-- [ ] IA-08: Add command/search affordance to jump to key flows.
-- [ ] IA-09: Add page-level success criteria indicators (“what good looks like”).
-- [ ] IA-10: Validate IA with five persona walkthrough scripts.
+- [x] IA-05: Standardize page-level hierarchy pattern (title, intent, status, primary CTA).
+- [x] IA-06: Define content design rules for labels, helper text, and empty states.
+- [x] IA-07: Implement decision-tree empty states with contextual next actions.
+- [x] IA-08: Add command/search affordance to jump to key flows.
+- [x] IA-09: Add page-level success criteria indicators (“what good looks like”).
+- [x] IA-10: Validate IA with five persona walkthrough scripts.
 
 ### WS-03 Onboarding / First Success Journey (ON)
 - [ ] ON-01: Define persona-based onboarding funnels and success moments.
@@ -171,10 +171,10 @@
 - [ ] TST-10: Add flake quarantine and deflake process for E2E stability.
 
 ### WS-11 Product Completeness of Core UI Surfaces (CMP)
-- [ ] CMP-01: Ship home dashboard surface.
-- [ ] CMP-02: Ship account/profile/settings surface.
-- [ ] CMP-03: Ship onboarding center surface.
-- [ ] CMP-04: Ship challenge/quest surface.
+- [x] CMP-01: Ship home dashboard surface.
+- [x] CMP-02: Ship account/profile/settings surface.
+- [x] CMP-03: Ship onboarding center surface.
+- [x] CMP-04: Ship challenge/quest surface.
 - [ ] CMP-05: Ship campaign/progression surface.
 - [ ] CMP-06: Ship co-op/social surface.
 - [ ] CMP-07: Ship ranked/leaderboard surface.
@@ -252,7 +252,7 @@ A criterion reaches 100 only when:
 
 ## 9) Immediate Next Execution Command
 
-Begin with M3:
-1. IA-05 page hierarchy pattern and IA-06 content design rules.
-2. IA-07 decision-tree empty states and IA-09 success criteria indicators.
-3. CMP-01..CMP-04 core surfaces with loading/empty/error/success coverage.
+Begin with M4:
+1. ON-01..ON-04 onboarding funnel and state machine hardening.
+2. ON-05..ON-08 skip/resume + diagnostics and celebration states.
+3. ON-09..ON-10 telemetry and E2E failure-path coverage.
