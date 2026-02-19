@@ -20,10 +20,13 @@ function extractErrorMessage(payload: RuntimeErrorPayload, fallback: string): st
 }
 
 async function requestJson<TResponse>(baseUrl: string, path: string, init?: RequestInit): Promise<TResponse> {
+  const method = String(init?.method ?? "GET").toUpperCase();
+  const isMutating = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
+      ...(isMutating ? { "x-runwright-csrf": "same-origin" } : {}),
       ...(init?.headers ?? {})
     }
   });

@@ -70,6 +70,12 @@
 
 ## P1
 
+### P1-017: Runtime browser trust boundaries lacked explicit origin/CSRF/rate-limit/session enforcement
+- Evidence: Prior runtime mutation endpoints accepted browser-origin writes without explicit same-origin CSRF signaling, lacked endpoint-level request throttling controls, and did not enforce session/profile mismatch rejection when session headers were present.
+- Impacted journey: Web onboarding/core-loop mutation safety, anti-abuse controls, and auth boundary trust for profile-scoped actions.
+- Fix strategy: Add defensive response headers, same-origin browser CSRF/origin enforcement, configurable endpoint rate limits, and profile-scoped session boundary checks; add regression tests for browser mutation failure states and boundary behavior.
+- Status: Done
+
 ### P1-016: Missing first-class release attestation generate/verify pipeline
 - Evidence: Release verification relied on bundle signature/checksum plus GitHub attestation download, but there was no deterministic local attestation artifact with schema + signature verification for release evidence sets.
 - Impacted journey: Release provenance confidence and downstream consumer verification portability.

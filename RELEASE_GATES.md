@@ -42,7 +42,7 @@
 - Requirement: dependency audit passes and safe boundary behavior remains tested.
 - Evidence:
   - `reports/doctor/doctor.json` includes successful `audit:deps`.
-  - Security-focused tests pass in `pnpm doctor` run (e.g. `tests/security-mutation.test.ts`).
+  - Security-focused tests pass in `pnpm doctor` run (e.g. `tests/security-mutation.test.ts`, `tests/game-runtime-security-hardening.test.ts`).
 
 ## Gate RG-006: Documentation & Operability
 - Requirement: release docs, setup/run/test/deploy notes, and env vars are complete.

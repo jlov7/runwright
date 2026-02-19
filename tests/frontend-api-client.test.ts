@@ -16,7 +16,13 @@ describe("frontend runtime api client", () => {
     expect(result.profile.handle).toBe("pilot");
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:7777/v1/auth/signup",
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "content-type": "application/json",
+          "x-runwright-csrf": "same-origin"
+        })
+      })
     );
     vi.unstubAllGlobals();
   });

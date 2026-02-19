@@ -18,6 +18,12 @@ type RuntimeServerOptions = {
   rankedSalt?: string;
   staticRoot?: string;
   clock?: () => Date;
+  rateLimitConfig?: Partial<
+    Record<
+      "defaultMutating" | "authLogin" | "rankedSubmit" | "moderationReport" | "telemetryEvents",
+      { max: number; windowMs: number }
+    >
+  >;
 };
 
 type RuntimeServerHandle = {
@@ -28,7 +34,27 @@ type RuntimeServerHandle = {
   close: () => Promise<void>;
 };
 
+type ResolvedRateLimitConfig = Record<
+  "defaultMutating" | "authLogin" | "rankedSubmit" | "moderationReport" | "telemetryEvents",
+  { max: number; windowMs: number }
+>;
+
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
 type JsonMap = Record<string, unknown>;
+
+const DEFAULT_RATE_LIMIT_CONFIG: ResolvedRateLimitConfig = {
+  defaultMutating: { max: 240, windowMs: 60_000 },
+  authLogin: { max: 40, windowMs: 60_000 },
+  rankedSubmit: { max: 60, windowMs: 60_000 },
+  moderationReport: { max: 60, windowMs: 60_000 },
+  telemetryEvents: { max: 480, windowMs: 60_000 }
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
 class HttpError extends Error {
   status: number;
@@ -170,6 +196,118 @@ function sendJson(res: ServerResponse, status: number, payload: unknown): void {
   res.end(`${JSON.stringify(payload)}\n`);
 }
 
+function headerValue(req: IncomingMessage, headerName: string): string | undefined {
+  const raw = req.headers[headerName.toLowerCase()];
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw)) return raw[0];
+  return undefined;
+}
+
+function resolveAllowedOrigin(req: IncomingMessage): string | null {
+  const host = headerValue(req, "host");
+  if (!host) return null;
+  const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
+
+function applySecurityHeaders(res: ServerResponse): void {
+  res.setHeader("x-content-type-options", "nosniff");
+  res.setHeader("x-frame-options", "DENY");
+  res.setHeader("referrer-policy", "no-referrer");
+  res.setHeader("cross-origin-opener-policy", "same-origin");
+  res.setHeader("cross-origin-resource-policy", "same-origin");
+}
+
+function validateOriginAndCsrf(req: IncomingMessage, res: ServerResponse): boolean {
+  const method = (req.method ?? "GET").toUpperCase();
+  const origin = headerValue(req, "origin");
+  const allowedOrigin = resolveAllowedOrigin(req);
+  if (origin && allowedOrigin && origin === allowedOrigin) {
+    res.setHeader("access-control-allow-origin", origin);
+    res.setHeader("access-control-allow-credentials", "true");
+    res.setHeader("vary", "origin");
+  }
+
+  if (method === "OPTIONS") {
+    res.statusCode = 204;
+    res.setHeader("access-control-allow-methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
+    res.setHeader("access-control-allow-headers", "content-type,x-session-id,x-runwright-csrf");
+    res.end();
+    return true;
+  }
+
+  if (!origin) return false;
+  if (!allowedOrigin || origin !== allowedOrigin) {
+    throw new HttpError(403, "origin-not-allowed", "Request origin is not allowed");
+  }
+  if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
+    const csrf = headerValue(req, "x-runwright-csrf");
+    if (csrf !== "same-origin") {
+      throw new HttpError(403, "csrf-missing", "Mutating browser requests must include x-runwright-csrf: same-origin");
+    }
+  }
+  return false;
+}
+
+function resolveRateLimitConfig(overrides?: RuntimeServerOptions["rateLimitConfig"]): ResolvedRateLimitConfig {
+  return {
+    defaultMutating: overrides?.defaultMutating ?? DEFAULT_RATE_LIMIT_CONFIG.defaultMutating,
+    authLogin: overrides?.authLogin ?? DEFAULT_RATE_LIMIT_CONFIG.authLogin,
+    rankedSubmit: overrides?.rankedSubmit ?? DEFAULT_RATE_LIMIT_CONFIG.rankedSubmit,
+    moderationReport: overrides?.moderationReport ?? DEFAULT_RATE_LIMIT_CONFIG.moderationReport,
+    telemetryEvents: overrides?.telemetryEvents ?? DEFAULT_RATE_LIMIT_CONFIG.telemetryEvents
+  };
+}
+
+function requestAddress(req: IncomingMessage): string {
+  const forwarded = headerValue(req, "x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]?.trim() ?? "forwarded";
+  return req.socket.remoteAddress ?? "unknown";
+}
+
+function enforceRateLimit(
+  req: IncomingMessage,
+  pathname: string,
+  config: ResolvedRateLimitConfig,
+  nowMs: number
+): void {
+  const method = (req.method ?? "GET").toUpperCase();
+  if (!["POST", "PATCH", "PUT", "DELETE"].includes(method)) return;
+
+  const rule =
+    pathname === "/v1/auth/login"
+      ? config.authLogin
+      : pathname === "/v1/ranked/submit"
+        ? config.rankedSubmit
+        : pathname === "/v1/moderation/report"
+          ? config.moderationReport
+          : pathname === "/v1/telemetry/events"
+            ? config.telemetryEvents
+            : config.defaultMutating;
+
+  const hostKey =
+    headerValue(req, "host") ?? `${req.socket.localAddress ?? "local"}:${String(req.socket.localPort ?? 0)}`;
+  const key = `${hostKey}:${pathname}:${requestAddress(req)}`;
+  const bucket = rateLimitBuckets.get(key);
+  if (!bucket || nowMs >= bucket.resetAt) {
+    rateLimitBuckets.set(key, {
+      count: 1,
+      resetAt: nowMs + rule.windowMs
+    });
+    return;
+  }
+
+  if (bucket.count >= rule.max) {
+    const retryAfterMs = Math.max(0, bucket.resetAt - nowMs);
+    throw new HttpError(429, "rate-limit-exceeded", "Too many requests for this endpoint", {
+      limit: rule.max,
+      windowMs: rule.windowMs,
+      retryAfterMs
+    });
+  }
+  bucket.count += 1;
+}
+
 function parseBodyChunks(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolveBody, rejectBody) => {
     const chunks: Buffer[] = [];
@@ -214,6 +352,19 @@ function requireProfile(state: RuntimeState, profileId: string): Profile {
   const profile = getProfile(state, profileId);
   if (!profile) throw new HttpError(404, "profile-not-found", `Profile '${profileId}' was not found`);
   return profile;
+}
+
+function validateSessionForProfile(state: RuntimeState, req: IncomingMessage, expectedProfileId?: string): string | null {
+  const sessionId = headerValue(req, "x-session-id");
+  if (!sessionId) return null;
+  const session = state.authSessions.find((entry) => entry.id === sessionId);
+  if (!session) throw new HttpError(401, "session-invalid", `Session '${sessionId}' was not found`);
+  if (session.revokedAt) throw new HttpError(401, "session-revoked", "Session is revoked. Login again.");
+  if (Date.parse(session.expiresAt) < Date.now()) throw new HttpError(401, "session-expired", "Session expired. Login again.");
+  if (expectedProfileId && session.profileId !== expectedProfileId) {
+    throw new HttpError(403, "session-profile-mismatch", "Session does not match the target profile.");
+  }
+  return session.profileId;
 }
 
 function redactSensitiveText(raw: string | undefined): { text: string | undefined; redacted: boolean } {
@@ -464,12 +615,19 @@ async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
   options: Required<Pick<RuntimeServerOptions, "stateFile">> &
-    Pick<RuntimeServerOptions, "clock"> & { rankedSalt: string; staticRoot?: string }
+    Pick<RuntimeServerOptions, "clock"> & {
+      rankedSalt: string;
+      staticRoot?: string;
+      rateLimitConfig: ResolvedRateLimitConfig;
+    }
 ): Promise<void> {
   if (!req.url) throw new HttpError(400, "missing-url", "Request URL is required");
   const method = req.method ?? "GET";
   const url = new URL(req.url, "http://runtime.local");
   const pathname = url.pathname;
+  applySecurityHeaders(res);
+  if (validateOriginAndCsrf(req, res)) return;
+  enforceRateLimit(req, pathname, options.rateLimitConfig, Date.now());
 
   if (pathname === "/v1/health" && method === "GET") {
     const state = readRuntimeState(options.stateFile);
@@ -585,6 +743,7 @@ async function handleRequest(
   if (pathname === "/v1/auth/device/revoke" && method === "POST") {
     const body = DeviceRevokeRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const revokedAt = nowIso(options.clock);
     const revoked = state.authSessions
@@ -601,6 +760,7 @@ async function handleRequest(
   if (pathname === "/v1/auth/link" && method === "POST") {
     const body = AuthLinkRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const existing = state.authLinks.find(
       (entry) =>
@@ -630,6 +790,7 @@ async function handleRequest(
       throw new HttpError(400, "invalid-merge", "Primary and secondary profile IDs must differ");
     }
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.primaryProfileId);
     requireProfile(state, body.primaryProfileId);
     requireProfile(state, body.secondaryProfileId);
     const mergedAt = nowIso(options.clock);
@@ -711,6 +872,7 @@ async function handleRequest(
     const profileId = pathname.slice("/v1/profiles/".length, pathname.length - "/preferences".length);
     const patch = PreferencePatchSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, profileId);
     const profile = requireProfile(state, profileId);
     if (patch.locale) profile.locale = patch.locale;
     if (patch.accessibility) {
@@ -751,6 +913,7 @@ async function handleRequest(
   if (pathname === "/v1/saves" && method === "POST") {
     const body = SaveRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const latestSave = [...state.saves]
       .filter((save) => save.profileId === body.profileId)
@@ -843,6 +1006,7 @@ async function handleRequest(
   if (pathname === "/v1/social/friends" && method === "POST") {
     const body = FriendRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const exists = state.friends.some(
       (entry) => entry.profileId === body.profileId && entry.friendCode === body.friendCode
@@ -865,6 +1029,7 @@ async function handleRequest(
   if (pathname === "/v1/coop/rooms/join" && method === "POST") {
     const body = CoopJoinRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const now = nowIso(options.clock);
     const roomId = body.roomId ?? `ROOM-${randomUUID().slice(0, 8).toUpperCase()}`;
@@ -889,6 +1054,7 @@ async function handleRequest(
   if (pathname === "/v1/ugc/levels" && method === "POST") {
     const body = UgcCreateRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const level = {
       id: `LVL-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -910,6 +1076,7 @@ async function handleRequest(
     const levelId = pathname.slice("/v1/ugc/levels/".length, pathname.length - "/rate".length);
     const body = UgcRateRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const level = state.ugcLevels.find((entry) => entry.id === levelId);
     if (!level) throw new HttpError(404, "ugc-not-found", `UGC level '${levelId}' was not found`);
@@ -936,6 +1103,7 @@ async function handleRequest(
   if (pathname === "/v1/moderation/report" && method === "POST") {
     const body = ModerationRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const report = {
       id: `REP-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -963,6 +1131,7 @@ async function handleRequest(
   if (pathname === "/v1/telemetry/events" && method === "POST") {
     const body = TelemetryRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const duplicate = Boolean(
       body.eventId &&
@@ -1036,6 +1205,7 @@ async function handleRequest(
   if (pathname === "/v1/crash/report" && method === "POST") {
     const body = CrashRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const sanitizedMessage = redactSensitiveText(body.message);
     const sanitizedStack = redactSensitiveText(body.stack);
@@ -1063,6 +1233,7 @@ async function handleRequest(
   if (pathname === "/v1/ranked/submit" && method === "POST") {
     const body = RankedRequestSchema.parse(await parseBodyChunks(req));
     const state = readRuntimeState(options.stateFile);
+    validateSessionForProfile(state, req, body.profileId);
     requireProfile(state, body.profileId);
     const expected = createRankedDigest(body.profileId, body.score, options.rankedSalt);
     const digestAccepted = body.clientDigest === expected;
@@ -1260,12 +1431,14 @@ export async function createGameRuntimeServer(options: RuntimeServerOptions): Pr
   const requestedPort = options.port ?? 4242;
   const rankedSalt = options.rankedSalt ?? process.env.RUNWRIGHT_RANKED_SALT ?? "runwright-local-salt";
   const staticRoot = options.staticRoot ? resolve(options.staticRoot) : undefined;
+  const rateLimitConfig = resolveRateLimitConfig(options.rateLimitConfig);
   const server = createServer((req, res) => {
     void handleRequest(req, res, {
       stateFile: options.stateFile,
       clock: options.clock,
       rankedSalt,
-      staticRoot
+      staticRoot,
+      rateLimitConfig
     }).catch((error) => {
       const normalized = normalizeError(error);
       sendJson(res, normalized.status, {

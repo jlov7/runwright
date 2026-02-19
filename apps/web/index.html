@@ -867,6 +867,7 @@
 
       async function api(path, init = {}, options = {}) {
         const method = String(init.method || "GET").toUpperCase();
+        const isMutating = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
         const cacheKey = `${method} ${path}`;
         const cached = responseCache.get(cacheKey);
         if (method === "GET" && cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {
@@ -880,6 +881,7 @@
           ...init,
           headers: {
             "content-type": "application/json",
+            ...(isMutating ? { "x-runwright-csrf": "same-origin" } : {}),
             ...(init.headers || {})
           }
         };
