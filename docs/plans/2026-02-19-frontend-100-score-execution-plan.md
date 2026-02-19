@@ -137,8 +137,8 @@
 ### WS-08 Frontend Architecture Maintainability (ARC)
 - [x] ARC-01: Choose and lock frontend architecture pattern (typed modular app under `apps/web`).
 - [x] ARC-02: Define folder/module boundaries (`app`, `features`, `entities`, `shared`).
-- [ ] ARC-03: Introduce strict TypeScript config and no-implicit-any enforcement for frontend code.
-- [ ] ARC-04: Build typed API client layer with shared contract types.
+- [x] ARC-03: Introduce strict TypeScript config and no-implicit-any enforcement for frontend code.
+- [x] ARC-04: Build typed API client layer with shared contract types.
 - [ ] ARC-05: Introduce state management strategy (server state + UI state boundaries).
 - [ ] ARC-06: Create reusable component library foundation.
 - [ ] ARC-07: Add Storybook/component documentation (or equivalent) for core components.
