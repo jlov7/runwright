@@ -16,6 +16,7 @@
     "test:compat-matrix": "vitest run tests/compatibility-replay.test.ts tests/migration-compatibility.test.ts",
     "test:contracts": "vitest run tests/adapters.contract.test.ts tests/source-provider.contract.test.ts",
     "test:perf": "vitest run tests/resolver.benchmark.test.ts -t \"benchmark guards\"",
+    "test:web-a11y": "vitest run tests/frontend-accessibility-responsive.test.ts",
     "test:mutation": "stryker run",
     "test:fuzz-differential": "pnpm build && pnpm tsx scripts/fuzz_differential_manifest.ts",
     "perf:snapshot": "pnpm tsx scripts/capture_performance_snapshot.ts",
