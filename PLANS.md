@@ -170,7 +170,8 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
 - [x] F100-6: M0 complete (PRG-01..03 and ARC-01..04 done with test/toolchain evidence).
 - [x] F100-7: M1 execution started (ARC-05..10, TST-02..03).
 - [x] F100-8: M1 complete (state store, UI primitives, architecture boundary rules, maintainability checklist, and unit tests).
-- [ ] F100-9: M2 execution started (VD-01..06, IA-01..04).
+- [x] F100-9: M2 complete (brand/tokens docs, navigation map, persistent nav shell, breadcrumbs, and M2 gate evidence).
+- [ ] F100-10: M3 execution started (IA-05..IA-10, CMP-01..CMP-04).
 
 ## Risks
 - Architecture transition could create temporary delivery slowdown.

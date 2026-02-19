@@ -238,7 +238,7 @@ Milestone tracking:
 - [x] M0 Foundation/scoring/architecture baseline
 - [ ] M1 Frontend architecture modernization
 - [x] M1 Frontend architecture modernization
-- [ ] M2 Design system + visual language
+- [x] M2 Design system + visual language
 - [ ] M3 IA + navigation + clarity
 - [ ] M4 Onboarding + first-success perfection
 - [ ] M5 Interaction quality + recovery UX

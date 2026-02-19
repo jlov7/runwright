@@ -51,22 +51,22 @@
 ## 4) Master Task Backlog (Exhaustive)
 
 ### WS-01 Visual Design Language & Brand Polish (VD)
-- [ ] VD-01: Define brand attributes, tone, and visual principles; publish style brief in `docs/design/brand-principles.md`.
-- [ ] VD-02: Create semantic color token system with light/dark and state tokens (`success/warning/error/info`).
-- [ ] VD-03: Define typography scale, rhythm, and hierarchy tokens.
-- [ ] VD-04: Build spacing, radius, elevation, and motion tokens.
-- [ ] VD-05: Implement foundational layout primitives (`Page`, `Panel`, `Stack`, `Inline`, `Grid`).
-- [ ] VD-06: Build shared icon set and usage rules.
+- [x] VD-01: Define brand attributes, tone, and visual principles; publish style brief in `docs/design/brand-principles.md`.
+- [x] VD-02: Create semantic color token system with light/dark and state tokens (`success/warning/error/info`).
+- [x] VD-03: Define typography scale, rhythm, and hierarchy tokens.
+- [x] VD-04: Build spacing, radius, elevation, and motion tokens.
+- [x] VD-05: Implement foundational layout primitives (`Page`, `Panel`, `Stack`, `Inline`, `Grid`).
+- [x] VD-06: Build shared icon set and usage rules.
 - [ ] VD-07: Add visual consistency lint/checklist for new screens.
 - [ ] VD-08: Replace one-off inline styles with tokenized design system usage.
 - [ ] VD-09: Establish screenshot baseline suite for visual quality.
 - [ ] VD-10: Run final visual QA pass for color/spacing/typography consistency.
 
 ### WS-02 Information Architecture & Clarity (IA)
-- [ ] IA-01: Define global navigation model and route map.
-- [ ] IA-02: Define top-level product areas and canonical naming.
-- [ ] IA-03: Implement persistent navigation shell with active state.
-- [ ] IA-04: Add breadcrumbs/wayfinding for deep workflows.
+- [x] IA-01: Define global navigation model and route map.
+- [x] IA-02: Define top-level product areas and canonical naming.
+- [x] IA-03: Implement persistent navigation shell with active state.
+- [x] IA-04: Add breadcrumbs/wayfinding for deep workflows.
 - [ ] IA-05: Standardize page-level hierarchy pattern (title, intent, status, primary CTA).
 - [ ] IA-06: Define content design rules for labels, helper text, and empty states.
 - [ ] IA-07: Implement decision-tree empty states with contextual next actions.
@@ -252,7 +252,7 @@ A criterion reaches 100 only when:
 
 ## 9) Immediate Next Execution Command
 
-Begin with M0:
-1. PRG-01 scoring rubric artifact.
-2. ARC-01 architecture decision and frontend module scaffolding.
-3. TST-01 frontend test strategy artifact.
+Begin with M3:
+1. IA-05 page hierarchy pattern and IA-06 content design rules.
+2. IA-07 decision-tree empty states and IA-09 success criteria indicators.
+3. CMP-01..CMP-04 core surfaces with loading/empty/error/success coverage.

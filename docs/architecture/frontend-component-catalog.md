@@ -12,6 +12,10 @@ Provide a stable inventory of reusable primitives before scaling feature surface
   - Unifies feedback severity styling hooks.
 - `badgeTone(score)` in `apps/web/src/shared/ui/primitives.ts`
   - Maps quality score to canonical tone buckets.
+- `layoutClass(primitive)` in `apps/web/src/shared/ui/primitives.ts`
+  - Provides canonical layout primitive class names (`Page`, `Panel`, `Stack`, `Inline`, `Grid`).
+- `iconToken(id)` in `apps/web/src/shared/ui/primitives.ts`
+  - Centralizes shared navigation icon semantics and labels for primary surfaces.
 
 ## State Foundation
 - `createFrontendStore` and `reduceFrontendState` in `apps/web/src/app/state-store.ts`
