@@ -21,3 +21,4 @@ In Progress
 
 ## Open Questions
 - None blocking execution; external CI billing lockout remains tracked via RG-007 exception path.
+- Remaining M5 scope to close: optimistic updates (`IX-03`), loading skeleton/progressive reveal (`IX-07`), and interaction latency budget alerts (`IX-09`).

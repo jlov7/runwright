@@ -101,8 +101,8 @@
 ### WS-05 Error Handling & Recovery UX (ER)
 - [x] ER-01: Create frontend error taxonomy mapped to runtime/API error codes.
 - [x] ER-02: Create reusable error message formatter (plain language, next action, support code).
-- [ ] ER-03: Add global error boundary with actionable recovery links.
-- [ ] ER-04: Add inline form validation with prevention (before submit) and recovery (after fail).
+- [x] ER-03: Add global error boundary with actionable recovery links.
+- [x] ER-04: Add inline form validation with prevention (before submit) and recovery (after fail).
 - [x] ER-05: Add offline/online network state banners and recovery actions.
 - [ ] ER-06: Add retry/backoff queue UX for transient failures.
 - [ ] ER-07: Add “copy diagnostic packet” for support/debug handoff.

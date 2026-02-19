@@ -7,8 +7,8 @@
 | Visual design language & brand polish | 76 | 100 | In progress |
 | Information architecture & clarity | 85 | 100 | In progress |
 | Onboarding / first-success journey | 91 | 100 | In progress |
-| Interaction quality | 79 | 100 | In progress |
-| Error handling & recovery UX | 81 | 100 | In progress |
+| Interaction quality | 86 | 100 | In progress |
+| Error handling & recovery UX | 90 | 100 | In progress |
 | Accessibility fundamentals | 72 | 100 | In progress |
 | Mobile/responsive quality | 59 | 100 | In progress |
 | Frontend architecture maintainability | 78 | 100 | In progress |
