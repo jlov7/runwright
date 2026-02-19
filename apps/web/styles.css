@@ -322,6 +322,13 @@ h4 {
   background: color-mix(in srgb, var(--color-state-warning) 10%, transparent);
 }
 
+.coachmark {
+  border: 1px solid color-mix(in srgb, var(--color-state-info) 45%, var(--color-border-muted));
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--color-state-info) 10%, transparent);
+}
+
 label {
   font-weight: var(--font-weight-semibold);
 }

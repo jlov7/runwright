@@ -150,6 +150,14 @@
             <button type="button" id="onboarding-bootstrap">Load Sample Progress</button>
           </div>
           <p id="onboarding-diagnostics" class="muted">Diagnostics: no onboarding blockers recorded.</p>
+          <div id="coachmark-banner" class="coachmark rw-stack" role="status">
+            <p id="coachmark-copy" class="muted">Coachmark: complete tutorial, save, then publish to unlock campaign.</p>
+            <div class="rw-inline">
+              <button type="button" id="coachmark-dismiss">Dismiss Tip</button>
+              <button type="button" id="coachmark-revisit">Revisit Tips</button>
+            </div>
+          </div>
+          <p id="celebration-banner" class="next-action" hidden>Celebration: First success achieved.</p>
 
           <h4>Journey Status</h4>
           <ol id="onboarding-steps" class="steps rw-stack">
@@ -197,8 +205,10 @@
           saved: false,
           published: false,
           campaignStarted: false
-        }
+        },
+        coachmarkDismissed: false
       };
+      const ONBOARDING_STORAGE_KEY = "runwright-onboarding-v1";
 
       const surfaceMeta = {
         dashboard: {
@@ -265,6 +275,8 @@
       const challengeBrief = document.querySelector("#challenge-brief");
       const campaignSummary = document.querySelector("#campaign-summary");
       const onboardingDiagnostics = document.querySelector("#onboarding-diagnostics");
+      const coachmarkBanner = document.querySelector("#coachmark-banner");
+      const celebrationBanner = document.querySelector("#celebration-banner");
 
       function profileReady() {
         return Boolean(state.profileId);
@@ -406,6 +418,11 @@
         syncSurfacePanels(surface);
       }
 
+      function renderOnboardingGuidance() {
+        coachmarkBanner.hidden = state.coachmarkDismissed;
+        celebrationBanner.hidden = !onboardingReady();
+      }
+
       function renderSummaries() {
         dashboardSummary.textContent = profileReady()
           ? `Profile ${state.profileHandle} is active. Continue onboarding to unlock full challenge depth.`
@@ -416,6 +433,8 @@
         campaignSummary.textContent = state.progress.campaignStarted
           ? "Campaign chapter active: Chapter 1 - Stabilize the relay line."
           : "Campaign has not started yet.";
+        renderOnboardingGuidance();
+        persistLocalState();
       }
 
       function setActiveSurface(surface, stepLabel = null) {
@@ -438,6 +457,42 @@
           throw new Error(error);
         }
         return payload;
+      }
+
+      function persistLocalState() {
+        try {
+          const snapshot = {
+            profileId: state.profileId,
+            profileHandle: state.profileHandle,
+            locale: state.locale,
+            progress: state.progress,
+            coachmarkDismissed: state.coachmarkDismissed
+          };
+          localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(snapshot));
+        } catch {
+          // Ignore persistence errors in restricted environments.
+        }
+      }
+
+      function restoreLocalState() {
+        try {
+          const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object") return;
+          if (typeof parsed.profileId === "string" && parsed.profileId.length > 0) state.profileId = parsed.profileId;
+          if (typeof parsed.profileHandle === "string") state.profileHandle = parsed.profileHandle;
+          if (typeof parsed.locale === "string") state.locale = parsed.locale;
+          if (parsed.progress && typeof parsed.progress === "object") {
+            state.progress.tutorial = parsed.progress.tutorial === true;
+            state.progress.saved = parsed.progress.saved === true;
+            state.progress.published = parsed.progress.published === true;
+            state.progress.campaignStarted = parsed.progress.campaignStarted === true;
+          }
+          state.coachmarkDismissed = parsed.coachmarkDismissed === true;
+        } catch {
+          // Ignore malformed persisted state.
+        }
       }
 
       function setFeedback(message, isError = false) {
@@ -675,6 +730,20 @@
         setFeedback("Sample progress loaded.");
       });
 
+      document.querySelector("#coachmark-dismiss").addEventListener("click", () => {
+        state.coachmarkDismissed = true;
+        persistLocalState();
+        renderOnboardingGuidance();
+        setFeedback("Coachmark dismissed. Use Revisit Tips to show it again.");
+      });
+
+      document.querySelector("#coachmark-revisit").addEventListener("click", () => {
+        state.coachmarkDismissed = false;
+        persistLocalState();
+        setActiveSurface("onboarding", "Tips");
+        setFeedback("Coachmark tips restored.");
+      });
+
       document.querySelector("#surface-command").addEventListener("submit", (event) => {
         event.preventDefault();
         const surface = normalizeSurface(surfaceSearch.value);
@@ -712,6 +781,7 @@
         }
       });
 
+      restoreLocalState();
       setActiveSurface("dashboard");
       refreshHelp().catch(() => setFeedback("Help service unavailable.", true));
     </script>
