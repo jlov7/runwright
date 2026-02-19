@@ -173,7 +173,7 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
 - [x] F100-9: M2 complete (brand/tokens docs, navigation map, persistent nav shell, breadcrumbs, and M2 gate evidence).
 - [x] F100-10: M3 complete (page hierarchy pattern, command bar, decision-tree empty states, success criteria, and core dashboard/profile/onboarding/challenge surfaces).
 - [x] F100-11: M4 complete (onboarding funnels/state-machine, persistence, coachmarks, skip/resume/bootstrap, diagnostics, telemetry transitions, and campaign surface).
-- [ ] F100-12: M5 execution in progress (interaction model, feedback/toast/undo, keyboard command bar, error taxonomy/formatter, offline banner, global boundary, inline validation, and related regression tests).
+- [x] F100-12: M5-M9 completed (interaction/recovery polish, accessibility/mobile guards, surface completeness, perf/testing depth, wow/governance artifacts, and full regression evidence).
 
 ## Risks
 - Architecture transition could create temporary delivery slowdown.
@@ -184,4 +184,11 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
 - Evidence gates: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
 
 ## Outcomes & Retrospective
-- In progress.
+- Done:
+  - Closed remaining frontend 100/100 backlog tasks with runtime shell upgrades, typed contract alignment, and expanded journey/perf/a11y/visual test gates.
+  - Added CI-enforced coverage, visual regression, accessibility/mobile regression, frontend perf budgets, and device-matrix artifact generation.
+  - Published governance/wow artifacts for cadence, escalation, critique rounds, dry-run/demo operations, and feedback intake.
+- Not done:
+  - None in the tracked 100/100 frontend program.
+- Lessons:
+  - Treat UI shell quality work as a blend of executable gates and explicit operational artifacts; both are required for reproducible release confidence.

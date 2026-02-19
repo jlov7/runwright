@@ -47,6 +47,9 @@
 - [x] README includes required/optional environment variables.
 
 ## Latest Evidence (2026-02-17)
+- [x] Frontend 100/100 program closure completed on `2026-02-19` with M5-M9 tasks implemented and evidenced in `docs/plans/2026-02-19-frontend-100-score-execution-plan.md` and `docs/release/frontend-release-dashboard.md`.
+- [x] Added CI-enforced frontend quality gates: `pnpm test:web-a11y`, `pnpm test:visual`, `pnpm test:coverage`, `pnpm perf:frontend:check`, and `pnpm qa:frontend:matrix`.
+- [x] Added runtime-backed frontend journey/contract/failure coverage: `tests/frontend-journey-e2e.test.ts`, `tests/frontend-runtime-contract.test.ts`, `tests/game-runtime-failure-injection.test.ts`.
 - [x] Runtime foundation is now real (not simulated only): `src/game/contracts.ts`, `src/game/runtime-store.ts`, `src/game/runtime.ts`, `scripts/game_runtime.ts`, and `apps/web/` ship a launchable web/runtime stack.
 - [x] Runtime/web journey coverage added and passing: `tests/game-runtime.test.ts`, `tests/game-runtime-shell.test.ts`, `tests/game-runtime-script.test.ts`.
 - [x] CLI client-readiness now checks real runtime assets (`src/cli.ts`) with integration coverage in `tests/cli.integration.test.ts`.

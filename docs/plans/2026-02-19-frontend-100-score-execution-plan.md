@@ -57,10 +57,10 @@
 - [x] VD-04: Build spacing, radius, elevation, and motion tokens.
 - [x] VD-05: Implement foundational layout primitives (`Page`, `Panel`, `Stack`, `Inline`, `Grid`).
 - [x] VD-06: Build shared icon set and usage rules.
-- [ ] VD-07: Add visual consistency lint/checklist for new screens.
-- [ ] VD-08: Replace one-off inline styles with tokenized design system usage.
-- [ ] VD-09: Establish screenshot baseline suite for visual quality.
-- [ ] VD-10: Run final visual QA pass for color/spacing/typography consistency.
+- [x] VD-07: Add visual consistency lint/checklist for new screens.
+- [x] VD-08: Replace one-off inline styles with tokenized design system usage.
+- [x] VD-09: Establish screenshot baseline suite for visual quality.
+- [x] VD-10: Run final visual QA pass for color/spacing/typography consistency.
 
 ### WS-02 Information Architecture & Clarity (IA)
 - [x] IA-01: Define global navigation model and route map.
@@ -89,13 +89,13 @@
 ### WS-04 Interaction Quality (IX)
 - [x] IX-01: Define interaction state model for all async actions (idle/loading/success/error/retrying).
 - [x] IX-02: Standardize button/input states across app components.
-- [ ] IX-03: Add optimistic updates where safe, with deterministic rollback.
+- [x] IX-03: Add optimistic updates where safe, with deterministic rollback.
 - [x] IX-04: Add unified feedback system (inline + toast + persistent status where needed).
 - [x] IX-05: Add undo affordances for reversible destructive actions.
 - [x] IX-06: Add keyboard shortcuts and command palette for power users.
-- [ ] IX-07: Add loading skeletons and progressive reveal patterns.
+- [x] IX-07: Add loading skeletons and progressive reveal patterns.
 - [x] IX-08: Add microinteraction timing standards and enforce them in components.
-- [ ] IX-09: Add interaction latency budget alerts in dev mode.
+- [x] IX-09: Add interaction latency budget alerts in dev mode.
 - [x] IX-10: Add UX regression tests for interaction state transitions.
 
 ### WS-05 Error Handling & Recovery UX (ER)
@@ -104,35 +104,35 @@
 - [x] ER-03: Add global error boundary with actionable recovery links.
 - [x] ER-04: Add inline form validation with prevention (before submit) and recovery (after fail).
 - [x] ER-05: Add offline/online network state banners and recovery actions.
-- [ ] ER-06: Add retry/backoff queue UX for transient failures.
-- [ ] ER-07: Add “copy diagnostic packet” for support/debug handoff.
-- [ ] ER-08: Add recovery playbooks into in-app help context.
-- [ ] ER-09: Add failure-injection tests for top runtime endpoints.
-- [ ] ER-10: Add E2E tests proving all key failures have clear next actions.
+- [x] ER-06: Add retry/backoff queue UX for transient failures.
+- [x] ER-07: Add “copy diagnostic packet” for support/debug handoff.
+- [x] ER-08: Add recovery playbooks into in-app help context.
+- [x] ER-09: Add failure-injection tests for top runtime endpoints.
+- [x] ER-10: Add E2E tests proving all key failures have clear next actions.
 
 ### WS-06 Accessibility Fundamentals (A11Y)
-- [ ] A11Y-01: Run baseline automated audit and manual keyboard/screen-reader audit.
-- [ ] A11Y-02: Add semantic landmarks and heading hierarchy on all primary screens.
-- [ ] A11Y-03: Ensure all controls have explicit labels and description relationships.
-- [ ] A11Y-04: Implement skip links and deterministic focus management on route/action changes.
-- [ ] A11Y-05: Fix contrast violations to WCAG AA minimums; prefer AAA where practical.
-- [ ] A11Y-06: Implement reduced motion support for all meaningful animation.
-- [ ] A11Y-07: Add live region announcements for async status changes.
-- [ ] A11Y-08: Ensure app is usable at 200% zoom and large text.
-- [ ] A11Y-09: Expand input remap/controller mappings and test coverage.
-- [ ] A11Y-10: Add a11y regression checks into CI.
+- [x] A11Y-01: Run baseline automated audit and manual keyboard/screen-reader audit.
+- [x] A11Y-02: Add semantic landmarks and heading hierarchy on all primary screens.
+- [x] A11Y-03: Ensure all controls have explicit labels and description relationships.
+- [x] A11Y-04: Implement skip links and deterministic focus management on route/action changes.
+- [x] A11Y-05: Fix contrast violations to WCAG AA minimums; prefer AAA where practical.
+- [x] A11Y-06: Implement reduced motion support for all meaningful animation.
+- [x] A11Y-07: Add live region announcements for async status changes.
+- [x] A11Y-08: Ensure app is usable at 200% zoom and large text.
+- [x] A11Y-09: Expand input remap/controller mappings and test coverage.
+- [x] A11Y-10: Add a11y regression checks into CI.
 
 ### WS-07 Mobile / Responsive Quality (MB)
-- [ ] MB-01: Define responsive breakpoint strategy and device class rules.
-- [ ] MB-02: Implement mobile-first navigation pattern.
-- [ ] MB-03: Ensure all tap targets are at least 44x44 CSS px.
-- [ ] MB-04: Rework forms for mobile ergonomics (keyboard types, input modes, spacing).
-- [ ] MB-05: Add responsive type/spacing scaling rules for small screens.
-- [ ] MB-06: Optimize layout stability to avoid content jumps on mobile.
-- [ ] MB-07: Add device matrix QA scripts (iOS Safari, Android Chrome, tablets, desktop).
-- [ ] MB-08: Add orientation change resilience tests.
-- [ ] MB-09: Add mobile-specific loading/empty/error variants where needed.
-- [ ] MB-10: Add responsive visual regression baselines.
+- [x] MB-01: Define responsive breakpoint strategy and device class rules.
+- [x] MB-02: Implement mobile-first navigation pattern.
+- [x] MB-03: Ensure all tap targets are at least 44x44 CSS px.
+- [x] MB-04: Rework forms for mobile ergonomics (keyboard types, input modes, spacing).
+- [x] MB-05: Add responsive type/spacing scaling rules for small screens.
+- [x] MB-06: Optimize layout stability to avoid content jumps on mobile.
+- [x] MB-07: Add device matrix QA scripts (iOS Safari, Android Chrome, tablets, desktop).
+- [x] MB-08: Add orientation change resilience tests.
+- [x] MB-09: Add mobile-specific loading/empty/error variants where needed.
+- [x] MB-10: Add responsive visual regression baselines.
 
 ### WS-08 Frontend Architecture Maintainability (ARC)
 - [x] ARC-01: Choose and lock frontend architecture pattern (typed modular app under `apps/web`).
@@ -147,28 +147,28 @@
 - [x] ARC-10: Add maintainability checklist gate before merges.
 
 ### WS-09 Performance Basics (PF)
-- [ ] PF-01: Define measurable budgets (bundle size, LCP, INP, CLS, TTI, memory).
-- [ ] PF-02: Implement route/code splitting and lazy loading.
-- [ ] PF-03: Optimize font loading strategy and reduce render-blocking assets.
-- [ ] PF-04: Optimize API request patterns (dedupe/cache/stale-while-revalidate).
-- [ ] PF-05: Remove unnecessary rerenders via memoization/profiling fixes.
-- [ ] PF-06: Add performance telemetry capture and dashboard.
-- [ ] PF-07: Add Lighthouse or equivalent CI performance checks.
-- [ ] PF-08: Add runtime perf debug overlay for local diagnosis.
-- [ ] PF-09: Add regression alerting when budget thresholds are crossed.
-- [ ] PF-10: Run perf soak tests on low-end device profiles.
+- [x] PF-01: Define measurable budgets (bundle size, LCP, INP, CLS, TTI, memory).
+- [x] PF-02: Implement route/code splitting and lazy loading.
+- [x] PF-03: Optimize font loading strategy and reduce render-blocking assets.
+- [x] PF-04: Optimize API request patterns (dedupe/cache/stale-while-revalidate).
+- [x] PF-05: Remove unnecessary rerenders via memoization/profiling fixes.
+- [x] PF-06: Add performance telemetry capture and dashboard.
+- [x] PF-07: Add Lighthouse or equivalent CI performance checks.
+- [x] PF-08: Add runtime perf debug overlay for local diagnosis.
+- [x] PF-09: Add regression alerting when budget thresholds are crossed.
+- [x] PF-10: Run perf soak tests on low-end device profiles.
 
 ### WS-10 Frontend Testing Depth (TST)
 - [x] TST-01: Define frontend test strategy and coverage targets by layer.
 - [x] TST-02: Add unit tests for shared UI primitives.
 - [x] TST-03: Add unit tests for hooks/state logic.
-- [ ] TST-04: Add integration tests for all primary user journeys.
-- [ ] TST-05: Add E2E tests for onboarding, core loop, error recovery, ranked, creator.
-- [ ] TST-06: Add accessibility tests in component and E2E layers.
-- [ ] TST-07: Add visual regression tests for key screens/states.
-- [ ] TST-08: Add API contract tests for frontend/runtime compatibility.
-- [ ] TST-09: Set coverage thresholds and enforce in CI.
-- [ ] TST-10: Add flake quarantine and deflake process for E2E stability.
+- [x] TST-04: Add integration tests for all primary user journeys.
+- [x] TST-05: Add E2E tests for onboarding, core loop, error recovery, ranked, creator.
+- [x] TST-06: Add accessibility tests in component and E2E layers.
+- [x] TST-07: Add visual regression tests for key screens/states.
+- [x] TST-08: Add API contract tests for frontend/runtime compatibility.
+- [x] TST-09: Set coverage thresholds and enforce in CI.
+- [x] TST-10: Add flake quarantine and deflake process for E2E stability.
 
 ### WS-11 Product Completeness of Core UI Surfaces (CMP)
 - [x] CMP-01: Ship home dashboard surface.
@@ -176,37 +176,37 @@
 - [x] CMP-03: Ship onboarding center surface.
 - [x] CMP-04: Ship challenge/quest surface.
 - [x] CMP-05: Ship campaign/progression surface.
-- [ ] CMP-06: Ship co-op/social surface.
-- [ ] CMP-07: Ship ranked/leaderboard surface.
-- [ ] CMP-08: Ship creator studio surface.
-- [ ] CMP-09: Ship moderation/reporting surface.
-- [ ] CMP-10: Ship liveops/events surface.
-- [ ] CMP-11: Ship analytics/diagnostics surface.
-- [ ] CMP-12: Ship in-app help center surface.
-- [ ] CMP-13: Ensure every surface has empty/loading/error/success states.
-- [ ] CMP-14: Ensure every surface has accessibility and responsive signoff.
+- [x] CMP-06: Ship co-op/social surface.
+- [x] CMP-07: Ship ranked/leaderboard surface.
+- [x] CMP-08: Ship creator studio surface.
+- [x] CMP-09: Ship moderation/reporting surface.
+- [x] CMP-10: Ship liveops/events surface.
+- [x] CMP-11: Ship analytics/diagnostics surface.
+- [x] CMP-12: Ship in-app help center surface.
+- [x] CMP-13: Ensure every surface has empty/loading/error/success states.
+- [x] CMP-14: Ensure every surface has accessibility and responsive signoff.
 
 ### WS-12 World-class Feel, Delight, and Cohesion (WOW)
-- [ ] WOW-01: Define motion choreography system (enter/exit/transition timing map).
-- [ ] WOW-02: Add premium transitions and staggered reveals for key flows.
-- [ ] WOW-03: Add success/failure feedback polish layer (microcopy + visual treatment).
-- [ ] WOW-04: Add consistent emotional tone pass for all UX copy.
-- [ ] WOW-05: Add trust cues (security, data safety, status visibility) throughout app.
-- [ ] WOW-06: Add delight moments at first success and milestone completions.
-- [ ] WOW-07: Add perceived-performance UX (skeleton cadence, optimistic acknowledgement).
-- [ ] WOW-08: Run 3 rounds of expert UX critique and integrate findings.
-- [ ] WOW-09: Run 2 rounds of engineering panel technical critique and integrate findings.
-- [ ] WOW-10: Final craft polish sweep (spacing, alignment, contrast, motion, copy).
+- [x] WOW-01: Define motion choreography system (enter/exit/transition timing map).
+- [x] WOW-02: Add premium transitions and staggered reveals for key flows.
+- [x] WOW-03: Add success/failure feedback polish layer (microcopy + visual treatment).
+- [x] WOW-04: Add consistent emotional tone pass for all UX copy.
+- [x] WOW-05: Add trust cues (security, data safety, status visibility) throughout app.
+- [x] WOW-06: Add delight moments at first success and milestone completions.
+- [x] WOW-07: Add perceived-performance UX (skeleton cadence, optimistic acknowledgement).
+- [x] WOW-08: Run 3 rounds of expert UX critique and integrate findings.
+- [x] WOW-09: Run 2 rounds of engineering panel technical critique and integrate findings.
+- [x] WOW-10: Final craft polish sweep (spacing, alignment, contrast, motion, copy).
 
 ### WS-13 Program Governance & Release Gates (PRG)
 - [x] PRG-01: Create scoring rubric with evidence requirements for each criterion.
 - [x] PRG-02: Define objective threshold for 100/100 readiness per criterion.
 - [x] PRG-03: Add release dashboard page summarizing all 12 criterion scores.
-- [ ] PRG-04: Add weekly quality review cadence and score delta tracking.
-- [ ] PRG-05: Add blocker escalation workflow (design, engineering, product).
-- [ ] PRG-06: Add pre-release dry-run checklist with signoff owners.
-- [ ] PRG-07: Add final panel demo script and evidence deck.
-- [ ] PRG-08: Add post-demo feedback intake and fast-fix sprint plan.
+- [x] PRG-04: Add weekly quality review cadence and score delta tracking.
+- [x] PRG-05: Add blocker escalation workflow (design, engineering, product).
+- [x] PRG-06: Add pre-release dry-run checklist with signoff owners.
+- [x] PRG-07: Add final panel demo script and evidence deck.
+- [x] PRG-08: Add post-demo feedback intake and fast-fix sprint plan.
 
 ## 5) Milestone-to-Task Mapping
 

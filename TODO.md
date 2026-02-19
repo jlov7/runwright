@@ -236,28 +236,28 @@ M1 task tracking:
 
 Milestone tracking:
 - [x] M0 Foundation/scoring/architecture baseline
-- [ ] M1 Frontend architecture modernization
+- [x] M1 Frontend architecture modernization
 - [x] M1 Frontend architecture modernization
 - [x] M2 Design system + visual language
 - [x] M3 IA + navigation + clarity
 - [x] M4 Onboarding + first-success perfection
-- [ ] M5 Interaction quality + recovery UX
-- [ ] M6 Accessibility + mobile/responsive excellence
-- [ ] M7 Product surface completeness
-- [ ] M8 Performance + testing depth
-- [ ] M9 Final polish + panel rehearsal + release signoff
+- [x] M5 Interaction quality + recovery UX
+- [x] M6 Accessibility + mobile/responsive excellence
+- [x] M7 Product surface completeness
+- [x] M8 Performance + testing depth
+- [x] M9 Final polish + panel rehearsal + release signoff
 
 Workstream completion:
-- [ ] WS-01 Visual design language & brand polish
-- [ ] WS-02 Information architecture & clarity
-- [ ] WS-03 Onboarding / first-success journey
-- [ ] WS-04 Interaction quality
-- [ ] WS-05 Error handling & recovery UX
-- [ ] WS-06 Accessibility fundamentals
-- [ ] WS-07 Mobile/responsive quality
+- [x] WS-01 Visual design language & brand polish
+- [x] WS-02 Information architecture & clarity
+- [x] WS-03 Onboarding / first-success journey
+- [x] WS-04 Interaction quality
+- [x] WS-05 Error handling & recovery UX
+- [x] WS-06 Accessibility fundamentals
+- [x] WS-07 Mobile/responsive quality
 - [x] WS-08 Frontend architecture maintainability
-- [ ] WS-09 Performance basics
-- [ ] WS-10 Frontend testing depth
-- [ ] WS-11 Product completeness of core UI surfaces
-- [ ] WS-12 World-class feel / cohesion
-- [ ] WS-13 Program governance + release gates
+- [x] WS-09 Performance basics
+- [x] WS-10 Frontend testing depth
+- [x] WS-11 Product completeness of core UI surfaces
+- [x] WS-12 World-class feel / cohesion
+- [x] WS-13 Program governance + release gates
