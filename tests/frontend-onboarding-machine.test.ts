@@ -47,6 +47,25 @@ describe("frontend onboarding state machine", () => {
     expect(nextOnboardingAction(state)?.stepId).toBe("save");
   });
 
+  it("covers top five failure paths with deterministic blocked-step recovery", () => {
+    const failingSteps: Array<"profile" | "tutorial" | "save" | "publish" | "campaign"> = [
+      "profile",
+      "tutorial",
+      "save",
+      "publish",
+      "campaign"
+    ];
+    for (const stepId of failingSteps) {
+      const blocked = reduceOnboardingState(initialOnboardingState(), {
+        type: "step-failed",
+        stepId,
+        reason: `${stepId}-failed`
+      });
+      expect(blocked.status).toBe("blocked");
+      expect(nextOnboardingAction(blocked)?.stepId).toBe(stepId);
+    }
+  });
+
   it("supports bootstrap sample mode for fast first success", () => {
     const state = reduceOnboardingState(initialOnboardingState(), { type: "bootstrap-sample-loaded" });
     expect(state.completed.profile).toBe(true);
