@@ -93,6 +93,10 @@ describe("game runtime web shell", () => {
       const docs = await fetch(`${runtime.baseUrl}/docs/help/README.md`);
       expect(docs.status).toBe(200);
       expect(await docs.text()).toContain("# Help Center");
+
+      const surfaceHelpers = await fetch(`${runtime.baseUrl}/surfaces.js`);
+      expect(surfaceHelpers.status).toBe(200);
+      expect(await surfaceHelpers.text()).toContain("formatSeasonSummary");
     } finally {
       await runtime.close();
     }

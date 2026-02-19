@@ -408,7 +408,9 @@
         lastReversibleAction: null,
         lastError: null,
         socialInvites: [],
-        retryQueue: []
+        retryQueue: [],
+        requestMetrics: [],
+        helperModulePromise: null
       };
       const ONBOARDING_STORAGE_KEY = "runwright-onboarding-v1";
       const LATENCY_BUDGET_MS = 1200;
@@ -416,6 +418,7 @@
         window.location.hostname === "localhost" ||
         window.location.hostname === "127.0.0.1" ||
         window.location.search.includes("debugLatency=1");
+      const RESPONSE_CACHE_TTL_MS = 5000;
 
       const surfaceMeta = {
         dashboard: {
@@ -527,6 +530,8 @@
       const mobileSurfaceSelect = document.querySelector("#mobile-surface-select");
 
       let retryTimer = null;
+      const responseCache = new Map();
+      const pendingGetRequests = new Map();
 
       function profileReady() {
         return Boolean(state.profileId);
@@ -761,12 +766,38 @@
       }
 
       function setActiveSurface(surface, stepLabel = null) {
-        state.activeSurface = surfaceMeta[surface] ? surface : "dashboard";
+        const nextSurface = surfaceMeta[surface] ? surface : "dashboard";
+        if (state.activeSurface === nextSurface && stepLabel === null) return;
+        state.activeSurface = nextSurface;
         renderSurfaceChrome(stepLabel);
         renderSummaries();
         requestAnimationFrame(() => {
           surfaceTitle.focus();
         });
+      }
+
+      async function loadSurfaceHelpers() {
+        if (!state.helperModulePromise) {
+          state.helperModulePromise = import("/surfaces.js");
+        }
+        return state.helperModulePromise;
+      }
+
+      function trackRequestMetric(label, durationMs) {
+        state.requestMetrics.push({
+          label,
+          durationMs,
+          at: Date.now()
+        });
+        if (state.requestMetrics.length > 40) {
+          state.requestMetrics = state.requestMetrics.slice(-40);
+        }
+      }
+
+      function averageRequestLatencyMs() {
+        if (state.requestMetrics.length === 0) return 0;
+        const total = state.requestMetrics.reduce((sum, entry) => sum + entry.durationMs, 0);
+        return Math.round(total / state.requestMetrics.length);
       }
 
       function cloneRequestInit(init) {
@@ -835,6 +866,16 @@
       }
 
       async function api(path, init = {}, options = {}) {
+        const method = String(init.method || "GET").toUpperCase();
+        const cacheKey = `${method} ${path}`;
+        const cached = responseCache.get(cacheKey);
+        if (method === "GET" && cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {
+          return cached.payload;
+        }
+        if (method === "GET" && pendingGetRequests.has(cacheKey)) {
+          return pendingGetRequests.get(cacheKey);
+        }
+
         const requestInit = {
           ...init,
           headers: {
@@ -850,32 +891,49 @@
           throw new Error("network-offline");
         }
 
-        let response;
-        let payload;
-        try {
-          response = await fetch(path, requestInit);
-          payload = await response.json();
-        } catch {
-          if (!options.skipRetryQueue) {
-            enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+        const requestPromise = (async () => {
+          let response;
+          let payload;
+          try {
+            response = await fetch(path, requestInit);
+            payload = await response.json();
+          } catch {
+            if (!options.skipRetryQueue) {
+              enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+            }
+            throw new Error("network-transient-failure");
+          } finally {
+            const durationMs = Math.round(performance.now() - startedAt);
+            trackRequestMetric(options.label || path, durationMs);
+            applyLatencyAlert(durationMs, options.label || path);
           }
-          throw new Error("network-transient-failure");
-        } finally {
-          const durationMs = Math.round(performance.now() - startedAt);
-          applyLatencyAlert(durationMs, options.label || path);
+
+          if (!response.ok) {
+            const error = payload?.error?.message || "Request failed";
+            const code = payload?.error?.code || "unknown-error";
+            const transient = response.status >= 500 || response.status === 429 || code === "network-offline";
+            if (transient && !options.skipRetryQueue) {
+              enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+            }
+            throw new Error(error);
+          }
+
+          if (method === "GET") {
+            responseCache.set(cacheKey, { payload, storedAt: Date.now() });
+          }
+          return payload;
+        })();
+
+        if (method === "GET") {
+          pendingGetRequests.set(cacheKey, requestPromise);
+          try {
+            return await requestPromise;
+          } finally {
+            pendingGetRequests.delete(cacheKey);
+          }
         }
 
-        if (!response.ok) {
-          const error = payload?.error?.message || "Request failed";
-          const code = payload?.error?.code || "unknown-error";
-          const transient = response.status >= 500 || response.status === 429 || code === "network-offline";
-          if (transient && !options.skipRetryQueue) {
-            enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
-          }
-          throw new Error(error);
-        }
-
-        return payload;
+        return requestPromise;
       }
 
       function persistLocalState() {
@@ -1042,15 +1100,13 @@
         }
         setLoading(true, "Refreshing leaderboard...");
         try {
+          const helpers = await loadSurfaceHelpers();
           const payload = await api("/v1/ranked/leaderboard", {}, { label: "refresh leaderboard" });
           rankedLeaderboard.innerHTML = "";
-          if (!payload.leaderboard.length) {
-            rankedLeaderboard.innerHTML = "<li>No ranked entries yet.</li>";
-            return;
-          }
-          for (const row of payload.leaderboard) {
+          const rows = helpers.mapLeaderboardRows(payload);
+          for (const row of rows) {
             const li = document.createElement("li");
-            li.textContent = `${row.handle}: ${row.score}`;
+            li.textContent = row;
             rankedLeaderboard.appendChild(li);
           }
         } catch (error) {
@@ -1067,15 +1123,13 @@
         }
         setLoading(true, "Refreshing creator feed...");
         try {
+          const helpers = await loadSurfaceHelpers();
           const payload = await api("/v1/ugc/discover", {}, { label: "refresh creator feed" });
           creatorDiscover.innerHTML = "";
-          if (!payload.levels.length) {
-            creatorDiscover.innerHTML = "<li>No published levels yet.</li>";
-            return;
-          }
-          for (const row of payload.levels.slice(0, 5)) {
+          const rows = helpers.mapCreatorRows(payload);
+          for (const row of rows) {
             const li = document.createElement("li");
-            li.textContent = `${row.title} | difficulty ${row.difficulty} | rating ${row.rating}`;
+            li.textContent = row;
             creatorDiscover.appendChild(li);
           }
         } catch (error) {
@@ -1088,8 +1142,9 @@
       async function refreshLiveOps() {
         setLoading(true, "Loading seasonal event...");
         try {
+          const helpers = await loadSurfaceHelpers();
           const payload = await api("/v1/liveops/season", {}, { label: "refresh liveops" });
-          liveopsSummary.textContent = `Season ${payload.seasonId}: rotation ${payload.rotation}. Active events: ${payload.events.length}.`;
+          liveopsSummary.textContent = helpers.formatSeasonSummary(payload);
         } catch (error) {
           liveopsSummary.textContent = `LiveOps unavailable: ${error.message}`;
           setFeedback(`LiveOps refresh failed: ${error.message}`, true);
@@ -1101,8 +1156,9 @@
       async function refreshAnalytics() {
         setLoading(true, "Loading analytics funnel...");
         try {
+          const helpers = await loadSurfaceHelpers();
           const payload = await api("/v1/analytics/funnel", {}, { label: "refresh analytics" });
-          analyticsSummary.textContent = `Conversion: ${payload.conversionPercent}% | Profiles: ${payload.profiles} | First success count: ${payload.firstSuccessCount}.`;
+          analyticsSummary.textContent = helpers.formatAnalyticsSummary(payload, averageRequestLatencyMs());
         } catch (error) {
           analyticsSummary.textContent = `Analytics unavailable: ${error.message}`;
           setFeedback(`Analytics refresh failed: ${error.message}`, true);
