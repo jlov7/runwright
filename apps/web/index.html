@@ -20,6 +20,10 @@
           <span class="nav-glyph" aria-hidden="true">[]</span>
           Dashboard
         </button>
+        <button type="button" class="nav-item" data-surface="profile" data-label="Profile">
+          <span class="nav-glyph" aria-hidden="true">@</span>
+          Profile
+        </button>
         <button type="button" class="nav-item" data-surface="onboarding" data-label="Onboarding">
           <span class="nav-glyph" aria-hidden="true">*</span>
           Onboarding
@@ -41,59 +45,114 @@
           Help
         </button>
       </nav>
+      <form id="surface-command" class="command-bar rw-inline" aria-label="Surface quick jump">
+        <label for="surface-search">Surface Command Bar</label>
+        <input
+          id="surface-search"
+          name="surface-search"
+          type="search"
+          list="surface-options"
+          placeholder="Jump to dashboard, profile, onboarding, challenge..."
+        />
+        <datalist id="surface-options">
+          <option value="dashboard"></option>
+          <option value="profile"></option>
+          <option value="onboarding"></option>
+          <option value="challenge"></option>
+          <option value="ranked"></option>
+          <option value="creator"></option>
+          <option value="help"></option>
+        </datalist>
+        <button type="submit" id="surface-search-go">Go</button>
+        <p id="surface-search-feedback" class="muted" aria-live="polite"></p>
+      </form>
     </header>
 
     <main class="layout rw-page">
       <section class="panel panel-wayfinding rw-panel" aria-labelledby="wayfinding-title">
         <h2 id="wayfinding-title">Where You Are</h2>
         <p id="breadcrumb-trail" class="breadcrumb" aria-live="polite">Home / Dashboard</p>
+        <p id="surface-path-hint" class="muted">Use the nav or command bar to move through core surfaces quickly.</p>
+      </section>
+
+      <section class="panel panel-hierarchy rw-panel" aria-labelledby="surface-title">
+        <h2 id="surface-title">Dashboard</h2>
         <p id="surface-intent" class="muted">View launch readiness and choose your next gameplay loop.</p>
+        <p id="surface-status" class="status-pill">Status: Needs action</p>
+        <button type="button" id="surface-primary-action">Create profile</button>
+        <ul id="surface-success-criteria" class="criteria-list rw-stack" aria-label="Success criteria"></ul>
       </section>
 
-      <section class="panel panel-primary rw-panel" aria-labelledby="first-run-title">
-        <h2 id="first-run-title">First Run Setup</h2>
-        <form id="profile-form" class="stack rw-stack" aria-describedby="profile-help">
-          <label for="handle">Player handle</label>
-          <input id="handle" name="handle" type="text" required minlength="2" maxlength="32" />
-
-          <label for="locale">Language</label>
-          <select id="locale" name="locale">
-            <option value="en-US">English (US)</option>
-            <option value="es-ES">Espanol</option>
-            <option value="fr-FR">Francais</option>
-            <option value="de-DE">Deutsch</option>
-            <option value="ja-JP">Japanese</option>
-            <option value="ko-KR">Korean</option>
-            <option value="pt-BR">Portugues (BR)</option>
-          </select>
-
-          <button type="submit" id="create-profile">Create Profile</button>
-          <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
-        </form>
-
-        <div class="actions rw-stack" aria-label="Primary gameplay actions">
-          <button type="button" id="run-tutorial" data-help="Records tutorial progress to unlock onboarding step 2.">
-            Run Tutorial Hint
-          </button>
-          <button type="button" id="save-progress" data-help="Creates a persistent save snapshot and sync record.">
-            Save Progress
-          </button>
-          <button type="button" id="publish-level" data-help="Publishes a starter UGC level to hit first success quickly.">
-            Publish Level
-          </button>
-          <button type="button" id="submit-ranked" data-help="Submits ranked score with anti-tamper protection.">
-            Submit Ranked Score
-          </button>
+      <section class="panel panel-surface rw-panel" aria-labelledby="workspace-title">
+        <h2 id="workspace-title">Surface Workspace</h2>
+        <div id="surface-empty-state" class="empty-state" hidden>
+          <p id="surface-empty-copy"></p>
+          <button type="button" id="surface-empty-action">Create profile</button>
+          <p class="muted">Need help? Open docs/help/README.md from the help panel.</p>
         </div>
-      </section>
 
-      <section class="panel rw-panel" aria-labelledby="status-title">
-        <h2 id="status-title">Journey Status</h2>
-        <ol id="onboarding-steps" class="steps rw-stack">
-          <li>Create your profile to begin.</li>
-        </ol>
-        <p id="next-action" class="next-action">Next action: Create profile</p>
-        <p id="feedback" class="feedback" aria-live="polite"></p>
+        <article id="dashboard-surface" data-surface-panel="dashboard" class="surface-panel rw-stack">
+          <h3>Dashboard Mission Brief</h3>
+          <p class="muted">Track readiness, identify blockers, and start the highest-impact next action.</p>
+          <p id="dashboard-summary">No profile yet. Create one to unlock onboarding guidance.</p>
+        </article>
+
+        <article id="profile-surface" data-surface-panel="profile" class="surface-panel rw-stack" hidden>
+          <h3>Account Profile And Settings</h3>
+          <p class="muted">Manage handle, locale, and accessibility defaults before advanced modes.</p>
+          <p id="profile-summary">No profile is active yet.</p>
+        </article>
+
+        <article id="onboarding-surface" data-surface-panel="onboarding" class="surface-panel rw-stack" hidden>
+          <h3>Onboarding Center</h3>
+          <form id="profile-form" class="stack rw-stack" aria-describedby="profile-help">
+            <label for="handle">Player handle</label>
+            <input id="handle" name="handle" type="text" required minlength="2" maxlength="32" />
+
+            <label for="locale">Language</label>
+            <select id="locale" name="locale">
+              <option value="en-US">English (US)</option>
+              <option value="es-ES">Espanol</option>
+              <option value="fr-FR">Francais</option>
+              <option value="de-DE">Deutsch</option>
+              <option value="ja-JP">Japanese</option>
+              <option value="ko-KR">Korean</option>
+              <option value="pt-BR">Portugues (BR)</option>
+            </select>
+
+            <button type="submit" id="create-profile">Create Profile</button>
+            <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
+          </form>
+
+          <div class="actions rw-stack" aria-label="Primary gameplay actions">
+            <button type="button" id="run-tutorial" data-help="Records tutorial progress to unlock onboarding step 2.">
+              Run Tutorial Hint
+            </button>
+            <button type="button" id="save-progress" data-help="Creates a persistent save snapshot and sync record.">
+              Save Progress
+            </button>
+            <button type="button" id="publish-level" data-help="Publishes a starter UGC level to hit first success quickly.">
+              Publish Level
+            </button>
+            <button type="button" id="submit-ranked" data-help="Submits ranked score with anti-tamper protection.">
+              Submit Ranked Score
+            </button>
+          </div>
+
+          <h4>Journey Status</h4>
+          <ol id="onboarding-steps" class="steps rw-stack">
+            <li>Create your profile to begin.</li>
+          </ol>
+          <p id="next-action" class="next-action">Next action: Create profile</p>
+          <p id="feedback" class="feedback" aria-live="polite"></p>
+        </article>
+
+        <article id="challenge-surface" data-surface-panel="challenge" class="surface-panel rw-stack" hidden>
+          <h3>Challenge Hub</h3>
+          <p class="muted">Generate challenge runs once onboarding prerequisites are complete.</p>
+          <button type="button" id="challenge-generate">Generate Challenge Brief</button>
+          <p id="challenge-brief" class="muted">No challenge generated yet.</p>
+        </article>
       </section>
 
       <aside class="panel panel-help rw-panel" aria-labelledby="help-title">
@@ -111,16 +170,52 @@
       const state = {
         profileId: null,
         score: 1200,
-        activeSurface: "dashboard"
+        activeSurface: "dashboard",
+        profileHandle: null,
+        locale: "en-US",
+        progress: {
+          tutorial: false,
+          saved: false,
+          published: false
+        }
       };
 
-      const surfaceGuidance = {
-        dashboard: "View launch readiness and choose your next gameplay loop.",
-        onboarding: "Finish profile, tutorial, and save actions to unlock first success.",
-        challenge: "Use challenge runs to validate progression and ability pacing.",
-        ranked: "Submit trusted ranked scores and inspect anti-tamper outcomes.",
-        creator: "Publish and review UGC safely before sharing broadly.",
-        help: "Use docs and troubleshooting paths for blocked flows."
+      const surfaceMeta = {
+        dashboard: {
+          label: "Dashboard",
+          intent: "View launch readiness and choose your next gameplay loop.",
+          primaryAction: "create-profile"
+        },
+        profile: {
+          label: "Profile",
+          intent: "Manage account and settings before deeper gameplay loops.",
+          primaryAction: "create-profile"
+        },
+        onboarding: {
+          label: "Onboarding",
+          intent: "Complete first-run checklist and reach first success quickly.",
+          primaryAction: "run-onboarding"
+        },
+        challenge: {
+          label: "Challenge",
+          intent: "Generate challenge runs and validate progression depth.",
+          primaryAction: "generate-challenge"
+        },
+        ranked: {
+          label: "Ranked",
+          intent: "Submit trusted scores and inspect competitive integrity.",
+          primaryAction: "open-onboarding"
+        },
+        creator: {
+          label: "Creator",
+          intent: "Publish and review levels with moderation-safe defaults.",
+          primaryAction: "open-onboarding"
+        },
+        help: {
+          label: "Help",
+          intent: "Find troubleshooting paths and recovery guidance.",
+          primaryAction: "open-help"
+        }
       };
 
       const feedback = document.querySelector("#feedback");
@@ -128,8 +223,162 @@
       const stepsList = document.querySelector("#onboarding-steps");
       const tipsList = document.querySelector("#tips");
       const breadcrumbTrail = document.querySelector("#breadcrumb-trail");
+      const surfaceTitle = document.querySelector("#surface-title");
       const surfaceIntent = document.querySelector("#surface-intent");
+      const surfaceStatus = document.querySelector("#surface-status");
+      const surfacePrimaryAction = document.querySelector("#surface-primary-action");
+      const surfaceCriteria = document.querySelector("#surface-success-criteria");
+      const surfaceSearch = document.querySelector("#surface-search");
+      const surfaceSearchFeedback = document.querySelector("#surface-search-feedback");
+      const surfacePanels = [...document.querySelectorAll("[data-surface-panel]")];
       const navItems = [...document.querySelectorAll(".nav-item[data-surface]")];
+      const emptyState = document.querySelector("#surface-empty-state");
+      const emptyCopy = document.querySelector("#surface-empty-copy");
+      const emptyAction = document.querySelector("#surface-empty-action");
+      const dashboardSummary = document.querySelector("#dashboard-summary");
+      const profileSummary = document.querySelector("#profile-summary");
+      const challengeBrief = document.querySelector("#challenge-brief");
+
+      function profileReady() {
+        return Boolean(state.profileId);
+      }
+
+      function onboardingReady() {
+        return state.progress.tutorial && state.progress.saved && state.progress.published;
+      }
+
+      function successCriteriaRows() {
+        return [
+          { label: "Profile created", complete: profileReady() },
+          { label: "Tutorial hint recorded", complete: state.progress.tutorial },
+          { label: "Progress saved", complete: state.progress.saved },
+          { label: "First level published", complete: state.progress.published }
+        ];
+      }
+
+      function renderCriteria() {
+        surfaceCriteria.innerHTML = "";
+        for (const row of successCriteriaRows()) {
+          const li = document.createElement("li");
+          li.textContent = `${row.complete ? "Done" : "Todo"}: ${row.label}`;
+          surfaceCriteria.appendChild(li);
+        }
+      }
+
+      function statusTextFor(surface) {
+        if (surface === "dashboard") {
+          return onboardingReady() ? "Status: Ready" : "Status: Needs action";
+        }
+        if (surface === "challenge") {
+          return onboardingReady() ? "Status: Ready to generate" : "Status: Blocked - onboarding incomplete";
+        }
+        if (surface === "profile") {
+          return profileReady() ? "Status: Profile active" : "Status: No profile";
+        }
+        if (surface === "onboarding") {
+          return onboardingReady() ? "Status: First success complete" : "Status: In progress";
+        }
+        return "Status: Informational";
+      }
+
+      function primaryActionLabel(actionId) {
+        if (actionId === "create-profile") return "Create profile";
+        if (actionId === "run-onboarding") return "Open onboarding controls";
+        if (actionId === "generate-challenge") return "Generate challenge";
+        if (actionId === "open-help") return "Open help docs";
+        return "Open onboarding controls";
+      }
+
+      function normalizeSurface(input) {
+        const value = input.trim().toLowerCase();
+        if (value.length === 0) return null;
+        const aliases = {
+          home: "dashboard",
+          account: "profile",
+          settings: "profile",
+          tutorial: "onboarding",
+          quest: "challenge",
+          support: "help"
+        };
+        if (aliases[value]) return aliases[value];
+        if (surfaceMeta[value]) return value;
+        return null;
+      }
+
+      function syncSurfacePanels(surface) {
+        for (const panel of surfacePanels) {
+          const visible = panel.dataset.surfacePanel === surface;
+          panel.hidden = !visible;
+        }
+
+        let emptyMessage = null;
+        let actionLabel = "Create profile";
+        let actionTarget = "onboarding";
+
+        if (surface === "dashboard" && !profileReady()) {
+          emptyMessage = "Dashboard is empty because no profile exists yet.";
+        } else if (surface === "profile" && !profileReady()) {
+          emptyMessage = "Profile settings are unavailable until a profile is created.";
+        } else if (surface === "onboarding" && !profileReady()) {
+          emptyMessage = "Onboarding actions are locked until you create a profile.";
+        } else if (surface === "challenge" && !onboardingReady()) {
+          emptyMessage = "Challenge generation unlocks after tutorial, save, and publish are complete.";
+          actionLabel = "Open onboarding controls";
+          actionTarget = "onboarding";
+        } else if (surface === "ranked" || surface === "creator" || surface === "help") {
+          emptyMessage = "This surface is routed through onboarding and help in the current v1 shell.";
+          actionLabel = "Open onboarding controls";
+          actionTarget = "onboarding";
+        }
+
+        if (emptyMessage) {
+          emptyState.hidden = false;
+          emptyCopy.textContent = emptyMessage;
+          emptyAction.textContent = actionLabel;
+          emptyAction.dataset.targetSurface = actionTarget;
+        } else {
+          emptyState.hidden = true;
+        }
+      }
+
+      function renderSurfaceChrome(stepLabel = null) {
+        const surface = state.activeSurface;
+        const meta = surfaceMeta[surface] || surfaceMeta.dashboard;
+        const activeItem = navItems.find((item) => item.dataset.surface === surface) || navItems[0];
+
+        for (const item of navItems) {
+          const isActive = item === activeItem;
+          item.classList.toggle("is-active", isActive);
+          if (isActive) item.setAttribute("aria-current", "page");
+          else item.removeAttribute("aria-current");
+        }
+
+        const label = meta.label;
+        breadcrumbTrail.textContent = stepLabel ? `Home / ${label} / ${stepLabel}` : `Home / ${label}`;
+        surfaceTitle.textContent = label;
+        surfaceIntent.textContent = meta.intent;
+        surfaceStatus.textContent = statusTextFor(surface);
+        surfacePrimaryAction.textContent = primaryActionLabel(meta.primaryAction);
+        surfacePrimaryAction.dataset.actionId = meta.primaryAction;
+
+        renderCriteria();
+        syncSurfacePanels(surface);
+      }
+
+      function renderSummaries() {
+        dashboardSummary.textContent = profileReady()
+          ? `Profile ${state.profileHandle} is active. Continue onboarding to unlock full challenge depth.`
+          : "No profile yet. Create one to unlock onboarding guidance.";
+        profileSummary.textContent = profileReady()
+          ? `Handle: ${state.profileHandle} | Locale: ${state.locale}`
+          : "No profile is active yet.";
+      }
+
+      function setActiveSurface(surface, stepLabel = null) {
+        state.activeSurface = surfaceMeta[surface] ? surface : "dashboard";
+        renderSurfaceChrome(stepLabel);
+        renderSummaries();
+      }
 
       async function api(path, init = {}) {
         const response = await fetch(path, {
@@ -150,24 +399,6 @@
       function setFeedback(message, isError = false) {
         feedback.textContent = message;
         feedback.className = isError ? "feedback error" : "feedback success";
-      }
-
-      function setActiveSurface(surface, stepLabel = null) {
-        state.activeSurface = surface;
-        const activeItem = navItems.find((item) => item.dataset.surface === surface) || navItems[0];
-        for (const item of navItems) {
-          const isActive = item === activeItem;
-          item.classList.toggle("is-active", isActive);
-          if (isActive) {
-            item.setAttribute("aria-current", "page");
-          } else {
-            item.removeAttribute("aria-current");
-          }
-        }
-
-        const label = activeItem?.dataset.label || "Dashboard";
-        breadcrumbTrail.textContent = stepLabel ? `Home / ${label} / ${stepLabel}` : `Home / ${label}`;
-        surfaceIntent.textContent = surfaceGuidance[surface] || surfaceGuidance.dashboard;
       }
 
       async function refreshHelp() {
@@ -194,20 +425,49 @@
           : "Next action: Launch-ready onboarding complete";
       }
 
+      async function createProfileFromForm() {
+        const form = document.querySelector("#profile-form");
+        const handle = form.handle.value.trim();
+        const locale = form.locale.value;
+        const payload = await api("/v1/auth/signup", {
+          method: "POST",
+          body: JSON.stringify({ handle, locale })
+        });
+        state.profileId = payload.profile.id;
+        state.profileHandle = payload.profile.handle;
+        state.locale = payload.profile.locale;
+        setActiveSurface("onboarding", "Profile Created");
+        setFeedback(`Profile created: ${payload.profile.handle}`);
+        await refreshOnboarding();
+      }
+
+      function runPrimaryAction() {
+        const actionId = surfacePrimaryAction.dataset.actionId;
+        if (actionId === "create-profile") {
+          setActiveSurface("onboarding", "Create Profile");
+          document.querySelector("#handle").focus();
+          return;
+        }
+        if (actionId === "run-onboarding") {
+          setActiveSurface("onboarding");
+          return;
+        }
+        if (actionId === "generate-challenge") {
+          setActiveSurface("challenge", "Challenge Brief");
+          document.querySelector("#challenge-generate").click();
+          return;
+        }
+        if (actionId === "open-help") {
+          window.open("/docs/help/README.md", "_blank", "noopener,noreferrer");
+          return;
+        }
+        setActiveSurface("onboarding");
+      }
+
       document.querySelector("#profile-form").addEventListener("submit", async (event) => {
         event.preventDefault();
         try {
-          const form = event.currentTarget;
-          const handle = form.handle.value.trim();
-          const locale = form.locale.value;
-          const payload = await api("/v1/auth/signup", {
-            method: "POST",
-            body: JSON.stringify({ handle, locale })
-          });
-          state.profileId = payload.profile.id;
-          setActiveSurface("onboarding", "Profile Created");
-          setFeedback(`Profile created: ${payload.profile.handle}`);
-          await refreshOnboarding();
+          await createProfileFromForm();
         } catch (error) {
           setFeedback(error.message, true);
         }
@@ -224,6 +484,7 @@
               payload: { source: "web-shell" }
             })
           });
+          state.progress.tutorial = true;
           setActiveSurface("onboarding", "Tutorial Hint");
           setFeedback("Tutorial progress recorded.");
           await refreshOnboarding();
@@ -244,6 +505,7 @@
               payload: { chapter: 1, checkpoint: "shell-save" }
             })
           });
+          state.progress.saved = true;
           setActiveSurface("onboarding", "Save Progress");
           setFeedback("Progress saved.");
           await refreshOnboarding();
@@ -263,6 +525,7 @@
               difficulty: "silver"
             })
           });
+          state.progress.published = true;
           setActiveSurface("creator", "Publish Level");
           setFeedback("Level published. First success should now be complete.");
           await refreshOnboarding();
@@ -291,6 +554,35 @@
         }
       });
 
+      document.querySelector("#challenge-generate").addEventListener("click", () => {
+        if (!onboardingReady()) {
+          challengeBrief.textContent = "Challenge generation is blocked until onboarding criteria are complete.";
+          setFeedback("Finish onboarding criteria before generating a challenge.", true);
+          return;
+        }
+        challengeBrief.textContent = "Challenge: Iron Relay. Objective: Clear three waves without dropping below 40% stability.";
+        setFeedback("Challenge brief generated.");
+      });
+
+      document.querySelector("#surface-command").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const surface = normalizeSurface(surfaceSearch.value);
+        if (!surface) {
+          surfaceSearchFeedback.textContent =
+            "Unknown surface. Try dashboard, profile, onboarding, challenge, ranked, creator, or help.";
+          return;
+        }
+        surfaceSearchFeedback.textContent = "";
+        setActiveSurface(surface);
+      });
+
+      surfacePrimaryAction.addEventListener("click", runPrimaryAction);
+
+      emptyAction.addEventListener("click", () => {
+        const target = emptyAction.dataset.targetSurface || "onboarding";
+        setActiveSurface(target);
+      });
+
       for (const navItem of navItems) {
         navItem.addEventListener("click", () => {
           setActiveSurface(navItem.dataset.surface || "dashboard");
@@ -301,6 +593,13 @@
         const helpText = button.getAttribute("data-help");
         button.setAttribute("title", helpText);
       }
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "/" && document.activeElement !== surfaceSearch) {
+          event.preventDefault();
+          surfaceSearch.focus();
+        }
+      });
 
       setActiveSurface("dashboard");
       refreshHelp().catch(() => setFeedback("Help service unavailable.", true));

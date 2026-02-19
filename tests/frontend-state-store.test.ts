@@ -8,8 +8,8 @@ import {
 
 describe("frontend state store", () => {
   it("reduces navigation, error, and completion deterministically", () => {
-    const navigated = reduceFrontendState(DEFAULT_FRONTEND_STATE, { type: "navigate", surface: "onboarding" });
-    expect(navigated.activeSurface).toBe("onboarding");
+    const navigated = reduceFrontendState(DEFAULT_FRONTEND_STATE, { type: "navigate", surface: "profile" });
+    expect(navigated.activeSurface).toBe("profile");
     const failed = reduceFrontendState(navigated, { type: "set-error", message: "Request failed" });
     expect(failed.asyncState).toBe("error");
     expect(failed.lastError).toBe("Request failed");
