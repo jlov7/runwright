@@ -6,38 +6,72 @@
     <title>Runwright Runtime</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
+  <body data-theme="dark">
     <div class="aurora" aria-hidden="true"></div>
-    <main class="layout">
-      <section class="panel panel-primary" aria-labelledby="onboarding-title">
+
+    <header class="app-header rw-page" aria-label="Runtime shell header">
+      <div class="brand-block">
         <p class="eyebrow">Runwright Runtime</p>
         <h1 id="onboarding-title">First Success Control Room</h1>
-        <p class="lede">
-          Create a profile, finish tutorial hints, save once, then publish a level for your first success moment.
-        </p>
+        <p class="lede">Complete onboarding quickly, then move into challenge, ranked, and creator loops.</p>
+      </div>
+      <nav id="global-nav" class="global-nav" aria-label="Primary navigation">
+        <button type="button" class="nav-item is-active" data-surface="dashboard" data-label="Dashboard" aria-current="page">
+          <span class="nav-glyph" aria-hidden="true">[]</span>
+          Dashboard
+        </button>
+        <button type="button" class="nav-item" data-surface="onboarding" data-label="Onboarding">
+          <span class="nav-glyph" aria-hidden="true">*</span>
+          Onboarding
+        </button>
+        <button type="button" class="nav-item" data-surface="challenge" data-label="Challenge">
+          <span class="nav-glyph" aria-hidden="true">#</span>
+          Challenge
+        </button>
+        <button type="button" class="nav-item" data-surface="ranked" data-label="Ranked">
+          <span class="nav-glyph" aria-hidden="true">^</span>
+          Ranked
+        </button>
+        <button type="button" class="nav-item" data-surface="creator" data-label="Creator">
+          <span class="nav-glyph" aria-hidden="true">+</span>
+          Creator
+        </button>
+        <button type="button" class="nav-item" data-surface="help" data-label="Help">
+          <span class="nav-glyph" aria-hidden="true">?</span>
+          Help
+        </button>
+      </nav>
+    </header>
 
-        <form id="profile-form" class="stack" aria-describedby="profile-help">
+    <main class="layout rw-page">
+      <section class="panel panel-wayfinding rw-panel" aria-labelledby="wayfinding-title">
+        <h2 id="wayfinding-title">Where You Are</h2>
+        <p id="breadcrumb-trail" class="breadcrumb" aria-live="polite">Home / Dashboard</p>
+        <p id="surface-intent" class="muted">View launch readiness and choose your next gameplay loop.</p>
+      </section>
+
+      <section class="panel panel-primary rw-panel" aria-labelledby="first-run-title">
+        <h2 id="first-run-title">First Run Setup</h2>
+        <form id="profile-form" class="stack rw-stack" aria-describedby="profile-help">
           <label for="handle">Player handle</label>
           <input id="handle" name="handle" type="text" required minlength="2" maxlength="32" />
 
           <label for="locale">Language</label>
           <select id="locale" name="locale">
             <option value="en-US">English (US)</option>
-            <option value="es-ES">Español</option>
-            <option value="fr-FR">Français</option>
+            <option value="es-ES">Espanol</option>
+            <option value="fr-FR">Francais</option>
             <option value="de-DE">Deutsch</option>
             <option value="ja-JP">Japanese</option>
             <option value="ko-KR">Korean</option>
-            <option value="pt-BR">Português (BR)</option>
+            <option value="pt-BR">Portugues (BR)</option>
           </select>
 
           <button type="submit" id="create-profile">Create Profile</button>
-          <p id="profile-help" class="muted">
-            This only creates local runtime state in your current workspace.
-          </p>
+          <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
         </form>
 
-        <div class="actions" aria-label="Primary gameplay actions">
+        <div class="actions rw-stack" aria-label="Primary gameplay actions">
           <button type="button" id="run-tutorial" data-help="Records tutorial progress to unlock onboarding step 2.">
             Run Tutorial Hint
           </button>
@@ -53,34 +87,49 @@
         </div>
       </section>
 
-      <section class="panel" aria-labelledby="status-title">
+      <section class="panel rw-panel" aria-labelledby="status-title">
         <h2 id="status-title">Journey Status</h2>
-        <ol id="onboarding-steps" class="steps">
+        <ol id="onboarding-steps" class="steps rw-stack">
           <li>Create your profile to begin.</li>
         </ol>
         <p id="next-action" class="next-action">Next action: Create profile</p>
         <p id="feedback" class="feedback" aria-live="polite"></p>
       </section>
 
-      <aside class="panel panel-help" aria-labelledby="help-title">
+      <aside class="panel panel-help rw-panel" aria-labelledby="help-title">
         <h2 id="help-title">Help & Tooltips</h2>
         <p>Hover or focus action buttons to see contextual guidance.</p>
-        <ul id="tips"></ul>
-        <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime help JSON</a>
-        <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open docs/help/README.md</a>
+        <ul id="tips" class="rw-stack"></ul>
+        <div class="panel-links rw-stack">
+          <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime help JSON</a>
+          <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open docs/help/README.md</a>
+        </div>
       </aside>
     </main>
 
     <script type="module">
       const state = {
         profileId: null,
-        score: 1200
+        score: 1200,
+        activeSurface: "dashboard"
+      };
+
+      const surfaceGuidance = {
+        dashboard: "View launch readiness and choose your next gameplay loop.",
+        onboarding: "Finish profile, tutorial, and save actions to unlock first success.",
+        challenge: "Use challenge runs to validate progression and ability pacing.",
+        ranked: "Submit trusted ranked scores and inspect anti-tamper outcomes.",
+        creator: "Publish and review UGC safely before sharing broadly.",
+        help: "Use docs and troubleshooting paths for blocked flows."
       };
 
       const feedback = document.querySelector("#feedback");
       const nextAction = document.querySelector("#next-action");
       const stepsList = document.querySelector("#onboarding-steps");
       const tipsList = document.querySelector("#tips");
+      const breadcrumbTrail = document.querySelector("#breadcrumb-trail");
+      const surfaceIntent = document.querySelector("#surface-intent");
+      const navItems = [...document.querySelectorAll(".nav-item[data-surface]")];
 
       async function api(path, init = {}) {
         const response = await fetch(path, {
@@ -100,7 +149,25 @@
 
       function setFeedback(message, isError = false) {
         feedback.textContent = message;
-        feedback.className = isError ? "feedback error" : "feedback";
+        feedback.className = isError ? "feedback error" : "feedback success";
+      }
+
+      function setActiveSurface(surface, stepLabel = null) {
+        state.activeSurface = surface;
+        const activeItem = navItems.find((item) => item.dataset.surface === surface) || navItems[0];
+        for (const item of navItems) {
+          const isActive = item === activeItem;
+          item.classList.toggle("is-active", isActive);
+          if (isActive) {
+            item.setAttribute("aria-current", "page");
+          } else {
+            item.removeAttribute("aria-current");
+          }
+        }
+
+        const label = activeItem?.dataset.label || "Dashboard";
+        breadcrumbTrail.textContent = stepLabel ? `Home / ${label} / ${stepLabel}` : `Home / ${label}`;
+        surfaceIntent.textContent = surfaceGuidance[surface] || surfaceGuidance.dashboard;
       }
 
       async function refreshHelp() {
@@ -138,6 +205,7 @@
             body: JSON.stringify({ handle, locale })
           });
           state.profileId = payload.profile.id;
+          setActiveSurface("onboarding", "Profile Created");
           setFeedback(`Profile created: ${payload.profile.handle}`);
           await refreshOnboarding();
         } catch (error) {
@@ -156,6 +224,7 @@
               payload: { source: "web-shell" }
             })
           });
+          setActiveSurface("onboarding", "Tutorial Hint");
           setFeedback("Tutorial progress recorded.");
           await refreshOnboarding();
         } catch (error) {
@@ -175,6 +244,7 @@
               payload: { chapter: 1, checkpoint: "shell-save" }
             })
           });
+          setActiveSurface("onboarding", "Save Progress");
           setFeedback("Progress saved.");
           await refreshOnboarding();
         } catch (error) {
@@ -193,6 +263,7 @@
               difficulty: "silver"
             })
           });
+          setActiveSurface("creator", "Publish Level");
           setFeedback("Level published. First success should now be complete.");
           await refreshOnboarding();
         } catch (error) {
@@ -211,18 +282,27 @@
               clientDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             })
           });
+          setActiveSurface("ranked", "Score Submitted");
           setFeedback("Ranked score accepted.");
           await refreshOnboarding();
         } catch (error) {
+          setActiveSurface("ranked", "Submission Error");
           setFeedback(`Ranked submission rejected: ${error.message}`, true);
         }
       });
+
+      for (const navItem of navItems) {
+        navItem.addEventListener("click", () => {
+          setActiveSurface(navItem.dataset.surface || "dashboard");
+        });
+      }
 
       for (const button of document.querySelectorAll("[data-help]")) {
         const helpText = button.getAttribute("data-help");
         button.setAttribute("title", helpText);
       }
 
+      setActiveSurface("dashboard");
       refreshHelp().catch(() => setFeedback("Help service unavailable.", true));
     </script>
   </body>

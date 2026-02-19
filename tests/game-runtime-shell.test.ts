@@ -23,6 +23,9 @@ describe("game runtime web shell", () => {
     const html = readFileSync(resolve(process.cwd(), "apps", "web", "index.html"), "utf8");
     expect(html).toContain('id="profile-form"');
     expect(html).toContain('id="onboarding-steps"');
+    expect(html).toContain('id="global-nav"');
+    expect(html).toContain('id="breadcrumb-trail"');
+    expect(html).toContain('aria-current="page"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain("docs/help/README.md");
     expect(html).toContain("Run Tutorial Hint");
