@@ -175,6 +175,7 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
 - [x] F100-11: M4 complete (onboarding funnels/state-machine, persistence, coachmarks, skip/resume/bootstrap, diagnostics, telemetry transitions, and campaign surface).
 - [x] F100-12: M5-M9 completed (interaction/recovery polish, accessibility/mobile guards, surface completeness, perf/testing depth, wow/governance artifacts, and full regression evidence).
 - [x] F100-13: Runtime browser security hardening complete (origin/CSRF + rate-limit + session-boundary controls with regression coverage and refreshed gate evidence).
+- [x] F100-14: Web shell auth lifecycle polish complete (session propagation on mutating actions + explicit in-app logout control).
 
 ## Risks
 - Architecture transition could create temporary delivery slowdown.
@@ -190,6 +191,7 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
   - Added CI-enforced coverage, visual regression, accessibility/mobile regression, frontend perf budgets, and device-matrix artifact generation.
   - Published governance/wow artifacts for cadence, escalation, critique rounds, dry-run/demo operations, and feedback intake.
   - Added runtime browser security hardening (defensive headers, origin/CSRF checks, endpoint rate limits, profile-scoped session checks) and locked it with dedicated regression tests.
+  - Added web-shell session continuity and explicit logout UX so profile-scoped mutation boundaries are enforced and user-manageable in-app.
 - Not done:
   - None in the tracked 100/100 frontend program.
 - Lessons:

@@ -46,6 +46,13 @@
   - `pnpm release:verify-local` (passed on `2026-02-17`, release artifact verification: `ok`)
 - Status: Exception path active pending billing restoration and CI rerun on latest head.
 
+### Q4 update (2026-02-19)
+- Latest `main` head `84e83fd` still fails pre-execution on both required workflows with zero-step jobs:
+  - `CI` run `22203952764` (`verify` matrix + `quality-scorecard` all failed with `stepsCount: 0`; remaining jobs skipped with `stepsCount: 0`)
+  - `CodeQL` run `22203952755` (`Analyze` failed with `stepsCount: 0`)
+- `gh run view` confirms no workflow steps executed before failure for both runs, consistent with the existing RG-007 platform-incident exception profile.
+- Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
+
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
 - Why it matters: `pnpm install` currently fails with `ENOTFOUND registry.npmjs.org`, preventing `pnpm run doctor` and all local release gate evidence.

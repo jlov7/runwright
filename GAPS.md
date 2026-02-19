@@ -57,7 +57,7 @@
 - Status: Done
 
 ### P0-004: External GitHub Actions account/billing block on release branch heads
-- Evidence: Recent pushed heads fail before workflow steps execute because GitHub Actions cannot start jobs due to account billing limits. Sample `CI`/`CodeQL` run pairs: `22109118266`/`22109118280`, `22110929744`/`22110929736`, `22111146887`/`22111146880`, `22112492942`/`22112492922`, `22112524863`/`22112524890`; all annotate `job was not started` with billing/spending-limit guidance.
+- Evidence: Recent pushed heads fail before workflow steps execute because GitHub Actions cannot start jobs due to account billing limits. Sample `CI`/`CodeQL` run pairs: `22109118266`/`22109118280`, `22110929744`/`22110929736`, `22111146887`/`22111146880`, `22112492942`/`22112492922`, `22112524863`/`22112524890`, and latest `84e83fd` runs `22203952764`/`22203952755` (all jobs recorded `stepsCount: 0`); all annotate `job was not started` with billing/spending-limit guidance.
 - Impacted journey: Final CI gate sign-off on most recent commit.
 - Fix strategy: Restore GitHub billing/quota, rerun required workflows on latest head, and keep RG-007 exception evidence current until remote execution resumes.
 - Status: Blocked (external platform)
@@ -74,6 +74,12 @@
 - Evidence: Prior runtime mutation endpoints accepted browser-origin writes without explicit same-origin CSRF signaling, lacked endpoint-level request throttling controls, and did not enforce session/profile mismatch rejection when session headers were present.
 - Impacted journey: Web onboarding/core-loop mutation safety, anti-abuse controls, and auth boundary trust for profile-scoped actions.
 - Fix strategy: Add defensive response headers, same-origin browser CSRF/origin enforcement, configurable endpoint rate limits, and profile-scoped session boundary checks; add regression tests for browser mutation failure states and boundary behavior.
+- Status: Done
+
+### P1-018: Web shell mutations lacked live session continuity and explicit sign-out control
+- Evidence: Onboarding previously created only a profile record in web shell state, so mutating actions were sent without a session header and users could not end runtime sessions from the UI.
+- Impacted journey: Auth boundary clarity for non-technical users and secure session lifecycle control in the profile/core-loop flow.
+- Fix strategy: Auto-create runtime session after profile signup, attach `x-session-id` on mutating browser calls, and add profile-surface logout action.
 - Status: Done
 
 ### P1-016: Missing first-class release attestation generate/verify pipeline
