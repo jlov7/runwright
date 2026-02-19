@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body data-theme="dark">
+    <a class="skip-link" href="#workspace-title">Skip to surface workspace</a>
     <div class="aurora" aria-hidden="true"></div>
 
     <header class="app-header rw-page" aria-label="Runtime shell header">
@@ -36,6 +37,10 @@
           <span class="nav-glyph" aria-hidden="true">%</span>
           Campaign
         </button>
+        <button type="button" class="nav-item" data-surface="coop" data-label="Co-op">
+          <span class="nav-glyph" aria-hidden="true">&amp;</span>
+          Co-op
+        </button>
         <button type="button" class="nav-item" data-surface="ranked" data-label="Ranked">
           <span class="nav-glyph" aria-hidden="true">^</span>
           Ranked
@@ -44,11 +49,24 @@
           <span class="nav-glyph" aria-hidden="true">+</span>
           Creator
         </button>
+        <button type="button" class="nav-item" data-surface="moderation" data-label="Moderation">
+          <span class="nav-glyph" aria-hidden="true">!</span>
+          Moderation
+        </button>
+        <button type="button" class="nav-item" data-surface="liveops" data-label="LiveOps">
+          <span class="nav-glyph" aria-hidden="true">~</span>
+          LiveOps
+        </button>
+        <button type="button" class="nav-item" data-surface="analytics" data-label="Analytics">
+          <span class="nav-glyph" aria-hidden="true">=</span>
+          Analytics
+        </button>
         <button type="button" class="nav-item" data-surface="help" data-label="Help">
           <span class="nav-glyph" aria-hidden="true">?</span>
           Help
         </button>
       </nav>
+
       <form id="surface-command" class="command-bar rw-inline" aria-label="Surface quick jump">
         <label for="surface-search">Surface Command Bar</label>
         <input
@@ -64,25 +82,52 @@
           <option value="onboarding"></option>
           <option value="challenge"></option>
           <option value="campaign"></option>
+          <option value="coop"></option>
           <option value="ranked"></option>
           <option value="creator"></option>
+          <option value="moderation"></option>
+          <option value="liveops"></option>
+          <option value="analytics"></option>
           <option value="help"></option>
         </datalist>
         <button type="submit" id="surface-search-go">Go</button>
         <p id="surface-search-feedback" class="muted" aria-live="polite"></p>
       </form>
+
+      <form id="mobile-surface-nav" class="mobile-surface-nav" aria-label="Mobile surface switcher">
+        <label for="mobile-surface-select">Mobile navigation</label>
+        <div class="rw-inline">
+          <select id="mobile-surface-select" name="mobile-surface-select">
+            <option value="dashboard">Dashboard</option>
+            <option value="profile">Profile</option>
+            <option value="onboarding">Onboarding</option>
+            <option value="challenge">Challenge</option>
+            <option value="campaign">Campaign</option>
+            <option value="coop">Co-op</option>
+            <option value="ranked">Ranked</option>
+            <option value="creator">Creator</option>
+            <option value="moderation">Moderation</option>
+            <option value="liveops">LiveOps</option>
+            <option value="analytics">Analytics</option>
+            <option value="help">Help</option>
+          </select>
+          <button type="submit">Open</button>
+        </div>
+      </form>
     </header>
 
+    <div id="status-live-region" class="sr-only" aria-live="polite"></div>
     <div id="network-banner" class="network-banner rw-page" hidden role="status" aria-live="polite">
       Offline mode: actions will retry when connectivity returns.
     </div>
+    <div id="latency-alert" class="network-banner rw-page" hidden role="status" aria-live="polite"></div>
     <div id="global-error-boundary" class="global-error-boundary rw-page" hidden role="alert">
       <p id="global-error-message">Unexpected issue. Open help docs and retry.</p>
       <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open help docs</a>
       <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime recovery routes</a>
     </div>
 
-    <main class="layout rw-page">
+    <main class="layout rw-page" aria-label="Primary gameplay workspace">
       <section class="panel panel-wayfinding rw-panel" aria-labelledby="wayfinding-title">
         <h2 id="wayfinding-title">Where You Are</h2>
         <p id="breadcrumb-trail" class="breadcrumb" aria-live="polite">Home / Dashboard</p>
@@ -90,7 +135,7 @@
       </section>
 
       <section class="panel panel-hierarchy rw-panel" aria-labelledby="surface-title">
-        <h2 id="surface-title">Dashboard</h2>
+        <h2 id="surface-title" tabindex="-1">Dashboard</h2>
         <p id="surface-intent" class="muted">View launch readiness and choose your next gameplay loop.</p>
         <p id="surface-status" class="status-pill">Status: Needs action</p>
         <div class="rw-inline">
@@ -102,6 +147,14 @@
 
       <section class="panel panel-surface rw-panel" aria-labelledby="workspace-title">
         <h2 id="workspace-title">Surface Workspace</h2>
+
+        <div id="surface-loading-skeleton" class="loading-skeleton" hidden aria-live="polite">
+          <p>Loading surface content...</p>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+        </div>
+
         <div id="surface-empty-state" class="empty-state" hidden>
           <p id="surface-empty-copy"></p>
           <button type="button" id="surface-empty-action">Create profile</button>
@@ -118,13 +171,50 @@
           <h3>Account Profile And Settings</h3>
           <p class="muted">Manage handle, locale, and accessibility defaults before advanced modes.</p>
           <p id="profile-summary">No profile is active yet.</p>
+          <form id="accessibility-form" class="rw-stack" aria-describedby="accessibility-help">
+            <label for="text-scale">Text scale</label>
+            <select id="text-scale" name="text-scale">
+              <option value="1">100%</option>
+              <option value="1.25">125%</option>
+              <option value="1.5">150%</option>
+              <option value="2">200%</option>
+            </select>
+
+            <label class="checkbox-row" for="reduced-motion">
+              <input id="reduced-motion" name="reduced-motion" type="checkbox" />
+              Reduce motion
+            </label>
+            <label class="checkbox-row" for="high-contrast">
+              <input id="high-contrast" name="high-contrast" type="checkbox" />
+              High contrast
+            </label>
+
+            <label for="remap-profile">Input remap profile</label>
+            <select id="remap-profile" name="remap-profile">
+              <option value="default">Default</option>
+              <option value="southpaw">Southpaw</option>
+              <option value="one-handed">One-handed</option>
+            </select>
+
+            <button type="submit" id="save-accessibility">Save Accessibility Preferences</button>
+            <p id="accessibility-help" class="muted">Accessibility updates are persisted to your runtime profile.</p>
+          </form>
         </article>
 
         <article id="onboarding-surface" data-surface-panel="onboarding" class="surface-panel rw-stack" hidden>
           <h3>Onboarding Center</h3>
           <form id="profile-form" class="stack rw-stack" aria-describedby="profile-help">
             <label for="handle">Player handle</label>
-            <input id="handle" name="handle" type="text" required minlength="2" maxlength="32" />
+            <input
+              id="handle"
+              name="handle"
+              type="text"
+              required
+              minlength="2"
+              maxlength="32"
+              autocomplete="nickname"
+              inputmode="text"
+            />
 
             <label for="locale">Language</label>
             <select id="locale" name="locale">
@@ -137,10 +227,10 @@
               <option value="pt-BR">Portugues (BR)</option>
             </select>
 
-             <button type="submit" id="create-profile">Create Profile</button>
-             <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
-             <p id="form-error" class="feedback error" aria-live="polite"></p>
-           </form>
+            <button type="submit" id="create-profile">Create Profile</button>
+            <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
+            <p id="form-error" class="feedback error" aria-live="polite"></p>
+          </form>
 
           <div class="actions rw-stack" aria-label="Primary gameplay actions">
             <button type="button" id="run-tutorial" data-help="Records tutorial progress to unlock onboarding step 2.">
@@ -193,18 +283,106 @@
           <button type="button" id="campaign-start">Start Campaign Chapter</button>
           <p id="campaign-summary" class="muted">Campaign has not started yet.</p>
         </article>
+
+        <article id="coop-surface" data-surface-panel="coop" class="surface-panel rw-stack" hidden>
+          <h3>Co-op Social Surface</h3>
+          <p class="muted">Invite teammates and track social readiness for multiplayer loops.</p>
+          <form id="coop-form" class="rw-inline" aria-label="Co-op invite form">
+            <label for="friend-code">Friend code</label>
+            <input id="friend-code" name="friend-code" type="text" inputmode="text" minlength="3" maxlength="64" required />
+            <button type="submit" id="coop-send-invite">Send Invite</button>
+          </form>
+          <ul id="coop-invites" class="criteria-list rw-stack" aria-live="polite"></ul>
+        </article>
+
+        <article id="ranked-surface" data-surface-panel="ranked" class="surface-panel rw-stack" hidden>
+          <h3>Ranked And Leaderboard Surface</h3>
+          <p class="muted">Review trusted leaderboard snapshots and ranked submission outcomes.</p>
+          <button type="button" id="ranked-refresh">Refresh Leaderboard</button>
+          <ul id="ranked-leaderboard" class="criteria-list rw-stack" aria-live="polite"></ul>
+        </article>
+
+        <article id="creator-surface" data-surface-panel="creator" class="surface-panel rw-stack" hidden>
+          <h3>Creator Studio Surface</h3>
+          <p class="muted">Inspect discoverable UGC levels and publishing health.</p>
+          <button type="button" id="creator-refresh">Refresh Discover Feed</button>
+          <ul id="creator-discover" class="criteria-list rw-stack" aria-live="polite"></ul>
+        </article>
+
+        <article id="moderation-surface" data-surface-panel="moderation" class="surface-panel rw-stack" hidden>
+          <h3>Moderation And Reporting Surface</h3>
+          <form id="moderation-form" class="rw-stack" aria-label="Moderation report form">
+            <label for="moderation-target-type">Target type</label>
+            <select id="moderation-target-type" name="moderation-target-type">
+              <option value="ugc">UGC</option>
+              <option value="chat">Chat</option>
+              <option value="profile">Profile</option>
+            </select>
+
+            <label for="moderation-target-id">Target ID</label>
+            <input id="moderation-target-id" name="moderation-target-id" type="text" required />
+
+            <label for="moderation-reason">Reason</label>
+            <input id="moderation-reason" name="moderation-reason" type="text" required maxlength="240" />
+
+            <button type="submit" id="moderation-submit">Submit Report</button>
+          </form>
+          <p id="moderation-summary" class="muted">No moderation reports submitted in this session.</p>
+        </article>
+
+        <article id="liveops-surface" data-surface-panel="liveops" class="surface-panel rw-stack" hidden>
+          <h3>LiveOps And Events Surface</h3>
+          <button type="button" id="liveops-refresh">Refresh Seasonal Event</button>
+          <p id="liveops-summary" class="muted">No event data loaded yet.</p>
+        </article>
+
+        <article id="analytics-surface" data-surface-panel="analytics" class="surface-panel rw-stack" hidden>
+          <h3>Analytics And Diagnostics Surface</h3>
+          <button type="button" id="analytics-refresh">Refresh Funnel Metrics</button>
+          <p id="analytics-summary" class="muted">No analytics snapshot loaded yet.</p>
+        </article>
+
+        <article id="help-surface" data-surface-panel="help" class="surface-panel rw-stack" hidden>
+          <h3>Help Center Surface</h3>
+          <p class="muted">Use this panel for recovery playbooks, diagnostics, and support handoff.</p>
+          <div class="panel-links rw-stack">
+            <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime help JSON</a>
+            <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open docs/help/README.md</a>
+          </div>
+        </article>
       </section>
 
       <aside class="panel panel-help rw-panel" aria-labelledby="help-title">
-        <h2 id="help-title">Help & Tooltips</h2>
+        <h2 id="help-title">Help &amp; Tooltips</h2>
         <p>Hover or focus action buttons to see contextual guidance.</p>
+        <div id="help-loading-skeleton" class="loading-skeleton" hidden>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+        </div>
         <ul id="tips" class="rw-stack"></ul>
-        <div class="panel-links rw-stack">
-          <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime help JSON</a>
-          <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open docs/help/README.md</a>
+
+        <h3>Recovery Playbooks</h3>
+        <ul id="recovery-playbook" class="rw-stack"></ul>
+
+        <div id="retry-queue-panel" class="retry-queue rw-stack" hidden>
+          <h3>Retry Backoff Queue</h3>
+          <p class="muted">Transient failures are queued and retried with exponential backoff.</p>
+          <ul id="retry-queue-list" class="rw-stack"></ul>
+          <div class="rw-inline">
+            <button type="button" id="retry-queue-run">Retry Now</button>
+            <button type="button" id="retry-queue-clear">Clear Queue</button>
+          </div>
+        </div>
+
+        <div class="diagnostics rw-stack">
+          <h3>Diagnostic Packet</h3>
+          <p class="muted">Copy this packet when handing runtime issues to support.</p>
+          <button type="button" id="copy-diagnostics">Copy Diagnostic Packet</button>
+          <textarea id="diagnostic-output" rows="6" readonly aria-label="Diagnostic packet output"></textarea>
         </div>
       </aside>
     </main>
+
     <div id="toast-stack" class="toast-stack" aria-live="polite" aria-label="Notifications"></div>
 
     <script type="module">
@@ -220,10 +398,24 @@
           published: false,
           campaignStarted: false
         },
+        accessibility: {
+          textScale: 1,
+          reducedMotion: false,
+          highContrast: false,
+          remapProfile: "default"
+        },
         coachmarkDismissed: false,
-        lastReversibleAction: null
+        lastReversibleAction: null,
+        lastError: null,
+        socialInvites: [],
+        retryQueue: []
       };
       const ONBOARDING_STORAGE_KEY = "runwright-onboarding-v1";
+      const LATENCY_BUDGET_MS = 1200;
+      const DEV_LATENCY_ALERT =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.search.includes("debugLatency=1");
 
       const surfaceMeta = {
         dashboard: {
@@ -234,7 +426,7 @@
         profile: {
           label: "Profile",
           intent: "Manage account and settings before deeper gameplay loops.",
-          primaryAction: "create-profile"
+          primaryAction: "open-profile"
         },
         onboarding: {
           label: "Onboarding",
@@ -251,15 +443,35 @@
           intent: "Run chapter progression to transition from onboarding into core loop play.",
           primaryAction: "start-campaign"
         },
+        coop: {
+          label: "Co-op",
+          intent: "Invite friends and stabilize multiplayer readiness.",
+          primaryAction: "open-coop"
+        },
         ranked: {
           label: "Ranked",
           intent: "Submit trusted scores and inspect competitive integrity.",
-          primaryAction: "open-onboarding"
+          primaryAction: "refresh-ranked"
         },
         creator: {
           label: "Creator",
           intent: "Publish and review levels with moderation-safe defaults.",
-          primaryAction: "open-onboarding"
+          primaryAction: "refresh-creator"
+        },
+        moderation: {
+          label: "Moderation",
+          intent: "Report abuse and verify moderation pipeline readiness.",
+          primaryAction: "open-moderation"
+        },
+        liveops: {
+          label: "LiveOps",
+          intent: "Inspect seasonal events and rewards cadence health.",
+          primaryAction: "refresh-liveops"
+        },
+        analytics: {
+          label: "Analytics",
+          intent: "Track funnel completion and first-success conversion health.",
+          primaryAction: "refresh-analytics"
         },
         help: {
           label: "Help",
@@ -272,6 +484,7 @@
       const nextAction = document.querySelector("#next-action");
       const stepsList = document.querySelector("#onboarding-steps");
       const tipsList = document.querySelector("#tips");
+      const recoveryPlaybook = document.querySelector("#recovery-playbook");
       const breadcrumbTrail = document.querySelector("#breadcrumb-trail");
       const surfaceTitle = document.querySelector("#surface-title");
       const surfaceIntent = document.querySelector("#surface-intent");
@@ -293,11 +506,27 @@
       const coachmarkBanner = document.querySelector("#coachmark-banner");
       const celebrationBanner = document.querySelector("#celebration-banner");
       const networkBanner = document.querySelector("#network-banner");
+      const latencyAlert = document.querySelector("#latency-alert");
       const toastStack = document.querySelector("#toast-stack");
       const undoLastActionButton = document.querySelector("#undo-last-action");
       const globalErrorBoundary = document.querySelector("#global-error-boundary");
       const globalErrorMessage = document.querySelector("#global-error-message");
       const formError = document.querySelector("#form-error");
+      const statusLiveRegion = document.querySelector("#status-live-region");
+      const retryQueuePanel = document.querySelector("#retry-queue-panel");
+      const retryQueueList = document.querySelector("#retry-queue-list");
+      const surfaceLoadingSkeleton = document.querySelector("#surface-loading-skeleton");
+      const helpLoadingSkeleton = document.querySelector("#help-loading-skeleton");
+      const diagnosticOutput = document.querySelector("#diagnostic-output");
+      const coopInvites = document.querySelector("#coop-invites");
+      const rankedLeaderboard = document.querySelector("#ranked-leaderboard");
+      const creatorDiscover = document.querySelector("#creator-discover");
+      const moderationSummary = document.querySelector("#moderation-summary");
+      const liveopsSummary = document.querySelector("#liveops-summary");
+      const analyticsSummary = document.querySelector("#analytics-summary");
+      const mobileSurfaceSelect = document.querySelector("#mobile-surface-select");
+
+      let retryTimer = null;
 
       function profileReady() {
         return Boolean(state.profileId);
@@ -309,6 +538,18 @@
 
       function campaignReady() {
         return state.progress.published;
+      }
+
+      function announceStatus(message) {
+        statusLiveRegion.textContent = message;
+      }
+
+      function setLoading(active, label) {
+        surfaceLoadingSkeleton.hidden = !active;
+        if (active) {
+          surfaceLoadingSkeleton.querySelector("p").textContent = label;
+          announceStatus(label);
+        }
       }
 
       function successCriteriaRows() {
@@ -346,14 +587,39 @@
         if (surface === "onboarding") {
           return onboardingReady() ? "Status: First success complete" : "Status: In progress";
         }
+        if (surface === "coop") {
+          return profileReady() ? "Status: Invite flow available" : "Status: Blocked - create profile";
+        }
+        if (surface === "ranked") {
+          return onboardingReady() ? "Status: Submission pipeline ready" : "Status: Blocked - onboarding incomplete";
+        }
+        if (surface === "creator") {
+          return profileReady() ? "Status: Publish pipeline ready" : "Status: Blocked - create profile";
+        }
+        if (surface === "moderation") {
+          return profileReady() ? "Status: Reporting available" : "Status: Blocked - create profile";
+        }
+        if (surface === "liveops") {
+          return "Status: Monitoring";
+        }
+        if (surface === "analytics") {
+          return "Status: Monitoring";
+        }
         return "Status: Informational";
       }
 
       function primaryActionLabel(actionId) {
         if (actionId === "create-profile") return "Create profile";
+        if (actionId === "open-profile") return "Open profile settings";
         if (actionId === "run-onboarding") return "Open onboarding controls";
         if (actionId === "generate-challenge") return "Generate challenge";
         if (actionId === "start-campaign") return "Start campaign chapter";
+        if (actionId === "open-coop") return "Open co-op invites";
+        if (actionId === "refresh-ranked") return "Refresh leaderboard";
+        if (actionId === "refresh-creator") return "Refresh creator feed";
+        if (actionId === "open-moderation") return "Open moderation";
+        if (actionId === "refresh-liveops") return "Refresh seasonal event";
+        if (actionId === "refresh-analytics") return "Refresh analytics";
         if (actionId === "open-help") return "Open help docs";
         return "Open onboarding controls";
       }
@@ -368,6 +634,7 @@
           tutorial: "onboarding",
           quest: "challenge",
           progression: "campaign",
+          social: "coop",
           support: "help"
         };
         if (aliases[value]) return aliases[value];
@@ -394,15 +661,12 @@
         } else if (surface === "challenge" && !onboardingReady()) {
           emptyMessage = "Challenge generation unlocks after tutorial, save, and publish are complete.";
           actionLabel = "Open onboarding controls";
-          actionTarget = "onboarding";
         } else if (surface === "campaign" && !campaignReady()) {
           emptyMessage = "Campaign starts after you publish your first level.";
           actionLabel = "Open onboarding controls";
-          actionTarget = "onboarding";
-        } else if (surface === "ranked" || surface === "creator" || surface === "help") {
-          emptyMessage = "This surface is routed through onboarding and help in the current v1 shell.";
-          actionLabel = "Open onboarding controls";
-          actionTarget = "onboarding";
+        } else if (["coop", "ranked", "creator", "moderation"].includes(surface) && !profileReady()) {
+          emptyMessage = "Create a profile before using this surface.";
+          actionLabel = "Create profile";
         }
 
         if (emptyMessage) {
@@ -427,6 +691,7 @@
           else item.removeAttribute("aria-current");
         }
 
+        mobileSurfaceSelect.value = surface;
         const label = meta.label;
         breadcrumbTrail.textContent = stepLabel ? `Home / ${label} / ${stepLabel}` : `Home / ${label}`;
         surfaceTitle.textContent = label;
@@ -448,6 +713,36 @@
         undoLastActionButton.hidden = !state.lastReversibleAction;
       }
 
+      function renderRetryQueue() {
+        retryQueueList.innerHTML = "";
+        if (state.retryQueue.length === 0) {
+          retryQueuePanel.hidden = true;
+          return;
+        }
+        retryQueuePanel.hidden = false;
+        for (const entry of state.retryQueue) {
+          const item = document.createElement("li");
+          const waitMs = Math.max(0, entry.nextRunAt - Date.now());
+          item.textContent = `${entry.label} | attempt ${entry.attempt} | next retry in ${Math.ceil(waitMs / 1000)}s`;
+          retryQueueList.appendChild(item);
+        }
+      }
+
+      function renderSocialInvites() {
+        coopInvites.innerHTML = "";
+        if (state.socialInvites.length === 0) {
+          const li = document.createElement("li");
+          li.textContent = "No invites queued in this session.";
+          coopInvites.appendChild(li);
+          return;
+        }
+        for (const invite of state.socialInvites) {
+          const li = document.createElement("li");
+          li.textContent = `${invite.status}: ${invite.friendCode}`;
+          coopInvites.appendChild(li);
+        }
+      }
+
       function renderSummaries() {
         dashboardSummary.textContent = profileReady()
           ? `Profile ${state.profileHandle} is active. Continue onboarding to unlock full challenge depth.`
@@ -460,6 +755,8 @@
           : "Campaign has not started yet.";
         renderOnboardingGuidance();
         renderUndoAvailability();
+        renderRetryQueue();
+        renderSocialInvites();
         persistLocalState();
       }
 
@@ -467,21 +764,117 @@
         state.activeSurface = surfaceMeta[surface] ? surface : "dashboard";
         renderSurfaceChrome(stepLabel);
         renderSummaries();
+        requestAnimationFrame(() => {
+          surfaceTitle.focus();
+        });
       }
 
-      async function api(path, init = {}) {
-        const response = await fetch(path, {
+      function cloneRequestInit(init) {
+        return {
+          method: init.method,
+          body: typeof init.body === "string" ? init.body : undefined,
+          headers: { ...(init.headers || {}) }
+        };
+      }
+
+      function scheduleRetryProcessing() {
+        if (retryTimer !== null || state.retryQueue.length === 0 || !navigator.onLine) {
+          return;
+        }
+        const nextRunAt = Math.min(...state.retryQueue.map((entry) => entry.nextRunAt));
+        const delay = Math.max(20, nextRunAt - Date.now());
+        retryTimer = window.setTimeout(() => {
+          retryTimer = null;
+          void processRetryQueue();
+        }, delay);
+      }
+
+      async function processRetryQueue(forceNow = false) {
+        if (!navigator.onLine) return;
+        const now = Date.now();
+        const due = state.retryQueue.filter((entry) => forceNow || entry.nextRunAt <= now);
+        for (const entry of due) {
+          try {
+            await api(entry.path, entry.init, {
+              label: `${entry.label} (retry)`,
+              skipRetryQueue: true
+            });
+            state.retryQueue = state.retryQueue.filter((candidate) => candidate.id !== entry.id);
+            pushToast(`Retry succeeded: ${entry.label}`, "success");
+          } catch (error) {
+            entry.attempt += 1;
+            const backoff = Math.min(16000, 500 * 2 ** entry.attempt);
+            entry.nextRunAt = Date.now() + backoff;
+            state.lastError = error.message;
+          }
+        }
+        renderRetryQueue();
+        scheduleRetryProcessing();
+      }
+
+      function enqueueRetry(path, init, label) {
+        const id = `retry-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
+        state.retryQueue.push({
+          id,
+          path,
+          init: cloneRequestInit(init),
+          label,
+          attempt: 1,
+          nextRunAt: Date.now() + 500
+        });
+        renderRetryQueue();
+        scheduleRetryProcessing();
+      }
+
+      function applyLatencyAlert(durationMs, label) {
+        if (!DEV_LATENCY_ALERT) return;
+        if (durationMs <= LATENCY_BUDGET_MS) return;
+        latencyAlert.hidden = false;
+        latencyAlert.textContent = `Latency alert: ${label} took ${durationMs}ms (budget ${LATENCY_BUDGET_MS}ms).`;
+        announceStatus(latencyAlert.textContent);
+      }
+
+      async function api(path, init = {}, options = {}) {
+        const requestInit = {
           ...init,
           headers: {
             "content-type": "application/json",
             ...(init.headers || {})
           }
-        });
-        const payload = await response.json();
+        };
+        const startedAt = performance.now();
+        if (!navigator.onLine) {
+          if (!options.skipRetryQueue) {
+            enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+          }
+          throw new Error("network-offline");
+        }
+
+        let response;
+        let payload;
+        try {
+          response = await fetch(path, requestInit);
+          payload = await response.json();
+        } catch {
+          if (!options.skipRetryQueue) {
+            enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+          }
+          throw new Error("network-transient-failure");
+        } finally {
+          const durationMs = Math.round(performance.now() - startedAt);
+          applyLatencyAlert(durationMs, options.label || path);
+        }
+
         if (!response.ok) {
           const error = payload?.error?.message || "Request failed";
+          const code = payload?.error?.code || "unknown-error";
+          const transient = response.status >= 500 || response.status === 429 || code === "network-offline";
+          if (transient && !options.skipRetryQueue) {
+            enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+          }
           throw new Error(error);
         }
+
         return payload;
       }
 
@@ -492,6 +885,7 @@
             profileHandle: state.profileHandle,
             locale: state.locale,
             progress: state.progress,
+            accessibility: state.accessibility,
             coachmarkDismissed: state.coachmarkDismissed
           };
           localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(snapshot));
@@ -515,6 +909,12 @@
             state.progress.published = parsed.progress.published === true;
             state.progress.campaignStarted = parsed.progress.campaignStarted === true;
           }
+          if (parsed.accessibility && typeof parsed.accessibility === "object") {
+            state.accessibility.textScale = Number(parsed.accessibility.textScale || 1);
+            state.accessibility.reducedMotion = parsed.accessibility.reducedMotion === true;
+            state.accessibility.highContrast = parsed.accessibility.highContrast === true;
+            state.accessibility.remapProfile = String(parsed.accessibility.remapProfile || "default");
+          }
           state.coachmarkDismissed = parsed.coachmarkDismissed === true;
         } catch {
           // Ignore malformed persisted state.
@@ -524,6 +924,8 @@
       function setFeedback(message, isError = false) {
         feedback.textContent = message;
         feedback.className = isError ? "feedback error" : "feedback success";
+        state.lastError = isError ? message : state.lastError;
+        announceStatus(message);
         pushToast(message, isError ? "error" : "info");
       }
 
@@ -536,26 +938,47 @@
       }
 
       async function refreshHelp() {
-        const help = await api("/v1/help");
-        tipsList.innerHTML = "";
-        for (const item of help.tooltips) {
-          const li = document.createElement("li");
-          li.textContent = item.copy;
-          tipsList.appendChild(li);
+        helpLoadingSkeleton.hidden = false;
+        try {
+          const help = await api("/v1/help", {}, { label: "load help" });
+          tipsList.innerHTML = "";
+          for (const item of help.tooltips) {
+            const li = document.createElement("li");
+            li.textContent = item.copy;
+            tipsList.appendChild(li);
+          }
+
+          recoveryPlaybook.innerHTML = "";
+          const playbooks = [
+            "Sync conflict: open save conflict details, merge manually, then retry save with latest base version.",
+            "Ranked anti-tamper: recompute digest using trusted salt and resubmit score.",
+            "Network disruption: keep working offline and let retry queue flush after reconnect."
+          ];
+          for (const entry of playbooks) {
+            const li = document.createElement("li");
+            li.textContent = entry;
+            recoveryPlaybook.appendChild(li);
+          }
+        } finally {
+          helpLoadingSkeleton.hidden = true;
         }
       }
 
       async function emitOnboardingTelemetry(type, payload = {}) {
         if (!state.profileId) return;
         try {
-          await api("/v1/telemetry/events", {
-            method: "POST",
-            body: JSON.stringify({
-              profileId: state.profileId,
-              type,
-              payload
-            })
-          });
+          await api(
+            "/v1/telemetry/events",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                profileId: state.profileId,
+                type,
+                payload
+              })
+            },
+            { label: type }
+          );
         } catch {
           // Telemetry failures should not block user progression flows.
         }
@@ -563,16 +986,21 @@
 
       async function refreshOnboarding() {
         if (!state.profileId) return;
-        const payload = await api(`/v1/onboarding/${state.profileId}`);
-        stepsList.innerHTML = "";
-        for (const step of payload.steps) {
-          const li = document.createElement("li");
-          li.textContent = `${step.complete ? "Done" : "Todo"}: ${step.title}`;
-          stepsList.appendChild(li);
+        setLoading(true, "Loading onboarding checklist...");
+        try {
+          const payload = await api(`/v1/onboarding/${state.profileId}`, {}, { label: "load onboarding" });
+          stepsList.innerHTML = "";
+          for (const step of payload.steps) {
+            const li = document.createElement("li");
+            li.textContent = `${step.complete ? "Done" : "Todo"}: ${step.title}`;
+            stepsList.appendChild(li);
+          }
+          nextAction.textContent = payload.nextAction
+            ? `Next action: ${payload.nextAction.title}`
+            : "Next action: Launch-ready onboarding complete";
+        } finally {
+          setLoading(false, "");
         }
-        nextAction.textContent = payload.nextAction
-          ? `Next action: ${payload.nextAction.title}`
-          : "Next action: Launch-ready onboarding complete";
       }
 
       async function createProfileFromForm() {
@@ -584,18 +1012,103 @@
           throw new Error("Handle must be at least 2 characters.");
         }
         formError.textContent = "";
-        const payload = await api("/v1/auth/signup", {
-          method: "POST",
-          body: JSON.stringify({ handle, locale })
-        });
-        state.profileId = payload.profile.id;
-        state.profileHandle = payload.profile.handle;
-        state.locale = payload.profile.locale;
-        state.lastReversibleAction = null;
-        await emitOnboardingTelemetry("onboarding.profile_created", { surface: "web-shell" });
-        setActiveSurface("onboarding", "Profile Created");
-        setFeedback(`Profile created: ${payload.profile.handle}`);
-        await refreshOnboarding();
+        setLoading(true, "Creating profile...");
+        try {
+          const payload = await api(
+            "/v1/auth/signup",
+            {
+              method: "POST",
+              body: JSON.stringify({ handle, locale })
+            },
+            { label: "create profile" }
+          );
+          state.profileId = payload.profile.id;
+          state.profileHandle = payload.profile.handle;
+          state.locale = payload.profile.locale;
+          state.lastReversibleAction = null;
+          await emitOnboardingTelemetry("onboarding.profile_created", { surface: "web-shell" });
+          setActiveSurface("onboarding", "Profile Created");
+          setFeedback(`Profile created: ${payload.profile.handle}`);
+          await refreshOnboarding();
+        } finally {
+          setLoading(false, "");
+        }
+      }
+
+      async function refreshLeaderboard() {
+        if (!state.profileId) {
+          setFeedback("Create a profile first.", true);
+          return;
+        }
+        setLoading(true, "Refreshing leaderboard...");
+        try {
+          const payload = await api("/v1/ranked/leaderboard", {}, { label: "refresh leaderboard" });
+          rankedLeaderboard.innerHTML = "";
+          if (!payload.leaderboard.length) {
+            rankedLeaderboard.innerHTML = "<li>No ranked entries yet.</li>";
+            return;
+          }
+          for (const row of payload.leaderboard) {
+            const li = document.createElement("li");
+            li.textContent = `${row.handle}: ${row.score}`;
+            rankedLeaderboard.appendChild(li);
+          }
+        } catch (error) {
+          setFeedback(`Failed to refresh leaderboard: ${error.message}`, true);
+        } finally {
+          setLoading(false, "");
+        }
+      }
+
+      async function refreshCreatorFeed() {
+        if (!state.profileId) {
+          setFeedback("Create a profile first.", true);
+          return;
+        }
+        setLoading(true, "Refreshing creator feed...");
+        try {
+          const payload = await api("/v1/ugc/discover", {}, { label: "refresh creator feed" });
+          creatorDiscover.innerHTML = "";
+          if (!payload.levels.length) {
+            creatorDiscover.innerHTML = "<li>No published levels yet.</li>";
+            return;
+          }
+          for (const row of payload.levels.slice(0, 5)) {
+            const li = document.createElement("li");
+            li.textContent = `${row.title} | difficulty ${row.difficulty} | rating ${row.rating}`;
+            creatorDiscover.appendChild(li);
+          }
+        } catch (error) {
+          setFeedback(`Failed to refresh creator feed: ${error.message}`, true);
+        } finally {
+          setLoading(false, "");
+        }
+      }
+
+      async function refreshLiveOps() {
+        setLoading(true, "Loading seasonal event...");
+        try {
+          const payload = await api("/v1/liveops/season", {}, { label: "refresh liveops" });
+          liveopsSummary.textContent = `Season ${payload.season.id}: ${payload.season.name} (${payload.season.status}).`;
+        } catch (error) {
+          liveopsSummary.textContent = `LiveOps unavailable: ${error.message}`;
+          setFeedback(`LiveOps refresh failed: ${error.message}`, true);
+        } finally {
+          setLoading(false, "");
+        }
+      }
+
+      async function refreshAnalytics() {
+        setLoading(true, "Loading analytics funnel...");
+        try {
+          const payload = await api("/v1/analytics/funnel", {}, { label: "refresh analytics" });
+          analyticsSummary.textContent = `First success rate: ${payload.firstSuccessRate}% | Ranked accepted: ${payload.rankedAccepted}.`;
+        } catch (error) {
+          analyticsSummary.textContent = `Analytics unavailable: ${error.message}`;
+          setFeedback(`Analytics refresh failed: ${error.message}`, true);
+        } finally {
+          setLoading(false, "");
+        }
       }
 
       function runPrimaryAction() {
@@ -603,6 +1116,10 @@
         if (actionId === "create-profile") {
           setActiveSurface("onboarding", "Create Profile");
           document.querySelector("#handle").focus();
+          return;
+        }
+        if (actionId === "open-profile") {
+          setActiveSurface("profile");
           return;
         }
         if (actionId === "run-onboarding") {
@@ -619,7 +1136,38 @@
           document.querySelector("#campaign-start").click();
           return;
         }
+        if (actionId === "open-coop") {
+          setActiveSurface("coop", "Invites");
+          document.querySelector("#friend-code").focus();
+          return;
+        }
+        if (actionId === "refresh-ranked") {
+          setActiveSurface("ranked", "Leaderboard");
+          document.querySelector("#ranked-refresh").click();
+          return;
+        }
+        if (actionId === "refresh-creator") {
+          setActiveSurface("creator", "Discover Feed");
+          document.querySelector("#creator-refresh").click();
+          return;
+        }
+        if (actionId === "open-moderation") {
+          setActiveSurface("moderation", "Report");
+          document.querySelector("#moderation-target-id").focus();
+          return;
+        }
+        if (actionId === "refresh-liveops") {
+          setActiveSurface("liveops", "Season");
+          document.querySelector("#liveops-refresh").click();
+          return;
+        }
+        if (actionId === "refresh-analytics") {
+          setActiveSurface("analytics", "Funnel");
+          document.querySelector("#analytics-refresh").click();
+          return;
+        }
         if (actionId === "open-help") {
+          setActiveSurface("help");
           window.open("/docs/help/README.md", "_blank", "noopener,noreferrer");
           return;
         }
@@ -635,17 +1183,54 @@
         }
       });
 
+      document.querySelector("#accessibility-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!state.profileId) {
+          setFeedback("Create a profile first.", true);
+          return;
+        }
+        const payload = {
+          accessibility: {
+            textScale: Number(document.querySelector("#text-scale").value),
+            reducedMotion: document.querySelector("#reduced-motion").checked,
+            highContrast: document.querySelector("#high-contrast").checked,
+            remapProfile: document.querySelector("#remap-profile").value
+          }
+        };
+        try {
+          await api(
+            `/v1/profiles/${state.profileId}/preferences`,
+            {
+              method: "PATCH",
+              body: JSON.stringify(payload)
+            },
+            { label: "save accessibility" }
+          );
+          state.accessibility = payload.accessibility;
+          document.body.style.fontSize = `${state.accessibility.textScale}rem`;
+          document.body.classList.toggle("reduced-motion", state.accessibility.reducedMotion);
+          document.body.classList.toggle("high-contrast", state.accessibility.highContrast);
+          setFeedback("Accessibility preferences saved.");
+        } catch (error) {
+          setFeedback(`Accessibility update failed: ${error.message}`, true);
+        }
+      });
+
       document.querySelector("#run-tutorial").addEventListener("click", async () => {
         if (!state.profileId) return setFeedback("Create a profile first.", true);
         try {
-          await api("/v1/telemetry/events", {
-            method: "POST",
-            body: JSON.stringify({
-              profileId: state.profileId,
-              type: "tutorial.started",
-              payload: { source: "web-shell" }
-            })
-          });
+          await api(
+            "/v1/telemetry/events",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                profileId: state.profileId,
+                type: "tutorial.started",
+                payload: { source: "web-shell" }
+              })
+            },
+            { label: "record tutorial" }
+          );
           state.progress.tutorial = true;
           onboardingDiagnostics.textContent = "Diagnostics: tutorial transition passed.";
           await emitOnboardingTelemetry("onboarding.tutorial_recorded", { surface: "web-shell" });
@@ -661,15 +1246,19 @@
       document.querySelector("#save-progress").addEventListener("click", async () => {
         if (!state.profileId) return setFeedback("Create a profile first.", true);
         try {
-          await api("/v1/saves", {
-            method: "POST",
-            body: JSON.stringify({
-              profileId: state.profileId,
-              strategy: "last-write-wins",
-              baseVersion: 0,
-              payload: { chapter: 1, checkpoint: "shell-save" }
-            })
-          });
+          await api(
+            "/v1/saves",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                profileId: state.profileId,
+                strategy: "last-write-wins",
+                baseVersion: 0,
+                payload: { chapter: 1, checkpoint: "shell-save" }
+              })
+            },
+            { label: "save progress" }
+          );
           state.progress.saved = true;
           onboardingDiagnostics.textContent = "Diagnostics: save transition passed.";
           await emitOnboardingTelemetry("onboarding.progress_saved", { strategy: "last-write-wins" });
@@ -684,42 +1273,56 @@
 
       document.querySelector("#publish-level").addEventListener("click", async () => {
         if (!state.profileId) return setFeedback("Create a profile first.", true);
+        const previousPublished = state.progress.published;
+        const previousAction = state.lastReversibleAction;
+        state.progress.published = true;
+        state.lastReversibleAction = { type: "publish-level", previousPublished };
+        setActiveSurface("creator", "Publish Level (Pending)");
+        setFeedback("Publishing level (optimistic update)...");
         try {
-          await api("/v1/ugc/levels", {
-            method: "POST",
-            body: JSON.stringify({
-              profileId: state.profileId,
-              title: "First Victory Sprint",
-              difficulty: "silver"
-            })
-          });
-          state.progress.published = true;
-          state.lastReversibleAction = { type: "publish-level", previousPublished: false };
+          await api(
+            "/v1/ugc/levels",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                profileId: state.profileId,
+                title: "First Victory Sprint",
+                difficulty: "silver"
+              })
+            },
+            { label: "publish level" }
+          );
           onboardingDiagnostics.textContent = "Diagnostics: publish transition passed.";
           await emitOnboardingTelemetry("onboarding.level_published", { difficulty: "silver" });
           setActiveSurface("creator", "Publish Level");
           setFeedback("Level published. First success should now be complete.");
           await refreshOnboarding();
         } catch (error) {
-          onboardingDiagnostics.textContent = "Diagnostics: publish step failed; retry with valid level metadata.";
-          setFeedback(error.message, true);
+          state.progress.published = previousPublished;
+          state.lastReversibleAction = previousAction;
+          onboardingDiagnostics.textContent = "Diagnostics: publish failed; optimistic update rolled back.";
+          setActiveSurface("onboarding", "Publish Rollback");
+          setFeedback(`Publish failed and was rolled back: ${error.message}`, true);
         }
       });
 
       document.querySelector("#submit-ranked").addEventListener("click", async () => {
         if (!state.profileId) return setFeedback("Create a profile first.", true);
         try {
-          await api("/v1/ranked/submit", {
-            method: "POST",
-            body: JSON.stringify({
-              profileId: state.profileId,
-              score: state.score,
-              clientDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            })
-          });
+          await api(
+            "/v1/ranked/submit",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                profileId: state.profileId,
+                score: state.score,
+                clientDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              })
+            },
+            { label: "submit ranked" }
+          );
           setActiveSurface("ranked", "Score Submitted");
           setFeedback("Ranked score accepted.");
-          await refreshOnboarding();
         } catch (error) {
           setActiveSurface("ranked", "Submission Error");
           setFeedback(`Ranked submission rejected: ${error.message}`, true);
@@ -732,8 +1335,12 @@
           setFeedback("Finish onboarding criteria before generating a challenge.", true);
           return;
         }
-        challengeBrief.textContent = "Challenge: Iron Relay. Objective: Clear three waves without dropping below 40% stability.";
-        setFeedback("Challenge brief generated.");
+        setLoading(true, "Generating challenge brief...");
+        setTimeout(() => {
+          setLoading(false, "");
+          challengeBrief.textContent = "Challenge: Iron Relay. Objective: Clear three waves without dropping below 40% stability.";
+          setFeedback("Challenge brief generated.");
+        }, 320);
       });
 
       document.querySelector("#campaign-start").addEventListener("click", async () => {
@@ -747,6 +1354,80 @@
         await emitOnboardingTelemetry("onboarding.campaign_started", { chapter: 1 });
         setActiveSurface("campaign", "Chapter 1");
         setFeedback("Campaign chapter started.");
+      });
+
+      document.querySelector("#coop-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!state.profileId) return setFeedback("Create a profile first.", true);
+        const input = document.querySelector("#friend-code");
+        const friendCode = input.value.trim();
+        if (friendCode.length < 3) {
+          setFeedback("Friend code must be at least 3 characters.", true);
+          return;
+        }
+
+        const optimisticInvite = { id: `invite-${Date.now()}`, friendCode, status: "Pending" };
+        state.socialInvites.unshift(optimisticInvite);
+        renderSocialInvites();
+        setFeedback("Invite queued (optimistic update)...");
+
+        try {
+          await api(
+            "/v1/social/friends",
+            {
+              method: "POST",
+              body: JSON.stringify({ profileId: state.profileId, friendCode })
+            },
+            { label: "send coop invite" }
+          );
+          optimisticInvite.status = "Sent";
+          renderSocialInvites();
+          setFeedback("Invite sent.");
+          input.value = "";
+        } catch (error) {
+          state.socialInvites = state.socialInvites.filter((invite) => invite.id !== optimisticInvite.id);
+          renderSocialInvites();
+          setFeedback(`Invite failed and was rolled back: ${error.message}`, true);
+        }
+      });
+
+      document.querySelector("#moderation-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!state.profileId) return setFeedback("Create a profile first.", true);
+        const payload = {
+          profileId: state.profileId,
+          targetType: document.querySelector("#moderation-target-type").value,
+          targetId: document.querySelector("#moderation-target-id").value.trim(),
+          reason: document.querySelector("#moderation-reason").value.trim()
+        };
+        try {
+          const response = await api(
+            "/v1/moderation/report",
+            {
+              method: "POST",
+              body: JSON.stringify(payload)
+            },
+            { label: "submit moderation report" }
+          );
+          moderationSummary.textContent = `Report submitted: ${response.report.id}.`;
+          setFeedback("Moderation report submitted.");
+        } catch (error) {
+          moderationSummary.textContent = `Report failed: ${error.message}`;
+          setFeedback(`Moderation report failed: ${error.message}`, true);
+        }
+      });
+
+      document.querySelector("#ranked-refresh").addEventListener("click", () => {
+        void refreshLeaderboard();
+      });
+      document.querySelector("#creator-refresh").addEventListener("click", () => {
+        void refreshCreatorFeed();
+      });
+      document.querySelector("#liveops-refresh").addEventListener("click", () => {
+        void refreshLiveOps();
+      });
+      document.querySelector("#analytics-refresh").addEventListener("click", () => {
+        void refreshAnalytics();
       });
 
       document.querySelector("#onboarding-skip").addEventListener("click", async () => {
@@ -807,11 +1488,16 @@
         const surface = normalizeSurface(surfaceSearch.value);
         if (!surface) {
           surfaceSearchFeedback.textContent =
-            "Unknown surface. Try dashboard, profile, onboarding, challenge, ranked, creator, or help.";
+            "Unknown surface. Try dashboard, profile, onboarding, challenge, campaign, coop, ranked, creator, moderation, liveops, analytics, or help.";
           return;
         }
         surfaceSearchFeedback.textContent = "";
         setActiveSurface(surface);
+      });
+
+      document.querySelector("#mobile-surface-nav").addEventListener("submit", (event) => {
+        event.preventDefault();
+        setActiveSurface(mobileSurfaceSelect.value);
       });
 
       surfacePrimaryAction.addEventListener("click", runPrimaryAction);
@@ -839,6 +1525,43 @@
         }
       });
 
+      document.querySelector("#retry-queue-run").addEventListener("click", () => {
+        void processRetryQueue(true);
+      });
+
+      document.querySelector("#retry-queue-clear").addEventListener("click", () => {
+        state.retryQueue = [];
+        renderRetryQueue();
+        setFeedback("Retry queue cleared.");
+      });
+
+      document.querySelector("#copy-diagnostics").addEventListener("click", async () => {
+        const packet = {
+          generatedAt: new Date().toISOString(),
+          surface: state.activeSurface,
+          profile: state.profileHandle,
+          locale: state.locale,
+          progress: state.progress,
+          accessibility: state.accessibility,
+          retryQueue: state.retryQueue.map((entry) => ({
+            label: entry.label,
+            attempt: entry.attempt,
+            nextRunAt: new Date(entry.nextRunAt).toISOString()
+          })),
+          lastError: state.lastError
+        };
+        const serialized = JSON.stringify(packet, null, 2);
+        diagnosticOutput.value = serialized;
+        try {
+          await navigator.clipboard.writeText(serialized);
+          setFeedback("Diagnostic packet copied.");
+        } catch {
+          diagnosticOutput.focus();
+          diagnosticOutput.select();
+          setFeedback("Clipboard unavailable. Diagnostic packet selected for manual copy.");
+        }
+      });
+
       window.addEventListener("offline", () => {
         networkBanner.hidden = false;
         setFeedback("Network offline. Actions will retry when the connection returns.", true);
@@ -847,6 +1570,7 @@
       window.addEventListener("online", () => {
         networkBanner.hidden = true;
         setFeedback("Connection restored.");
+        void processRetryQueue(true);
       });
 
       window.addEventListener("error", (event) => {
@@ -861,6 +1585,7 @@
       });
 
       restoreLocalState();
+      renderSocialInvites();
       setActiveSurface("dashboard");
       refreshHelp().catch(() => setFeedback("Help service unavailable.", true));
     </script>

@@ -75,13 +75,51 @@ body[data-theme="dark"] {
   box-sizing: border-box;
 }
 
+html,
+body {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
   font-family: var(--font-family-base);
   line-height: var(--line-height-base);
   color: var(--color-text-primary);
   background: radial-gradient(circle at 20% 12%, #1f3158 0%, #131c31 36%, var(--color-bg-app) 76%);
+}
+
+body.high-contrast {
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #d6e5ff;
+  --color-border-muted: rgba(255, 255, 255, 0.45);
+  --color-bg-panel: rgba(7, 13, 24, 0.96);
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: -2.5rem;
+  z-index: 10;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  top: var(--space-3);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 .aurora {
@@ -200,6 +238,7 @@ h4 {
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-md);
   padding: 0.54rem 0.76rem;
+  min-height: 44px;
   color: var(--color-text-primary);
   background: color-mix(in srgb, var(--color-bg-panel) 90%, transparent);
   transition:
@@ -245,6 +284,14 @@ h4 {
 
 .command-bar .muted {
   margin-left: auto;
+}
+
+.mobile-surface-nav {
+  display: none;
+}
+
+.mobile-surface-nav label {
+  font-weight: var(--font-weight-semibold);
 }
 
 .network-banner {
@@ -307,10 +354,12 @@ h4 {
   grid-column: span 3;
   display: grid;
   gap: var(--space-3);
+  align-content: start;
 }
 
 .panel-help {
   grid-column: span 1;
+  align-content: start;
 }
 
 .breadcrumb {
@@ -341,6 +390,7 @@ h4 {
   border-radius: var(--radius-md);
   padding: var(--space-4);
   background: color-mix(in srgb, var(--color-bg-surface) 82%, transparent);
+  min-height: 180px;
 }
 
 .empty-state {
@@ -350,11 +400,43 @@ h4 {
   background: color-mix(in srgb, var(--color-state-warning) 10%, transparent);
 }
 
+.loading-skeleton {
+  border: 1px solid color-mix(in srgb, var(--color-state-info) 35%, var(--color-border-muted));
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
+}
+
+.skeleton-row {
+  height: 0.9rem;
+  border-radius: 999px;
+  margin-top: var(--space-2);
+  background: linear-gradient(90deg, rgba(120, 140, 180, 0.2), rgba(190, 210, 250, 0.6), rgba(120, 140, 180, 0.2));
+  background-size: 240% 100%;
+  animation: skeleton-shimmer 1.2s linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 .coachmark {
   border: 1px solid color-mix(in srgb, var(--color-state-info) 45%, var(--color-border-muted));
   border-radius: var(--radius-md);
   padding: var(--space-3);
   background: color-mix(in srgb, var(--color-state-info) 10%, transparent);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 label {
@@ -363,14 +445,16 @@ label {
 
 input,
 select,
-button {
+button,
+textarea {
   font: inherit;
   border-radius: var(--radius-sm);
   border: 1px solid color-mix(in srgb, var(--color-border-muted) 80%, transparent);
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 0.64rem 0.7rem;
   color: var(--color-text-primary);
@@ -379,6 +463,7 @@ select {
 
 button {
   cursor: pointer;
+  min-height: 44px;
   padding: 0.64rem 0.84rem;
   color: #ffffff;
   background: linear-gradient(130deg, var(--color-accent), var(--color-accent-strong));
@@ -397,6 +482,7 @@ button:hover {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 a:focus-visible,
 .nav-item:focus-visible {
   outline: 3px solid var(--color-focus-ring);
@@ -439,6 +525,17 @@ a:focus-visible,
   color: var(--color-state-success);
 }
 
+.retry-queue {
+  border: 1px solid color-mix(in srgb, var(--color-state-warning) 55%, var(--color-border-muted));
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--color-state-warning) 9%, transparent);
+}
+
+.diagnostics textarea {
+  min-height: 7.5rem;
+}
+
 .panel-links {
   margin-top: var(--space-3);
 }
@@ -467,6 +564,10 @@ a:focus-visible,
   border-color: color-mix(in srgb, var(--color-state-error) 55%, var(--color-border-muted));
 }
 
+.toast-item.success {
+  border-color: color-mix(in srgb, var(--color-state-success) 55%, var(--color-border-muted));
+}
+
 a {
   color: var(--color-link);
 }
@@ -491,4 +592,81 @@ a {
     margin-left: 0;
     width: 100%;
   }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --font-size-500: 1.14rem;
+    --font-size-700: 1.62rem;
+  }
+
+  .rw-page {
+    width: min(1220px, 100% - 1rem);
+  }
+
+  .global-nav {
+    display: none;
+  }
+
+  .mobile-surface-nav {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-muted);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-bg-panel) 92%, transparent);
+  }
+
+  .mobile-surface-nav .rw-inline {
+    align-items: stretch;
+  }
+
+  .mobile-surface-nav button {
+    min-width: 96px;
+  }
+
+  .panel {
+    padding: var(--space-4);
+  }
+
+  .rw-inline {
+    flex-wrap: wrap;
+  }
+
+  .toast-stack {
+    left: var(--space-2);
+    right: var(--space-2);
+    bottom: var(--space-2);
+  }
+}
+
+@media (orientation: landscape) and (max-width: 900px) {
+  .layout {
+    gap: var(--space-3);
+  }
+
+  .surface-panel {
+    min-height: 120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .aurora {
+    display: none;
+  }
+}
+
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation: none !important;
+  transition-duration: 0ms !important;
 }

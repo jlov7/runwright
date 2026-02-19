@@ -1105,16 +1105,18 @@ async function handleRequest(
     }
     writeRuntimeState(options.stateFile, state);
     if (!accepted) {
+      const code = rejectionReason === "digest-mismatch" ? "anti-tamper-failed" : "anti-cheat-blocked";
       sendJson(res, 422, {
         accepted: false,
         error: {
-          code: rejectionReason === "digest-mismatch" ? "anti-tamper-failed" : "anti-cheat-blocked",
+          code,
           message:
             rejectionReason === "digest-mismatch"
               ? "Submitted digest did not match server-side authoritative digest."
               : rejectionReason === "score-spike"
                 ? "Submitted score exceeded anti-cheat spike threshold."
-                : "Submission was rate-limited by anti-cheat protections."
+                : "Submission was rate-limited by anti-cheat protections.",
+          nextAction: errorNextAction(code)
         }
       });
       return;
@@ -1235,6 +1237,20 @@ function normalizeError(error: unknown): HttpError {
   return new HttpError(500, "internal-error", message);
 }
 
+function errorNextAction(code: string): string {
+  const guidance: Record<string, string> = {
+    "profile-not-found": "Create or select a valid profile before retrying this action.",
+    "invalid-request": "Review request fields, correct validation issues, and submit again.",
+    "invalid-json": "Send valid JSON payload and retry the request.",
+    "payload-too-large": "Reduce payload size and retry with a smaller body.",
+    "anti-tamper-failed": "Regenerate the ranked digest from trusted inputs and resubmit.",
+    "not-found": "Check the route path and HTTP method before retrying.",
+    "network-offline": "Reconnect network access, then retry queued actions.",
+    "internal-error": "Open /v1/help for recovery guidance and include diagnostics in support handoff."
+  };
+  return guidance[code] ?? "Open /v1/help and retry with diagnostics enabled.";
+}
+
 export function createRankedDigest(profileId: string, score: number, rankedSalt: string): `sha256:${string}` {
   return sha256Digest(`${profileId}:${score}:${rankedSalt}`);
 }
@@ -1256,7 +1272,8 @@ export async function createGameRuntimeServer(options: RuntimeServerOptions): Pr
         error: {
           code: normalized.code,
           message: normalized.message,
-          details: normalized.details ?? null
+          details: normalized.details ?? null,
+          nextAction: errorNextAction(normalized.code)
         }
       });
     });
