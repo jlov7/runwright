@@ -192,8 +192,8 @@
             <label for="remap-profile">Input remap profile</label>
             <select id="remap-profile" name="remap-profile">
               <option value="default">Default</option>
-              <option value="southpaw">Southpaw</option>
-              <option value="one-handed">One-handed</option>
+              <option value="left-handed">Left-handed</option>
+              <option value="single-stick">Single-stick</option>
             </select>
 
             <button type="submit" id="save-accessibility">Save Accessibility Preferences</button>
@@ -1089,7 +1089,7 @@
         setLoading(true, "Loading seasonal event...");
         try {
           const payload = await api("/v1/liveops/season", {}, { label: "refresh liveops" });
-          liveopsSummary.textContent = `Season ${payload.season.id}: ${payload.season.name} (${payload.season.status}).`;
+          liveopsSummary.textContent = `Season ${payload.seasonId}: rotation ${payload.rotation}. Active events: ${payload.events.length}.`;
         } catch (error) {
           liveopsSummary.textContent = `LiveOps unavailable: ${error.message}`;
           setFeedback(`LiveOps refresh failed: ${error.message}`, true);
@@ -1102,7 +1102,7 @@
         setLoading(true, "Loading analytics funnel...");
         try {
           const payload = await api("/v1/analytics/funnel", {}, { label: "refresh analytics" });
-          analyticsSummary.textContent = `First success rate: ${payload.firstSuccessRate}% | Ranked accepted: ${payload.rankedAccepted}.`;
+          analyticsSummary.textContent = `Conversion: ${payload.conversionPercent}% | Profiles: ${payload.profiles} | First success count: ${payload.firstSuccessCount}.`;
         } catch (error) {
           analyticsSummary.textContent = `Analytics unavailable: ${error.message}`;
           setFeedback(`Analytics refresh failed: ${error.message}`, true);

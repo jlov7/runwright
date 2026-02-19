@@ -2,6 +2,7 @@ export type RuntimeErrorPayload = {
   error?: {
     code?: string;
     message?: string;
+    nextAction?: string;
     details?: unknown;
   };
 };
@@ -38,14 +39,14 @@ export type OnboardingStep = {
 
 export type OnboardingResponse = {
   profileId: string;
+  completionPercent: number;
   steps: OnboardingStep[];
   nextAction: { id: string; title: string; command: string } | null;
-  firstSuccessReady: boolean;
+  firstSuccess: boolean;
 };
 
 export type HelpResponse = {
   docsPath: string;
-  troubleshootingPath: string;
   tooltips: Array<{ id: string; copy: string }>;
 };
 
@@ -82,5 +83,40 @@ export type RuntimeApiClient = {
   postTelemetry(input: TelemetryEventRequest): Promise<{ ok: boolean }>;
   save(input: SaveRequest): Promise<{ save: { id: string; version: number; digest: string } }>;
   publishLevel(input: PublishLevelRequest): Promise<{ level: { id: string; title: string; difficulty: string } }>;
-  submitRanked(input: RankedSubmitRequest): Promise<{ result: { accepted: boolean; rankTier: string } }>;
+  submitRanked(input: RankedSubmitRequest): Promise<{ accepted: boolean; leaderboard?: Array<{ profileId: string; score: number; handle: string }> }>;
+  getLeaderboard(): Promise<{ leaderboard: Array<{ profileId: string; handle: string; score: number; submittedAt: string }> }>;
+  getCreatorDiscover(): Promise<{ levels: Array<{ id: string; title: string; difficulty: string; rating: number }> }>;
+  postModeration(input: {
+    profileId: string;
+    targetType: "ugc" | "chat" | "profile";
+    targetId: string;
+    reason: string;
+  }): Promise<{ report: { id: string; status: "open"; createdAt: string } }>;
+  getLiveOpsSeason(): Promise<{
+    seasonId: string;
+    rotation: string;
+    events: Array<{ id: string; active: boolean; rewardMultiplier: number }>;
+  }>;
+  getAnalyticsFunnel(): Promise<{
+    profiles: number;
+    tutorialCount: number;
+    saveCount: number;
+    firstSuccessCount: number;
+    conversionPercent: number;
+  }>;
+  postSocialInvite(input: {
+    profileId: string;
+    friendCode: string;
+  }): Promise<{ added: boolean; friends: Array<{ profileId: string; friendCode: string; createdAt: string }> }>;
+  patchAccessibility(
+    profileId: string,
+    input: {
+      accessibility: {
+        textScale: number;
+        reducedMotion: boolean;
+        highContrast: boolean;
+        remapProfile: "default" | "left-handed" | "single-stick";
+      };
+    }
+  ): Promise<{ profile: RuntimeProfile }>;
 };
