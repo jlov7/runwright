@@ -257,6 +257,24 @@ h4 {
   background: color-mix(in srgb, var(--color-state-warning) 18%, transparent);
 }
 
+.global-error-boundary {
+  position: relative;
+  z-index: 3;
+  margin-top: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-state-error) 60%, var(--color-border-muted));
+  border-radius: var(--radius-md);
+  padding: 0.56rem 0.75rem;
+  background: color-mix(in srgb, var(--color-state-error) 16%, transparent);
+}
+
+.global-error-boundary p {
+  margin: 0;
+}
+
 .layout {
   position: relative;
   z-index: 1;

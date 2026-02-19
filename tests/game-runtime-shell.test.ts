@@ -46,6 +46,8 @@ describe("game runtime web shell", () => {
     expect(html).toContain('id="network-banner"');
     expect(html).toContain('id="toast-stack"');
     expect(html).toContain('id="undo-last-action"');
+    expect(html).toContain('id="global-error-boundary"');
+    expect(html).toContain('id="form-error"');
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain("docs/help/README.md");

@@ -76,6 +76,11 @@
     <div id="network-banner" class="network-banner rw-page" hidden role="status" aria-live="polite">
       Offline mode: actions will retry when connectivity returns.
     </div>
+    <div id="global-error-boundary" class="global-error-boundary rw-page" hidden role="alert">
+      <p id="global-error-message">Unexpected issue. Open help docs and retry.</p>
+      <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open help docs</a>
+      <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime recovery routes</a>
+    </div>
 
     <main class="layout rw-page">
       <section class="panel panel-wayfinding rw-panel" aria-labelledby="wayfinding-title">
@@ -132,9 +137,10 @@
               <option value="pt-BR">Portugues (BR)</option>
             </select>
 
-            <button type="submit" id="create-profile">Create Profile</button>
-            <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
-          </form>
+             <button type="submit" id="create-profile">Create Profile</button>
+             <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
+             <p id="form-error" class="feedback error" aria-live="polite"></p>
+           </form>
 
           <div class="actions rw-stack" aria-label="Primary gameplay actions">
             <button type="button" id="run-tutorial" data-help="Records tutorial progress to unlock onboarding step 2.">
@@ -289,6 +295,9 @@
       const networkBanner = document.querySelector("#network-banner");
       const toastStack = document.querySelector("#toast-stack");
       const undoLastActionButton = document.querySelector("#undo-last-action");
+      const globalErrorBoundary = document.querySelector("#global-error-boundary");
+      const globalErrorMessage = document.querySelector("#global-error-message");
+      const formError = document.querySelector("#form-error");
 
       function profileReady() {
         return Boolean(state.profileId);
@@ -570,6 +579,11 @@
         const form = document.querySelector("#profile-form");
         const handle = form.handle.value.trim();
         const locale = form.locale.value;
+        if (handle.length < 2) {
+          formError.textContent = "Handle must be at least 2 characters.";
+          throw new Error("Handle must be at least 2 characters.");
+        }
+        formError.textContent = "";
         const payload = await api("/v1/auth/signup", {
           method: "POST",
           body: JSON.stringify({ handle, locale })
@@ -833,6 +847,17 @@
       window.addEventListener("online", () => {
         networkBanner.hidden = true;
         setFeedback("Connection restored.");
+      });
+
+      window.addEventListener("error", (event) => {
+        globalErrorBoundary.hidden = false;
+        globalErrorMessage.textContent = `Unexpected issue: ${event.message}`;
+      });
+
+      window.addEventListener("unhandledrejection", (event) => {
+        globalErrorBoundary.hidden = false;
+        const reason = event.reason instanceof Error ? event.reason.message : "Unknown rejection";
+        globalErrorMessage.textContent = `Unexpected issue: ${reason}`;
       });
 
       restoreLocalState();
