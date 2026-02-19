@@ -132,6 +132,7 @@ jobs:
       - run: pnpm perf:snapshot -- --out reports/performance/current.snapshot.json
       - run: pnpm perf:frontend:check -- --out reports/performance/frontend-budget.report.json
       - run: pnpm perf:frontend:soak
+      - run: pnpm qa:frontend:matrix -- --out reports/qa/frontend-device-matrix.json
       - run: |
           pnpm perf:trend:check -- \
             --current reports/performance/current.snapshot.json \
@@ -144,6 +145,11 @@ jobs:
         with:
           name: performance-trend
           path: reports/performance/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: frontend-device-matrix
+          path: reports/qa/frontend-device-matrix.json
 
   sarif:
     runs-on: ubuntu-latest
