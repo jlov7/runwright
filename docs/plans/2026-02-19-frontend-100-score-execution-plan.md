@@ -87,23 +87,23 @@
 - [x] ON-10: Add E2E tests for happy path + top 5 failure paths.
 
 ### WS-04 Interaction Quality (IX)
-- [ ] IX-01: Define interaction state model for all async actions (idle/loading/success/error/retrying).
-- [ ] IX-02: Standardize button/input states across app components.
+- [x] IX-01: Define interaction state model for all async actions (idle/loading/success/error/retrying).
+- [x] IX-02: Standardize button/input states across app components.
 - [ ] IX-03: Add optimistic updates where safe, with deterministic rollback.
-- [ ] IX-04: Add unified feedback system (inline + toast + persistent status where needed).
-- [ ] IX-05: Add undo affordances for reversible destructive actions.
-- [ ] IX-06: Add keyboard shortcuts and command palette for power users.
+- [x] IX-04: Add unified feedback system (inline + toast + persistent status where needed).
+- [x] IX-05: Add undo affordances for reversible destructive actions.
+- [x] IX-06: Add keyboard shortcuts and command palette for power users.
 - [ ] IX-07: Add loading skeletons and progressive reveal patterns.
-- [ ] IX-08: Add microinteraction timing standards and enforce them in components.
+- [x] IX-08: Add microinteraction timing standards and enforce them in components.
 - [ ] IX-09: Add interaction latency budget alerts in dev mode.
-- [ ] IX-10: Add UX regression tests for interaction state transitions.
+- [x] IX-10: Add UX regression tests for interaction state transitions.
 
 ### WS-05 Error Handling & Recovery UX (ER)
-- [ ] ER-01: Create frontend error taxonomy mapped to runtime/API error codes.
-- [ ] ER-02: Create reusable error message formatter (plain language, next action, support code).
+- [x] ER-01: Create frontend error taxonomy mapped to runtime/API error codes.
+- [x] ER-02: Create reusable error message formatter (plain language, next action, support code).
 - [ ] ER-03: Add global error boundary with actionable recovery links.
 - [ ] ER-04: Add inline form validation with prevention (before submit) and recovery (after fail).
-- [ ] ER-05: Add offline/online network state banners and recovery actions.
+- [x] ER-05: Add offline/online network state banners and recovery actions.
 - [ ] ER-06: Add retry/backoff queue UX for transient failures.
 - [ ] ER-07: Add “copy diagnostic packet” for support/debug handoff.
 - [ ] ER-08: Add recovery playbooks into in-app help context.

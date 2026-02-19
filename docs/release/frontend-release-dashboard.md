@@ -7,8 +7,8 @@
 | Visual design language & brand polish | 76 | 100 | In progress |
 | Information architecture & clarity | 85 | 100 | In progress |
 | Onboarding / first-success journey | 91 | 100 | In progress |
-| Interaction quality | 60 | 100 | In progress |
-| Error handling & recovery UX | 68 | 100 | In progress |
+| Interaction quality | 79 | 100 | In progress |
+| Error handling & recovery UX | 81 | 100 | In progress |
 | Accessibility fundamentals | 72 | 100 | In progress |
 | Mobile/responsive quality | 59 | 100 | In progress |
 | Frontend architecture maintainability | 78 | 100 | In progress |
@@ -26,6 +26,7 @@
 - Navigation and IA rules: `docs/architecture/frontend-navigation-map.md`, `docs/design/content-design-rules.md`
 - Persona walkthrough scripts: `docs/audits/frontend-ia-persona-walkthroughs.md`
 - Onboarding funnels and state-machine evidence: `docs/design/onboarding-funnels.md`, `apps/web/src/features/onboarding/state-machine.ts`, `tests/frontend-onboarding-machine.test.ts`
+- Interaction/error model evidence: `apps/web/src/shared/interaction-state.ts`, `apps/web/src/shared/error-taxonomy.ts`, `tests/frontend-interaction-model.test.ts`, `tests/frontend-error-taxonomy.test.ts`
 - Runtime/web shell baseline: `apps/web/index.html`, `apps/web/styles.css`
 
 ## Gate Rules

@@ -17,6 +17,7 @@ In Progress
 ## Decisions Made
 - Execute in strict milestone order from the 2026-02-19 plan.
 - Keep changes reviewable and evidence-backed per milestone.
+- Complete M5 in two phases: shared interaction/error model first, then shell-level UX wiring.
 
 ## Open Questions
 - None blocking execution; external CI billing lockout remains tracked via RG-007 exception path.
