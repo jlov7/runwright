@@ -139,12 +139,12 @@
 - [x] ARC-02: Define folder/module boundaries (`app`, `features`, `entities`, `shared`).
 - [x] ARC-03: Introduce strict TypeScript config and no-implicit-any enforcement for frontend code.
 - [x] ARC-04: Build typed API client layer with shared contract types.
-- [ ] ARC-05: Introduce state management strategy (server state + UI state boundaries).
-- [ ] ARC-06: Create reusable component library foundation.
-- [ ] ARC-07: Add Storybook/component documentation (or equivalent) for core components.
-- [ ] ARC-08: Add ADRs for architecture decisions and constraints.
-- [ ] ARC-09: Add static analysis rules to prevent architecture boundary violations.
-- [ ] ARC-10: Add maintainability checklist gate before merges.
+- [x] ARC-05: Introduce state management strategy (server state + UI state boundaries).
+- [x] ARC-06: Create reusable component library foundation.
+- [x] ARC-07: Add Storybook/component documentation (or equivalent) for core components.
+- [x] ARC-08: Add ADRs for architecture decisions and constraints.
+- [x] ARC-09: Add static analysis rules to prevent architecture boundary violations.
+- [x] ARC-10: Add maintainability checklist gate before merges.
 
 ### WS-09 Performance Basics (PF)
 - [ ] PF-01: Define measurable budgets (bundle size, LCP, INP, CLS, TTI, memory).
@@ -160,8 +160,8 @@
 
 ### WS-10 Frontend Testing Depth (TST)
 - [x] TST-01: Define frontend test strategy and coverage targets by layer.
-- [ ] TST-02: Add unit tests for shared UI primitives.
-- [ ] TST-03: Add unit tests for hooks/state logic.
+- [x] TST-02: Add unit tests for shared UI primitives.
+- [x] TST-03: Add unit tests for hooks/state logic.
 - [ ] TST-04: Add integration tests for all primary user journeys.
 - [ ] TST-05: Add E2E tests for onboarding, core loop, error recovery, ranked, creator.
 - [ ] TST-06: Add accessibility tests in component and E2E layers.

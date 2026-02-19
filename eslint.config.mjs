@@ -25,5 +25,45 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-explicit-any": "off"
     }
+  },
+  {
+    files: ["apps/web/src/shared/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            "../app/*",
+            "../../app/*",
+            "../features/*",
+            "../../features/*",
+            "../entities/*",
+            "../../entities/*"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    files: ["apps/web/src/entities/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: ["../app/*", "../../app/*", "../features/*", "../../features/*"]
+        }
+      ]
+    }
+  },
+  {
+    files: ["apps/web/src/features/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: ["../app/*", "../../app/*"]
+        }
+      ]
+    }
   }
 );

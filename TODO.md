@@ -224,9 +224,20 @@ M0 task tracking:
 - [x] ARC-04 Typed API client layer with shared contracts
 - [x] TST-01 Frontend test strategy (`docs/testing/frontend-test-strategy.md`)
 
+M1 task tracking:
+- [x] ARC-05 State management strategy (`apps/web/src/app/state-store.ts`)
+- [x] ARC-06 Reusable component foundation (`apps/web/src/shared/ui/primitives.ts`)
+- [x] ARC-07 Component documentation/catalog (`docs/architecture/frontend-component-catalog.md`)
+- [x] ARC-08 Architecture constraints/rules (`docs/architecture/frontend-boundary-rules.md`)
+- [x] ARC-09 Static boundary enforcement (`eslint.config.mjs` restricted imports)
+- [x] ARC-10 Maintainability merge checklist (`docs/release/frontend-maintainability-checklist.md`)
+- [x] TST-02 Unit tests for UI primitives (`tests/frontend-ui-primitives.test.ts`)
+- [x] TST-03 Unit tests for state logic (`tests/frontend-state-store.test.ts`)
+
 Milestone tracking:
 - [x] M0 Foundation/scoring/architecture baseline
 - [ ] M1 Frontend architecture modernization
+- [x] M1 Frontend architecture modernization
 - [ ] M2 Design system + visual language
 - [ ] M3 IA + navigation + clarity
 - [ ] M4 Onboarding + first-success perfection
@@ -244,7 +255,7 @@ Workstream completion:
 - [ ] WS-05 Error handling & recovery UX
 - [ ] WS-06 Accessibility fundamentals
 - [ ] WS-07 Mobile/responsive quality
-- [ ] WS-08 Frontend architecture maintainability
+- [x] WS-08 Frontend architecture maintainability
 - [ ] WS-09 Performance basics
 - [ ] WS-10 Frontend testing depth
 - [ ] WS-11 Product completeness of core UI surfaces

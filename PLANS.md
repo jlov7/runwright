@@ -168,7 +168,9 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
 - [x] F100-4: M0 governance artifacts completed (`PRG-01`, `PRG-02`, `PRG-03`, `ARC-01`, `ARC-02`, `TST-01`).
 - [x] F100-5: M0 code scaffolding in progress (`ARC-03`, `ARC-04`).
 - [x] F100-6: M0 complete (PRG-01..03 and ARC-01..04 done with test/toolchain evidence).
-- [ ] F100-7: M1 execution started (ARC-05..10, TST-02..03).
+- [x] F100-7: M1 execution started (ARC-05..10, TST-02..03).
+- [x] F100-8: M1 complete (state store, UI primitives, architecture boundary rules, maintainability checklist, and unit tests).
+- [ ] F100-9: M2 execution started (VD-01..06, IA-01..04).
 
 ## Risks
 - Architecture transition could create temporary delivery slowdown.
