@@ -388,6 +388,7 @@
     <script type="module">
       const state = {
         profileId: null,
+        sessionId: null,
         score: 1200,
         activeSurface: "dashboard",
         profileHandle: null,
@@ -882,6 +883,7 @@
           headers: {
             "content-type": "application/json",
             ...(isMutating ? { "x-runwright-csrf": "same-origin" } : {}),
+            ...(isMutating && state.sessionId ? { "x-session-id": state.sessionId } : {}),
             ...(init.headers || {})
           }
         };
@@ -1085,6 +1087,23 @@
           state.profileId = payload.profile.id;
           state.profileHandle = payload.profile.handle;
           state.locale = payload.profile.locale;
+          try {
+            const login = await api(
+              "/v1/auth/login",
+              {
+                method: "POST",
+                body: JSON.stringify({
+                  handle: payload.profile.handle,
+                  provider: "email",
+                  deviceId: "web-shell"
+                })
+              },
+              { label: "create profile session" }
+            );
+            state.sessionId = login.session.id;
+          } catch {
+            state.sessionId = null;
+          }
           state.lastReversibleAction = null;
           await emitOnboardingTelemetry("onboarding.profile_created", { surface: "web-shell" });
           setActiveSurface("onboarding", "Profile Created");
