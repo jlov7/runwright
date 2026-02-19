@@ -129,6 +129,8 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm perf:snapshot -- --out reports/performance/current.snapshot.json
+      - run: pnpm perf:frontend:check -- --out reports/performance/frontend-budget.report.json
+      - run: pnpm perf:frontend:soak
       - run: |
           pnpm perf:trend:check -- \
             --current reports/performance/current.snapshot.json \
