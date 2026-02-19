@@ -135,8 +135,8 @@
 - [ ] MB-10: Add responsive visual regression baselines.
 
 ### WS-08 Frontend Architecture Maintainability (ARC)
-- [ ] ARC-01: Choose and lock frontend architecture pattern (typed modular app under `apps/web`).
-- [ ] ARC-02: Define folder/module boundaries (`app`, `features`, `entities`, `shared`).
+- [x] ARC-01: Choose and lock frontend architecture pattern (typed modular app under `apps/web`).
+- [x] ARC-02: Define folder/module boundaries (`app`, `features`, `entities`, `shared`).
 - [ ] ARC-03: Introduce strict TypeScript config and no-implicit-any enforcement for frontend code.
 - [ ] ARC-04: Build typed API client layer with shared contract types.
 - [ ] ARC-05: Introduce state management strategy (server state + UI state boundaries).
@@ -159,7 +159,7 @@
 - [ ] PF-10: Run perf soak tests on low-end device profiles.
 
 ### WS-10 Frontend Testing Depth (TST)
-- [ ] TST-01: Define frontend test strategy and coverage targets by layer.
+- [x] TST-01: Define frontend test strategy and coverage targets by layer.
 - [ ] TST-02: Add unit tests for shared UI primitives.
 - [ ] TST-03: Add unit tests for hooks/state logic.
 - [ ] TST-04: Add integration tests for all primary user journeys.
@@ -199,9 +199,9 @@
 - [ ] WOW-10: Final craft polish sweep (spacing, alignment, contrast, motion, copy).
 
 ### WS-13 Program Governance & Release Gates (PRG)
-- [ ] PRG-01: Create scoring rubric with evidence requirements for each criterion.
-- [ ] PRG-02: Define objective threshold for 100/100 readiness per criterion.
-- [ ] PRG-03: Add release dashboard page summarizing all 12 criterion scores.
+- [x] PRG-01: Create scoring rubric with evidence requirements for each criterion.
+- [x] PRG-02: Define objective threshold for 100/100 readiness per criterion.
+- [x] PRG-03: Add release dashboard page summarizing all 12 criterion scores.
 - [ ] PRG-04: Add weekly quality review cadence and score delta tracking.
 - [ ] PRG-05: Add blocker escalation workflow (design, engineering, product).
 - [ ] PRG-06: Add pre-release dry-run checklist with signoff owners.
@@ -256,4 +256,3 @@ Begin with M0:
 1. PRG-01 scoring rubric artifact.
 2. ARC-01 architecture decision and frontend module scaffolding.
 3. TST-01 frontend test strategy artifact.
-

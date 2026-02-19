@@ -214,6 +214,16 @@ Tracker: `docs/plans/2026-02-17-pre-release-gate-world-class-backlog.md`
 ## P0 (Frontend 100/100 execution program)
 Tracker: `docs/plans/2026-02-19-frontend-100-score-execution-plan.md`
 
+M0 task tracking:
+- [x] PRG-01 Scoring rubric with evidence requirements (`docs/design/frontend-score-rubric.md`)
+- [x] PRG-02 Objective 100/100 thresholds (`docs/design/frontend-score-rubric.md`)
+- [x] PRG-03 Release dashboard page (`docs/release/frontend-release-dashboard.md`)
+- [x] ARC-01 Architecture pattern locked (`docs/architecture/frontend-architecture-adr.md`)
+- [x] ARC-02 Module boundary definition (`docs/architecture/frontend-architecture-adr.md`)
+- [ ] ARC-03 Frontend strict TypeScript enforcement in toolchain
+- [ ] ARC-04 Typed API client layer with shared contracts
+- [x] TST-01 Frontend test strategy (`docs/testing/frontend-test-strategy.md`)
+
 Milestone tracking:
 - [ ] M0 Foundation/scoring/architecture baseline
 - [ ] M1 Frontend architecture modernization

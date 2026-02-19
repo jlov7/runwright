@@ -164,7 +164,9 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
 - [x] F100-0: Baseline criteria and target matrix established.
 - [x] F100-1: Exhaustive task plan (WS-01..WS-13) documented.
 - [x] F100-2: TODO mirror created for milestone/workstream tracking.
-- [ ] F100-3: M0 foundation execution started.
+- [x] F100-3: M0 foundation execution started.
+- [x] F100-4: M0 governance artifacts completed (`PRG-01`, `PRG-02`, `PRG-03`, `ARC-01`, `ARC-02`, `TST-01`).
+- [ ] F100-5: M0 code scaffolding in progress (`ARC-03`, `ARC-04`).
 
 ## Risks
 - Architecture transition could create temporary delivery slowdown.
