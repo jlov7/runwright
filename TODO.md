@@ -210,3 +210,33 @@ Tracker: `docs/plans/2026-02-17-pre-release-gate-world-class-backlog.md`
 - [x] PRX-38 QA matrix + signoff criteria
 - [x] PRX-39 Closed beta + balancing gate
 - [x] PRX-40 Launch operations pack
+
+## P0 (Frontend 100/100 execution program)
+Tracker: `docs/plans/2026-02-19-frontend-100-score-execution-plan.md`
+
+Milestone tracking:
+- [ ] M0 Foundation/scoring/architecture baseline
+- [ ] M1 Frontend architecture modernization
+- [ ] M2 Design system + visual language
+- [ ] M3 IA + navigation + clarity
+- [ ] M4 Onboarding + first-success perfection
+- [ ] M5 Interaction quality + recovery UX
+- [ ] M6 Accessibility + mobile/responsive excellence
+- [ ] M7 Product surface completeness
+- [ ] M8 Performance + testing depth
+- [ ] M9 Final polish + panel rehearsal + release signoff
+
+Workstream completion:
+- [ ] WS-01 Visual design language & brand polish
+- [ ] WS-02 Information architecture & clarity
+- [ ] WS-03 Onboarding / first-success journey
+- [ ] WS-04 Interaction quality
+- [ ] WS-05 Error handling & recovery UX
+- [ ] WS-06 Accessibility fundamentals
+- [ ] WS-07 Mobile/responsive quality
+- [ ] WS-08 Frontend architecture maintainability
+- [ ] WS-09 Performance basics
+- [ ] WS-10 Frontend testing depth
+- [ ] WS-11 Product completeness of core UI surfaces
+- [ ] WS-12 World-class feel / cohesion
+- [ ] WS-13 Program governance + release gates

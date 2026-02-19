@@ -147,3 +147,32 @@ Execute the full expansion backlog required to move from release-ready v1 to a f
 - [x] M4: Complete (WRX-031..040 complete).
 - [x] M5: Complete.
 - [x] M6: Additional pre-release gate backlog (PRX-01..040) tracked in `docs/plans/2026-02-17-pre-release-gate-world-class-backlog.md` and mirrored in `TODO.md`.
+
+---
+
+# ExecPlan: Frontend 100/100 Excellence Program
+
+## Purpose / Big Picture
+Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard through an evidence-based multi-milestone program.
+
+## Approach
+- Use `docs/plans/2026-02-19-frontend-100-score-execution-plan.md` as the authoritative task backlog.
+- Execute milestone-by-milestone with strict quality gates and evidence artifacts.
+- Prioritize foundation (architecture, testing, IA) before polish-heavy workstreams.
+
+## Progress
+- [x] F100-0: Baseline criteria and target matrix established.
+- [x] F100-1: Exhaustive task plan (WS-01..WS-13) documented.
+- [x] F100-2: TODO mirror created for milestone/workstream tracking.
+- [ ] F100-3: M0 foundation execution started.
+
+## Risks
+- Architecture transition could create temporary delivery slowdown.
+- Large UI surface expansion can introduce scope creep without strict milestone exits.
+
+## Validation Gates
+- Per milestone: targeted tests + `pnpm verify`.
+- Evidence gates: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
+
+## Outcomes & Retrospective
+- In progress.
