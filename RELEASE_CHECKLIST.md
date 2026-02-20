@@ -47,6 +47,8 @@
 - [x] README includes required/optional environment variables.
 
 ## Latest Evidence (2026-02-20)
+- [x] Latest head `423ccff` has fresh compensating local evidence: `pnpm verify`, `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-20T22:38:19.340Z`), full `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-20T22:41:05.194Z`, `overall.ok: true`), `pnpm quality:evidence:verify` (`ok: true`), and `pnpm release:verify-local` (`release artifact verification: ok`).
+- [x] CI/CodeQL rerun on latest head (`423ccff`) confirms unchanged startup-failure mode: `CI` `22243878530` and `CodeQL` `22243878522` both failed with zero-step jobs (`steps: []`), so RG-007 exception remains active with fresh compensating local evidence.
 - [x] Web shell runtime script extracted into `apps/web/app.js` (HTML reduced from ~80KB to ~21KB), improving maintainability and reducing shell payload complexity.
 - [x] Frontend performance budget tightened post-refactor: HTML cap reduced to `<= 40KB` (`scripts/check_frontend_performance.ts`, `docs/design/frontend-performance-budgets.md`) with passing checks.
 - [x] Fresh post-refactor local evidence is green on latest head `193c47b`: `pnpm verify`, `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-20T22:31:56.860Z`), full `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-20T22:34:41.136Z`, `overall.ok: true`), `pnpm quality:evidence:verify` (`ok: true`), and `pnpm release:verify-local` (`release artifact verification: ok`).
