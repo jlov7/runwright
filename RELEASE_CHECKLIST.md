@@ -47,6 +47,9 @@
 - [x] README includes required/optional environment variables.
 
 ## Latest Evidence (2026-02-20)
+- [x] Web shell runtime script extracted into `apps/web/app.js` (HTML reduced from ~80KB to ~21KB), improving maintainability and reducing shell payload complexity.
+- [x] Frontend performance budget tightened post-refactor: HTML cap reduced to `<= 40KB` (`scripts/check_frontend_performance.ts`, `docs/design/frontend-performance-budgets.md`) with passing checks.
+- [x] Fresh post-refactor local evidence is green on `71ce448`: `pnpm verify`, `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-20T22:24:36.881Z`), full `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-20T22:27:22.015Z`, `overall.ok: true`), and `pnpm quality:evidence:verify` (`ok: true`).
 - [x] Latest head `0d29cc9` (UX simplification completion) has fresh compensating local evidence: `pnpm verify`, `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-20T22:10:42.841Z`), full `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-20T22:13:37.379Z`, `overall.ok: true`), `pnpm quality:evidence:verify` (`ok: true`), and `pnpm release:verify-local` (`release artifact verification: ok`).
 - [x] CI/CodeQL rerun on latest head (`0d29cc9`) confirms unchanged startup-failure mode: `CI` `22243078342` and `CodeQL` `22243078364` both failed with zero-step jobs (`steps: []`), so RG-007 exception remains active with fresh compensating local evidence.
 - [x] UX simplification pass completed with progressive disclosure and guided first-success flow: core-first nav (`dashboard/profile/onboarding/help`), advanced surface toggle, staged onboarding CTA sequencing, actionable empty/error fallback copy, and collapsed advanced command tools (`apps/web/index.html`, `apps/web/navigation.js`, `apps/web/styles.css`).

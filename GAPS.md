@@ -82,6 +82,12 @@
 
 ## P1
 
+### P1-019: Web shell runtime logic embedded inline in HTML reduced maintainability and obscured performance signals
+- Evidence: `apps/web/index.html` previously carried ~1.4k lines of inline module logic, making layout and behavior changes harder to review and driving unnecessary HTML payload growth.
+- Impacted journey: Frontend maintainability, release review speed, and shell performance budgeting clarity.
+- Fix strategy: Extract runtime module into `apps/web/app.js`, keep HTML as structural shell, and tighten HTML budget enforcement after split.
+- Status: Done
+
 ### P1-017: Runtime browser trust boundaries lacked explicit origin/CSRF/rate-limit/session enforcement
 - Evidence: Prior runtime mutation endpoints accepted browser-origin writes without explicit same-origin CSRF signaling, lacked endpoint-level request throttling controls, and did not enforce session/profile mismatch rejection when session headers were present.
 - Impacted journey: Web onboarding/core-loop mutation safety, anti-abuse controls, and auth boundary trust for profile-scoped actions.
