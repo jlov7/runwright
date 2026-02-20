@@ -120,6 +120,19 @@
   - Frontend quality follow-through rerun: `pnpm test:web-a11y`, `pnpm test:visual`, `pnpm perf:frontend:check`, `pnpm qa:frontend:matrix` (all passed).
 - Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
 
+### Q4 update (2026-02-20, evaluated release head refresh)
+- Evaluated `main` head `745ebbc` still fails pre-execution on both required workflows with zero-step jobs:
+  - `CI` run `22244385629` (`verify` matrix + `quality-scorecard` failed with `steps: []`; downstream jobs skipped with `steps: []`)
+  - `CodeQL` run `22244385634` (`Analyze (javascript-typescript)` failed with `steps: []`)
+- `gh run view` confirms no workflow steps executed before failure on both runs, matching the established billing/quota startup-failure profile.
+- Fresh compensating evidence on `745ebbc`:
+  - `pnpm verify` (390/390 tests passing, build success)
+  - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-20T22:57:04.444Z`, `overall.ok: true`)
+  - `pnpm ship:gate` (`reports/quality/ship-gate.summary.json`, generated `2026-02-20T22:59:49.004Z`, `overall.ok: true`)
+  - `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`, `ok: true`)
+  - `pnpm release:verify-local` (`release artifact verification: ok`)
+- Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
+
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
 - Why it matters: `pnpm install` currently fails with `ENOTFOUND registry.npmjs.org`, preventing `pnpm run doctor` and all local release gate evidence.
