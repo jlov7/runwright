@@ -292,7 +292,7 @@ describe("game runtime", () => {
         body: JSON.stringify({
           profileId: primaryProfileId,
           surface: "web-shell",
-          message: "fatal token=sk-abcdefghijklmnopqrstuvwxyz1234 exposed",
+          message: "fatal token=super-secret-session-token exposed",
           stack: "api_key=super-secret-value"
         })
       });
@@ -304,7 +304,7 @@ describe("game runtime", () => {
       );
       expect(recent.status).toBe(200);
       expect(recent.payload.crashes[0]?.redacted).toBe(true);
-      expect(String(recent.payload.crashes[0]?.message)).not.toContain("sk-");
+      expect(String(recent.payload.crashes[0]?.message)).not.toContain("super-secret-session-token");
       expect(String(recent.payload.crashes[0]?.stack ?? "")).toContain("[redacted]");
 
       const logout = await jsonRequest<{ revoked: boolean }>(`${runtime.baseUrl}/v1/auth/logout`, {
