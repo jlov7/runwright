@@ -1,5 +1,20 @@
 # Five-star TODO (Post-v1)
 
+## P0 (Active UX simplification world-class pass: 2026-02-20)
+Tracker: `docs/plans/2026-02-20-ux-simplification-world-class-pass.md`
+
+- [x] UXP-00 Capture baseline evidence and define phase tracker.
+- [ ] UXP-01 Core-first nav model (`core` + `advanced`) and advanced toggle.
+- [ ] UXP-02 Progressive disclosure defaults (first-run shows only core surfaces).
+- [ ] UXP-03 Unlock hints/lock reasons for blocked advanced surfaces.
+- [ ] UXP-04 Guided first-success strip with explicit current step.
+- [ ] UXP-05 Onboarding action sequencing and rationale copy hardening.
+- [ ] UXP-06 Empty-state/error/help copy simplification pass.
+- [ ] UXP-07 Layout density reduction and hierarchy polish.
+- [ ] UXP-08 Accessibility/focus/keyboard regression hardening for new flow.
+- [ ] UXP-09 Frontend targeted suites + full `pnpm verify`.
+- [ ] UXP-10 `pnpm run doctor` + release evidence doc refresh.
+
 ## Launch Sweep TODO (2026-02-21)
 - [x] Create launch deployment plan document.
 - [x] Run `pnpm verify`.

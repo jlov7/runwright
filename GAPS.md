@@ -2,6 +2,18 @@
 
 ## P0
 
+### P0-019: First-run web shell still presents excessive cognitive load and weak progressive disclosure
+- Evidence: baseline shell currently renders 12 top-level nav surfaces (`dashboard/profile/onboarding/challenge/campaign/coop/ranked/creator/moderation/liveops/analytics/help`), 40 buttons, and 6 forms in first render (`apps/web/index.html`, captured 2026-02-20); user feedback reports "too much stuff going on" and confusing layout/journeys.
+- Impacted journey: Signup/onboarding/first success moment and early trust for non-technical users.
+- Fix strategy: Implement a core-first IA model with advanced surface disclosure, guided journey strip, and lock/unlock hints while preserving power-user command bar access.
+- Status: In progress
+
+### P0-020: Onboarding guidance is functionally complete but visually and semantically fragmented
+- Evidence: onboarding actions, diagnostics, coachmarks, and success criteria are split across multiple areas without a single explicit “current step + why” strip in the shell (`apps/web/index.html`); first-run users must infer sequence from multiple widgets.
+- Impacted journey: First 10-minute onboarding and first-success conversion.
+- Fix strategy: Introduce explicit staged journey guidance with one recommended action at a time and stronger copy for step rationale/recovery.
+- Status: In progress
+
 ### P0-011: Pre-release "game client shell" coverage was still CLI-simulated, not a launchable web runtime
 - Evidence: `runwright gameplay client --json` previously reported shell readiness without checking real web/runtime assets; no dedicated runtime server or web shell tests existed.
 - Impacted journey: App-store style player onboarding (profile -> tutorial -> first success), in-app help/tooltips, and web/UX failure-state recovery.

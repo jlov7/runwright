@@ -224,3 +224,29 @@ Perform an exhaustive pre-launch validation and deployment-readiness sweep so to
 - `pnpm ship:gate -- --skip mutation --skip fuzz-differential`
 - `pnpm quality:evidence:verify`
 - `pnpm release:verify-local`
+
+---
+
+# ExecPlan: UX Simplification World-class Pass (2026-02-20)
+
+## Purpose / Big Picture
+Reduce front-end complexity and cognitive load so first-run users can confidently reach first success, while preserving fast paths for returning/power users.
+
+## Approach
+- Use `docs/plans/2026-02-20-ux-simplification-world-class-pass.md` as the authoritative implementation tracker.
+- Execute phase-by-phase with small, low-risk increments (<=5 files per increment).
+- Keep runtime API contracts unchanged; focus on UX orchestration, copy, and disclosure behavior.
+
+## Progress
+- [x] UXP-0: Baseline evidence captured (nav/action density + fresh doctor artifact).
+- [ ] UXP-1: Phase 1 complete (core-first navigation + advanced disclosure).
+- [ ] UXP-2: Phase 2 complete (guided first-success journey clarity).
+- [ ] UXP-3: Phase 3 complete (error/empty/help copy and recovery clarity).
+- [ ] UXP-4: Phase 4 complete (layout density and visual hierarchy polish).
+- [ ] UXP-5: Phase 5 complete (accessibility and keyboard refinement).
+- [ ] UXP-6: Phase 6 complete (full quality gates + evidence refresh).
+
+## Validation Gates
+- Phase gate: targeted frontend tests for touched behaviors.
+- Milestone gate: `pnpm verify`.
+- Evidence gate: `pnpm run doctor`.
