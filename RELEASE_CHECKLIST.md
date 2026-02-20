@@ -47,6 +47,8 @@
 - [x] README includes required/optional environment variables.
 
 ## Latest Evidence (2026-02-20)
+- [x] Latest head `0d29cc9` (UX simplification completion) has fresh compensating local evidence: `pnpm verify`, `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-20T22:10:42.841Z`), full `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-20T22:13:37.379Z`, `overall.ok: true`), `pnpm quality:evidence:verify` (`ok: true`), and `pnpm release:verify-local` (`release artifact verification: ok`).
+- [x] CI/CodeQL rerun on latest head (`0d29cc9`) confirms unchanged startup-failure mode: `CI` `22243078342` and `CodeQL` `22243078364` both failed with zero-step jobs (`steps: []`), so RG-007 exception remains active with fresh compensating local evidence.
 - [x] UX simplification pass completed with progressive disclosure and guided first-success flow: core-first nav (`dashboard/profile/onboarding/help`), advanced surface toggle, staged onboarding CTA sequencing, actionable empty/error fallback copy, and collapsed advanced command tools (`apps/web/index.html`, `apps/web/navigation.js`, `apps/web/styles.css`).
 - [x] UX pass regression evidence is green: `pnpm vitest run tests/frontend-navigation-disclosure.test.ts tests/frontend-accessibility-responsive.test.ts tests/frontend-visual-regression.test.ts tests/game-runtime-shell.test.ts`.
 - [x] Full quality gate reruns on latest UX pass are green: `pnpm verify`, `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-20T22:00:49.283Z`), `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-20T22:05:23.330Z`, `overall.ok: true`), and `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`, `ok: true`).

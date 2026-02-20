@@ -67,6 +67,19 @@
 - `gh run view` confirms the failure mode remains startup-level (no workflow steps executed), matching the existing RG-007 incident exception profile.
 - Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
 
+### Q4 update (2026-02-20, UX simplification completion head)
+- Latest `main` head `0d29cc9` still fails pre-execution on both required workflows with zero-step jobs:
+  - `CI` run `22243078342` (`verify` matrix + `quality-scorecard` failed with `steps: []`; downstream jobs skipped with `steps: []`)
+  - `CodeQL` run `22243078364` (`Analyze (javascript-typescript)` failed with `steps: []`)
+- `gh run view` confirms no workflow steps executed before failure on both runs, consistent with the existing GitHub Actions billing/quota startup-failure profile.
+- Fresh compensating evidence on `0d29cc9`:
+  - `pnpm verify` (390/390 tests passing, build success)
+  - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-20T22:10:42.841Z`, `overall.ok: true`)
+  - `pnpm ship:gate` (`reports/quality/ship-gate.summary.json`, generated `2026-02-20T22:13:37.379Z`, `overall.ok: true`)
+  - `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`, `ok: true`)
+  - `pnpm release:verify-local` (`release artifact verification: ok`)
+- Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
+
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
 - Why it matters: `pnpm install` currently fails with `ENOTFOUND registry.npmjs.org`, preventing `pnpm run doctor` and all local release gate evidence.
