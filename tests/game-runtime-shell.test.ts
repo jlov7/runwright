@@ -21,6 +21,7 @@ afterEach(() => {
 describe("game runtime web shell", () => {
   it("includes onboarding/help markup and accessibility affordances", () => {
     const html = readFileSync(resolve(process.cwd(), "apps", "web", "index.html"), "utf8");
+    expect(html).toContain('src="/app.js"');
     expect(html).toContain('id="profile-form"');
     expect(html).toContain('id="onboarding-steps"');
     expect(html).toContain('id="global-nav"');
@@ -99,6 +100,10 @@ describe("game runtime web shell", () => {
       const surfaceHelpers = await fetch(`${runtime.baseUrl}/surfaces.js`);
       expect(surfaceHelpers.status).toBe(200);
       expect(await surfaceHelpers.text()).toContain("formatSeasonSummary");
+
+      const shellApp = await fetch(`${runtime.baseUrl}/app.js`);
+      expect(shellApp.status).toBe(200);
+      expect(await shellApp.text()).toContain("setActiveSurface");
     } finally {
       await runtime.close();
     }

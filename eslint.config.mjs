@@ -27,6 +27,12 @@ export default tseslint.config(
     }
   },
   {
+    files: ["apps/web/*.js"],
+    rules: {
+      "no-undef": "off"
+    }
+  },
+  {
     files: ["apps/web/src/shared/**/*.ts"],
     rules: {
       "no-restricted-imports": [
