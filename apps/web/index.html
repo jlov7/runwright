@@ -155,6 +155,13 @@
           <button type="button" id="surface-primary-action">Create profile</button>
           <button type="button" id="undo-last-action" hidden>Undo Last Action</button>
         </div>
+        <div id="journey-strip" class="journey-strip rw-stack" aria-label="Guided first-success journey">
+          <p class="muted">Guided path</p>
+          <ol id="journey-strip-steps" class="journey-strip-steps"></ol>
+          <p id="journey-why" class="muted">
+            Create a profile first so onboarding steps can be saved and resumed safely.
+          </p>
+        </div>
         <ul id="surface-success-criteria" class="criteria-list rw-stack" aria-label="Success criteria"></ul>
       </section>
 
@@ -456,6 +463,8 @@
       const surfaceStatus = document.querySelector("#surface-status");
       const surfacePrimaryAction = document.querySelector("#surface-primary-action");
       const surfaceCriteria = document.querySelector("#surface-success-criteria");
+      const journeyStripSteps = document.querySelector("#journey-strip-steps");
+      const journeyWhy = document.querySelector("#journey-why");
       const surfaceSearch = document.querySelector("#surface-search");
       const surfaceSearchFeedback = document.querySelector("#surface-search-feedback");
       const surfacePanels = [...document.querySelectorAll("[data-surface-panel]")];
@@ -494,6 +503,10 @@
       const mobileSurfaceSelect = document.querySelector("#mobile-surface-select");
       const toggleAdvancedNavButton = document.querySelector("#toggle-advanced-nav");
       const navModeHint = document.querySelector("#nav-mode-hint");
+      const runTutorialButton = document.querySelector("#run-tutorial");
+      const saveProgressButton = document.querySelector("#save-progress");
+      const publishLevelButton = document.querySelector("#publish-level");
+      const submitRankedButton = document.querySelector("#submit-ranked");
 
       let retryTimer = null;
       const responseCache = new Map();
@@ -542,6 +555,118 @@
         }
       }
 
+      function guidedJourneySteps() {
+        return [
+          {
+            id: "profile",
+            label: "Create profile",
+            complete: profileReady(),
+            actionId: "create-profile",
+            focusSurface: "onboarding",
+            why: "Creates your identity and unlocks save/auth boundaries."
+          },
+          {
+            id: "tutorial",
+            label: "Record tutorial",
+            complete: state.progress.tutorial,
+            actionId: "run-tutorial",
+            focusSurface: "onboarding",
+            why: "Confirms your first core action and unlocks save progression."
+          },
+          {
+            id: "save",
+            label: "Save progress",
+            complete: state.progress.saved,
+            actionId: "save-progress",
+            focusSurface: "onboarding",
+            why: "Proves your progress persists and can recover after interruptions."
+          },
+          {
+            id: "publish",
+            label: "Publish first level",
+            complete: state.progress.published,
+            actionId: "publish-level",
+            focusSurface: "onboarding",
+            why: "Marks your first success and unlocks deeper gameplay loops."
+          },
+          {
+            id: "campaign",
+            label: "Start campaign chapter",
+            complete: state.progress.campaignStarted,
+            actionId: "start-campaign",
+            focusSurface: "campaign",
+            why: "Transitions from onboarding into the repeatable core loop."
+          }
+        ];
+      }
+
+      function nextGuidedStep() {
+        return guidedJourneySteps().find((step) => !step.complete) || null;
+      }
+
+      function renderJourneyStrip() {
+        const steps = guidedJourneySteps();
+        journeyStripSteps.innerHTML = "";
+        const currentStep = nextGuidedStep();
+        for (const step of steps) {
+          const li = document.createElement("li");
+          li.className = "journey-step";
+          if (step.complete) li.classList.add("is-complete");
+          if (currentStep && currentStep.id === step.id) li.classList.add("is-current");
+          const stateLabel = step.complete ? "Done" : currentStep && currentStep.id === step.id ? "Now" : "Next";
+          li.textContent = `${stateLabel}: ${step.label}`;
+          journeyStripSteps.appendChild(li);
+        }
+        journeyWhy.textContent = currentStep
+          ? `Why now: ${currentStep.why}`
+          : "Guided path complete. Explore advanced surfaces or continue campaign progression.";
+      }
+
+      function setActionButtonAvailability(button, enabled, hint) {
+        button.disabled = !enabled;
+        if (enabled) button.removeAttribute("aria-disabled");
+        else button.setAttribute("aria-disabled", "true");
+        if (hint) button.title = hint;
+      }
+
+      function syncOnboardingActionSequencing() {
+        const profile = profileReady();
+        const tutorialReady = profile;
+        const saveReady = profile && state.progress.tutorial;
+        const publishReady = profile && state.progress.tutorial && state.progress.saved;
+        const rankedReady = onboardingReady();
+
+        setActionButtonAvailability(
+          runTutorialButton,
+          tutorialReady,
+          tutorialReady ? runTutorialButton.dataset.help : "Create profile first to unlock tutorial."
+        );
+        setActionButtonAvailability(
+          saveProgressButton,
+          saveReady,
+          saveReady ? saveProgressButton.dataset.help : "Complete tutorial before saving progress."
+        );
+        setActionButtonAvailability(
+          publishLevelButton,
+          publishReady,
+          publishReady ? publishLevelButton.dataset.help : "Save progress before publishing a level."
+        );
+        setActionButtonAvailability(
+          submitRankedButton,
+          rankedReady,
+          rankedReady ? submitRankedButton.dataset.help : "Finish onboarding first to unlock ranked."
+        );
+
+        for (const button of [runTutorialButton, saveProgressButton, publishLevelButton, submitRankedButton]) {
+          button.classList.remove("is-recommended");
+        }
+        const currentStep = nextGuidedStep();
+        if (!currentStep) return;
+        if (currentStep.actionId === "run-tutorial") runTutorialButton.classList.add("is-recommended");
+        if (currentStep.actionId === "save-progress") saveProgressButton.classList.add("is-recommended");
+        if (currentStep.actionId === "publish-level") publishLevelButton.classList.add("is-recommended");
+      }
+
       function statusTextFor(surface) {
         if (surface === "dashboard") {
           return onboardingReady() ? "Status: Ready" : "Status: Needs action";
@@ -583,6 +708,9 @@
         if (actionId === "create-profile") return "Create profile";
         if (actionId === "open-profile") return "Open profile settings";
         if (actionId === "run-onboarding") return "Open onboarding controls";
+        if (actionId === "run-tutorial") return "Run tutorial hint";
+        if (actionId === "save-progress") return "Save progress";
+        if (actionId === "publish-level") return "Publish first level";
         if (actionId === "generate-challenge") return "Generate challenge";
         if (actionId === "start-campaign") return "Start campaign chapter";
         if (actionId === "open-coop") return "Open co-op invites";
@@ -687,10 +815,20 @@
         surfaceTitle.textContent = label;
         surfaceIntent.textContent = meta.intent;
         surfaceStatus.textContent = statusTextFor(surface);
-        surfacePrimaryAction.textContent = primaryActionLabel(meta.primaryAction);
-        surfacePrimaryAction.dataset.actionId = meta.primaryAction;
+        const guidedStep = nextGuidedStep();
+        if (guidedStep && (surface === "dashboard" || surface === "onboarding")) {
+          const steps = guidedJourneySteps();
+          const position = steps.findIndex((step) => step.id === guidedStep.id) + 1;
+          surfaceStatus.textContent = `Status: Guided step ${position}/${steps.length}`;
+          surfacePrimaryAction.textContent = primaryActionLabel(guidedStep.actionId);
+          surfacePrimaryAction.dataset.actionId = guidedStep.actionId;
+        } else {
+          surfacePrimaryAction.textContent = primaryActionLabel(meta.primaryAction);
+          surfacePrimaryAction.dataset.actionId = meta.primaryAction;
+        }
 
         renderCriteria();
+        renderJourneyStrip();
         syncSurfacePanels(surface);
       }
 
@@ -748,6 +886,7 @@
           ? "Campaign chapter active: Chapter 1 - Stabilize the relay line."
           : "Campaign has not started yet.";
         renderOnboardingGuidance();
+        syncOnboardingActionSequencing();
         renderUndoAvailability();
         renderRetryQueue();
         renderSocialInvites();
@@ -1194,6 +1333,21 @@
         }
         if (actionId === "run-onboarding") {
           setActiveSurface("onboarding");
+          return;
+        }
+        if (actionId === "run-tutorial") {
+          setActiveSurface("onboarding", "Tutorial Hint");
+          runTutorialButton.click();
+          return;
+        }
+        if (actionId === "save-progress") {
+          setActiveSurface("onboarding", "Save Progress");
+          saveProgressButton.click();
+          return;
+        }
+        if (actionId === "publish-level") {
+          setActiveSurface("onboarding", "Publish Level");
+          publishLevelButton.click();
           return;
         }
         if (actionId === "generate-challenge") {

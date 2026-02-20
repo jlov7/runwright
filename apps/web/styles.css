@@ -404,6 +404,34 @@ h4 {
   font-size: var(--font-size-200);
 }
 
+.journey-strip {
+  border: 1px solid color-mix(in srgb, var(--color-state-success) 40%, var(--color-border-muted));
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--color-state-success) 10%, transparent);
+}
+
+.journey-strip-steps {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.journey-step {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-200);
+}
+
+.journey-step.is-current {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.journey-step.is-complete {
+  color: var(--color-state-success);
+}
+
 .surface-panel {
   border: 1px solid color-mix(in srgb, var(--color-border-muted) 85%, transparent);
   border-radius: var(--radius-md);
@@ -498,6 +526,13 @@ button:hover {
   filter: brightness(1.06);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.45);
+  opacity: 0.62;
+  transform: none;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
@@ -510,6 +545,10 @@ a:focus-visible,
 
 .actions {
   margin-top: var(--space-2);
+}
+
+.actions button.is-recommended {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-state-success) 45%, transparent);
 }
 
 .muted {

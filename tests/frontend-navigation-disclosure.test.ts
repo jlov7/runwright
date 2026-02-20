@@ -57,5 +57,7 @@ describe("frontend navigation disclosure", () => {
     const html = readFileSync(resolve(process.cwd(), "apps", "web", "index.html"), "utf8");
     expect(html).toContain('id="toggle-advanced-nav"');
     expect(html).toContain('id="nav-mode-hint"');
+    expect(html).toContain('id="journey-strip-steps"');
+    expect(html).toContain('id="journey-why"');
   });
 });
