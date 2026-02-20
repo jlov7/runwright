@@ -19,8 +19,8 @@
 - [x] Run `pnpm test:mutation`.
 - [x] Run `pnpm ship:soak`.
 - [x] Run live runtime smoke checks (`/v1/health`, `/v1/help`, `/v1/release/readiness`).
-- [ ] Refresh CI/CodeQL incident evidence for latest head.
-- [ ] Update release docs with final launch evidence and decision.
+- [x] Refresh CI/CodeQL incident evidence for latest head.
+- [x] Update release docs with final launch evidence and decision.
 
 ## P0 (Active world-class release expansion backlog)
 - [x] Execute full 40-item program from `docs/plans/2026-02-17-world-class-release-expansion-program.md`

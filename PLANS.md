@@ -214,8 +214,8 @@ Perform an exhaustive pre-launch validation and deployment-readiness sweep so to
 - [x] L0: Deployment plan created (`docs/release/launch-deployment-plan-2026-02-21.md`).
 - [x] L1: Exhaustive automated matrix executed (verify/doctor/ship/evidence/perf/security/release).
 - [x] L2: Live runtime smoke and journey checks completed.
-- [ ] L3: CI status + RG-007 incident evidence refreshed.
-- [ ] L4: Final release report and go/no-go decision published.
+- [x] L3: CI status + RG-007 incident evidence refreshed.
+- [x] L4: Final release report and go/no-go decision published.
 
 ## Validation Gates
 - `pnpm verify`

@@ -53,6 +53,13 @@
 - `gh run view` confirms no workflow steps executed before failure for both runs, consistent with the existing RG-007 platform-incident exception profile.
 - Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
 
+### Q4 update (2026-02-20)
+- Latest `main` head `a57fff9` still fails pre-execution on both required workflows with zero-step jobs:
+  - `CI` run `22240155561` (all failing jobs reported `stepsCount: 0`; downstream jobs skipped with `stepsCount: 0`)
+  - `CodeQL` run `22240155541` (`Analyze` failed with `stepsCount: 0`)
+- `gh run view` confirms the failure mode remains startup-level (no workflow steps executed), matching the existing RG-007 incident exception profile.
+- Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
+
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
 - Why it matters: `pnpm install` currently fails with `ENOTFOUND registry.npmjs.org`, preventing `pnpm run doctor` and all local release gate evidence.
