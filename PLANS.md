@@ -239,7 +239,7 @@ Reduce front-end complexity and cognitive load so first-run users can confidentl
 
 ## Progress
 - [x] UXP-0: Baseline evidence captured (nav/action density + fresh doctor artifact).
-- [ ] UXP-1: Phase 1 complete (core-first navigation + advanced disclosure).
+- [x] UXP-1: Phase 1 complete (core-first navigation + advanced disclosure).
 - [ ] UXP-2: Phase 2 complete (guided first-success journey clarity).
 - [ ] UXP-3: Phase 3 complete (error/empty/help copy and recovery clarity).
 - [ ] UXP-4: Phase 4 complete (layout density and visual hierarchy polish).

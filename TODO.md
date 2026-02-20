@@ -4,9 +4,9 @@
 Tracker: `docs/plans/2026-02-20-ux-simplification-world-class-pass.md`
 
 - [x] UXP-00 Capture baseline evidence and define phase tracker.
-- [ ] UXP-01 Core-first nav model (`core` + `advanced`) and advanced toggle.
-- [ ] UXP-02 Progressive disclosure defaults (first-run shows only core surfaces).
-- [ ] UXP-03 Unlock hints/lock reasons for blocked advanced surfaces.
+- [x] UXP-01 Core-first nav model (`core` + `advanced`) and advanced toggle.
+- [x] UXP-02 Progressive disclosure defaults (first-run shows only core surfaces).
+- [x] UXP-03 Unlock hints/lock reasons for blocked advanced surfaces.
 - [ ] UXP-04 Guided first-success strip with explicit current step.
 - [ ] UXP-05 Onboarding action sequencing and rationale copy hardening.
 - [ ] UXP-06 Empty-state/error/help copy simplification pass.

@@ -26,14 +26,14 @@
 ## Phase Plan
 
 ### Phase 1: IA And Navigation Simplification (P0)
-- [ ] Add a single source-of-truth navigation model (`core` vs `advanced` surfaces).
-- [ ] Show only `dashboard/profile/onboarding/help` in default nav.
-- [ ] Add explicit advanced toggle with clear state (`Show advanced surfaces` / `Hide advanced surfaces`).
-- [ ] Auto-open advanced surfaces after first-success completion.
-- [ ] Keep command bar power path intact for returning users.
-- [ ] Add lock reasons and unlock hints for blocked advanced surfaces.
-- [ ] Update mobile nav options to follow the same disclosure rules.
-- [ ] Add tests for nav section composition and lock-reason logic.
+- [x] Add a single source-of-truth navigation model (`core` vs `advanced` surfaces).
+- [x] Show only `dashboard/profile/onboarding/help` in default nav.
+- [x] Add explicit advanced toggle with clear state (`Show advanced surfaces` / `Hide advanced surfaces`).
+- [x] Auto-open advanced surfaces after first-success completion.
+- [x] Keep command bar power path intact for returning users.
+- [x] Add lock reasons and unlock hints for blocked advanced surfaces.
+- [x] Update mobile nav options to follow the same disclosure rules.
+- [x] Add tests for nav section composition and lock-reason logic.
 
 ### Phase 2: Guided First-success Journey (P0)
 - [ ] Add visible guided journey strip (step status + current next step).
