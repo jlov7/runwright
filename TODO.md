@@ -7,13 +7,13 @@ Tracker: `docs/plans/2026-02-20-ux-simplification-world-class-pass.md`
 - [x] UXP-01 Core-first nav model (`core` + `advanced`) and advanced toggle.
 - [x] UXP-02 Progressive disclosure defaults (first-run shows only core surfaces).
 - [x] UXP-03 Unlock hints/lock reasons for blocked advanced surfaces.
-- [ ] UXP-04 Guided first-success strip with explicit current step.
-- [ ] UXP-05 Onboarding action sequencing and rationale copy hardening.
-- [ ] UXP-06 Empty-state/error/help copy simplification pass.
-- [ ] UXP-07 Layout density reduction and hierarchy polish.
-- [ ] UXP-08 Accessibility/focus/keyboard regression hardening for new flow.
-- [ ] UXP-09 Frontend targeted suites + full `pnpm verify`.
-- [ ] UXP-10 `pnpm run doctor` + release evidence doc refresh.
+- [x] UXP-04 Guided first-success strip with explicit current step.
+- [x] UXP-05 Onboarding action sequencing and rationale copy hardening.
+- [x] UXP-06 Empty-state/error/help copy simplification pass.
+- [x] UXP-07 Layout density reduction and hierarchy polish.
+- [x] UXP-08 Accessibility/focus/keyboard regression hardening for new flow.
+- [x] UXP-09 Frontend targeted suites + full `pnpm verify`.
+- [x] UXP-10 `pnpm run doctor` + release evidence doc refresh.
 
 ## Launch Sweep TODO (2026-02-21)
 - [x] Create launch deployment plan document.

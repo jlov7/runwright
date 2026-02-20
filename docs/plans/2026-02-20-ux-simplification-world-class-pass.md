@@ -36,39 +36,39 @@
 - [x] Add tests for nav section composition and lock-reason logic.
 
 ### Phase 2: Guided First-success Journey (P0)
-- [ ] Add visible guided journey strip (step status + current next step).
-- [ ] Convert onboarding controls into a staged path with one recommended CTA at a time.
-- [ ] Add explicit “Why this step matters” copy per onboarding action.
-- [ ] Ensure failure copy includes next action + fallback path.
-- [ ] Add tests for first-success progression copy and state transitions.
+- [x] Add visible guided journey strip (step status + current next step).
+- [x] Convert onboarding controls into a staged path with one recommended CTA at a time.
+- [x] Add explicit “Why this step matters” copy per onboarding action.
+- [x] Ensure failure copy includes next action + fallback path.
+- [x] Add tests for first-success progression copy and state transitions.
 
 ### Phase 3: Error, Empty State, And Help Clarity (P0)
-- [ ] Standardize empty-state structure: reason, action, fallback.
-- [ ] Tighten error copy taxonomy for network, validation, auth, and transient runtime failures.
-- [ ] Add contextual tooltips for high-risk actions only.
-- [ ] Improve recovery playbooks with concrete “do this now” commands.
-- [ ] Add tests for updated error/empty/help copy guarantees.
+- [x] Standardize empty-state structure: reason, action, fallback.
+- [x] Tighten error copy taxonomy for network, validation, auth, and transient runtime failures.
+- [x] Add contextual tooltips for high-risk actions only.
+- [x] Improve recovery playbooks with concrete “do this now” commands.
+- [x] Add tests for updated error/empty/help copy guarantees.
 
 ### Phase 4: Surface Density And Layout Polish (P1)
-- [ ] Reduce above-the-fold competing panels for first-run state.
-- [ ] Simplify header copy and de-emphasize low-priority controls.
-- [ ] Improve spacing hierarchy and typography contrast for scanability.
-- [ ] Reduce decorative visual noise in constrained/mobile layouts.
-- [ ] Update visual baseline hashes after intentional changes.
+- [x] Reduce above-the-fold competing panels for first-run state.
+- [x] Simplify header copy and de-emphasize low-priority controls.
+- [x] Improve spacing hierarchy and typography contrast for scanability.
+- [x] Reduce decorative visual noise in constrained/mobile layouts.
+- [x] Update visual baseline hashes after intentional changes.
 
 ### Phase 5: Accessibility And Keyboard Refinement (P1)
-- [ ] Preserve skip links/landmarks while changing IA.
-- [ ] Ensure keyboard-only access for advanced toggle + guided CTAs.
-- [ ] Ensure aria-live output avoids repetitive noisy announcements.
-- [ ] Validate focus return behavior after surface transitions.
-- [ ] Add/adjust accessibility guard tests.
+- [x] Preserve skip links/landmarks while changing IA.
+- [x] Ensure keyboard-only access for advanced toggle + guided CTAs.
+- [x] Ensure aria-live output avoids repetitive noisy announcements.
+- [x] Validate focus return behavior after surface transitions.
+- [x] Add/adjust accessibility guard tests.
 
 ### Phase 6: Verification And Release Evidence (P0 Exit)
-- [ ] Run targeted frontend test suites.
-- [ ] Run `pnpm verify`.
-- [ ] Run `pnpm run doctor`.
-- [ ] Refresh `GAPS.md`, `TODO.md`, and `RELEASE_CHECKLIST.md` evidence.
-- [ ] Record post-pass findings and remaining non-blocking enhancements in `QUESTIONS.md` if any.
+- [x] Run targeted frontend test suites.
+- [x] Run `pnpm verify`.
+- [x] Run `pnpm run doctor`.
+- [x] Refresh `GAPS.md`, `TODO.md`, and `RELEASE_CHECKLIST.md` evidence.
+- [x] Record post-pass findings and remaining non-blocking enhancements in `QUESTIONS.md` if any.
 
 ## Exit Criteria
 - First-run nav exposes only core path surfaces by default.

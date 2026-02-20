@@ -28,6 +28,7 @@
 - Onboarding funnels and state-machine evidence: `docs/design/onboarding-funnels.md`, `apps/web/src/features/onboarding/state-machine.ts`, `tests/frontend-onboarding-machine.test.ts`
 - Interaction/error model evidence: `apps/web/src/shared/interaction-state.ts`, `apps/web/src/shared/error-taxonomy.ts`, `tests/frontend-interaction-model.test.ts`, `tests/frontend-error-taxonomy.test.ts`
 - Runtime/web shell baseline: `apps/web/index.html`, `apps/web/styles.css`
+- UX simplification pass tracker: `docs/plans/2026-02-20-ux-simplification-world-class-pass.md`, `tests/frontend-navigation-disclosure.test.ts`
 - Frontend contract and journey E2E coverage: `tests/frontend-runtime-contract.test.ts`, `tests/frontend-journey-e2e.test.ts`, `tests/game-runtime-failure-injection.test.ts`
 - Accessibility/mobile guardrails: `tests/frontend-accessibility-responsive.test.ts`, `docs/audits/frontend-accessibility-baseline-audit.md`, `docs/design/responsive-breakpoint-strategy.md`
 - Visual/perf guardrails: `tests/frontend-visual-regression.test.ts`, `docs/testing/frontend-visual-regression.md`, `scripts/check_frontend_performance.ts`, `docs/design/frontend-performance-budgets.md`
@@ -41,4 +42,4 @@ A criterion moves to 100 only when:
 4. No high-severity UX findings remain open.
 
 ## Last updated
-2026-02-19 (post M5-M9 closure)
+2026-02-20 (post UX simplification world-class pass)
