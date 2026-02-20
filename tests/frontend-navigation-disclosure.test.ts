@@ -38,6 +38,7 @@ describe("frontend navigation disclosure", () => {
     });
     expect(profileLock?.message).toContain("Create a profile");
     expect(profileLock?.actionTarget).toBe("onboarding");
+    expect(profileLock?.fallback).toContain("unlock this surface");
 
     const onboardingLock = getSurfaceLockReason("ranked", {
       profileReady: true,
@@ -45,6 +46,7 @@ describe("frontend navigation disclosure", () => {
     });
     expect(onboardingLock?.message).toContain("Finish onboarding");
     expect(onboardingLock?.actionLabel).toContain("onboarding");
+    expect(onboardingLock?.fallback).toContain("guided path");
   });
 
   it("normalizes aliases used by command-bar navigation", () => {
@@ -59,5 +61,6 @@ describe("frontend navigation disclosure", () => {
     expect(html).toContain('id="nav-mode-hint"');
     expect(html).toContain('id="journey-strip-steps"');
     expect(html).toContain('id="journey-why"');
+    expect(html).toContain('id="surface-empty-fallback"');
   });
 });

@@ -142,14 +142,16 @@ export function getSurfaceLockReason(surface, context) {
     return {
       message: "Create a profile before using this surface.",
       actionLabel: "Create profile",
-      actionTarget: "onboarding"
+      actionTarget: "onboarding",
+      fallback: "Open onboarding and create a profile to unlock this surface."
     };
   }
   if (requirement === "onboarding" && !context.onboardingReady) {
     return {
       message: "Finish onboarding first: tutorial, save progress, and publish a level.",
       actionLabel: "Open onboarding controls",
-      actionTarget: "onboarding"
+      actionTarget: "onboarding",
+      fallback: "Use the guided path: record tutorial, save progress, then publish your first level."
     };
   }
   return null;

@@ -41,5 +41,6 @@ export function getSurfaceLockReason(
       message: string;
       actionLabel: string;
       actionTarget: string;
+      fallback: string;
     }
   | null;

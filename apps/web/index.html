@@ -178,7 +178,7 @@
         <div id="surface-empty-state" class="empty-state" hidden>
           <p id="surface-empty-copy"></p>
           <button type="button" id="surface-empty-action">Create profile</button>
-          <p class="muted">Need help? Open docs/help/README.md from the help panel.</p>
+          <p id="surface-empty-fallback" class="muted">Need help? Open docs/help/README.md from the help panel.</p>
         </div>
 
         <article id="dashboard-surface" data-surface-panel="dashboard" class="surface-panel rw-stack">
@@ -472,6 +472,7 @@
       const emptyState = document.querySelector("#surface-empty-state");
       const emptyCopy = document.querySelector("#surface-empty-copy");
       const emptyAction = document.querySelector("#surface-empty-action");
+      const emptyFallback = document.querySelector("#surface-empty-fallback");
       const dashboardSummary = document.querySelector("#dashboard-summary");
       const profileSummary = document.querySelector("#profile-summary");
       const profileSessionStatus = document.querySelector("#profile-session-status");
@@ -767,6 +768,7 @@
         let emptyMessage = null;
         let actionLabel = "Create profile";
         let actionTarget = "onboarding";
+        let fallbackCopy = "Need help? Open docs/help/README.md from the help panel.";
 
         if (surface === "dashboard" && !profileReady()) {
           emptyMessage = "Dashboard is empty because no profile exists yet.";
@@ -784,6 +786,7 @@
           emptyMessage = lockReason.message;
           actionLabel = lockReason.actionLabel;
           actionTarget = lockReason.actionTarget;
+          fallbackCopy = lockReason.fallback;
         }
 
         if (emptyMessage) {
@@ -791,6 +794,7 @@
           emptyCopy.textContent = emptyMessage;
           emptyAction.textContent = actionLabel;
           emptyAction.dataset.targetSurface = actionTarget;
+          emptyFallback.textContent = fallbackCopy;
         } else {
           emptyState.hidden = true;
         }
@@ -1115,12 +1119,32 @@
         }
       }
 
+      function formatActionableError(message) {
+        const value = String(message || "Unexpected runtime failure");
+        const lower = value.toLowerCase();
+        if (lower.includes("network-offline")) {
+          return "You are offline. Next: keep working and the retry queue will flush after reconnect.";
+        }
+        if (lower.includes("network-transient-failure")) {
+          return "Temporary network issue. Next: wait for automatic retry or press Retry Now.";
+        }
+        if (lower.includes("digest")) {
+          return "Ranked submission rejected by anti-tamper checks. Next: resubmit with a trusted payload.";
+        }
+        if (lower.includes("profile")) {
+          return "Profile context is missing or invalid. Next: create/select a profile and retry.";
+        }
+        if (value.includes("Next:")) return value;
+        return `${value} Next: open Help if this repeats and include the diagnostic packet.`;
+      }
+
       function setFeedback(message, isError = false) {
-        feedback.textContent = message;
+        const rendered = isError ? formatActionableError(message) : message;
+        feedback.textContent = rendered;
         feedback.className = isError ? "feedback error" : "feedback success";
-        state.lastError = isError ? message : state.lastError;
-        announceStatus(message);
-        pushToast(message, isError ? "error" : "info");
+        state.lastError = isError ? rendered : state.lastError;
+        announceStatus(rendered);
+        pushToast(rendered, isError ? "error" : "info");
       }
 
       function pushToast(message, tone) {
@@ -1144,9 +1168,10 @@
 
           recoveryPlaybook.innerHTML = "";
           const playbooks = [
-            "Sync conflict: open save conflict details, merge manually, then retry save with latest base version.",
-            "Ranked anti-tamper: recompute digest using trusted salt and resubmit score.",
-            "Network disruption: keep working offline and let retry queue flush after reconnect."
+            "Sync conflict: open save details, merge manually, then retry save with latest base version.",
+            "Ranked anti-tamper: regenerate score payload from trusted runtime and resubmit.",
+            "Network disruption: stay in offline mode and use Retry Now once connection returns.",
+            "Unclear error: copy the diagnostic packet and attach it to your support handoff."
           ];
           for (const entry of playbooks) {
             const li = document.createElement("li");
