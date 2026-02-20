@@ -220,6 +220,7 @@ Perform an exhaustive pre-launch validation and deployment-readiness sweep so to
 - [x] L6: Latest-head (`745ebbc`) evidence reconfirmed with fresh local gates and updated RG-007 incident records.
 - [x] L7: Latest-head (`82c7d6a`) evidence reconfirmed with fresh local gates and updated RG-007 incident records.
 - [x] L8: Latest-head (`8f7db16`) evidence reconfirmed, CI/CodeQL manually rerun, and RG-007 records refreshed.
+- [x] L9: Latest-head (`1edd6de`) evidence reconfirmed, CI/CodeQL manually rerun, and RG-007 records refreshed.
 
 ## Validation Gates
 - `pnpm verify`
