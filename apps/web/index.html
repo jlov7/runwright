@@ -445,7 +445,8 @@
         socialInvites: [],
         retryQueue: [],
         requestMetrics: [],
-        helperModulePromise: null
+        helperModulePromise: null,
+        lastAnnouncedMessage: null
       };
       const ONBOARDING_STORAGE_KEY = "runwright-onboarding-v1";
       const LATENCY_BUDGET_MS = 1200;
@@ -530,6 +531,8 @@
       }
 
       function announceStatus(message) {
+        if (state.lastAnnouncedMessage === message) return;
+        state.lastAnnouncedMessage = message;
         statusLiveRegion.textContent = message;
       }
 
