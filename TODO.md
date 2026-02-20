@@ -1,5 +1,27 @@
 # Five-star TODO (Post-v1)
 
+## Launch Sweep TODO (2026-02-21)
+- [ ] Create launch deployment plan document.
+- [ ] Run `pnpm verify`.
+- [ ] Run `pnpm run doctor`.
+- [ ] Run `pnpm ship:gate`.
+- [ ] Run `pnpm ship:gate -- --skip mutation --skip fuzz-differential`.
+- [ ] Run `pnpm quality:evidence:verify`.
+- [ ] Run `pnpm tsx scripts/verify_quality_evidence.ts --require-check verify --require-check audit --require-check sbom --require-check release-verify-local`.
+- [ ] Run `pnpm release:verify-local`.
+- [ ] Run `pnpm test:web-a11y`.
+- [ ] Run `pnpm test:visual`.
+- [ ] Run `pnpm perf:frontend:check`.
+- [ ] Run `pnpm perf:frontend:soak`.
+- [ ] Run `pnpm qa:frontend:matrix`.
+- [ ] Run `pnpm test:coverage`.
+- [ ] Run `pnpm test:fuzz-differential`.
+- [ ] Run `pnpm test:mutation`.
+- [ ] Run `pnpm ship:soak`.
+- [ ] Run live runtime smoke checks (`/v1/health`, `/v1/help`, `/v1/release/readiness`).
+- [ ] Refresh CI/CodeQL incident evidence for latest head.
+- [ ] Update release docs with final launch evidence and decision.
+
 ## P0 (Active world-class release expansion backlog)
 - [x] Execute full 40-item program from `docs/plans/2026-02-17-world-class-release-expansion-program.md`
 - [x] WRX-001 CI hardening and deterministic workflow execution

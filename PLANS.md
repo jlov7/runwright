@@ -196,3 +196,31 @@ Lift all 12 frontend UX/UI/journey criteria to a world-class 100/100 standard th
   - None in the tracked 100/100 frontend program.
 - Lessons:
   - Treat UI shell quality work as a blend of executable gates and explicit operational artifacts; both are required for reproducible release confidence.
+
+---
+
+# ExecPlan: Launch Exhaustive Sweep (2026-02-21)
+
+## Purpose / Big Picture
+Perform an exhaustive pre-launch validation and deployment-readiness sweep so tomorrow's launch decision is backed by fresh, end-to-end evidence.
+
+## Approach
+- Define explicit launch deployment steps and a run checklist.
+- Execute every quality/performance/security/release integrity command with fresh artifacts.
+- Run live runtime smoke checks beyond automated suites.
+- Update release evidence docs with exact run IDs/timestamps and incident status.
+
+## Progress
+- [x] L0: Deployment plan created (`docs/release/launch-deployment-plan-2026-02-21.md`).
+- [ ] L1: Exhaustive automated matrix executed (verify/doctor/ship/evidence/perf/security/release).
+- [ ] L2: Live runtime smoke and journey checks completed.
+- [ ] L3: CI status + RG-007 incident evidence refreshed.
+- [ ] L4: Final release report and go/no-go decision published.
+
+## Validation Gates
+- `pnpm verify`
+- `pnpm run doctor`
+- `pnpm ship:gate`
+- `pnpm ship:gate -- --skip mutation --skip fuzz-differential`
+- `pnpm quality:evidence:verify`
+- `pnpm release:verify-local`
