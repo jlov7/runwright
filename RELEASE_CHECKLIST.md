@@ -46,7 +46,9 @@
 - [x] README includes deploy/release notes.
 - [x] README includes required/optional environment variables.
 
-## Latest Evidence (2026-02-19)
+## Latest Evidence (2026-02-20)
+- [x] Exhaustive launch sweep executed on `2026-02-20` with fresh passes for `pnpm verify`, `pnpm run doctor` (`reports/doctor/doctor.json` generated `2026-02-20T20:14:23.907Z`), `pnpm ship:gate` (`reports/quality/ship-gate.summary.json` generated `2026-02-20T20:22:09.730Z`, `overall.ok: true`), `pnpm quality:evidence:verify`, `pnpm release:verify-local`, `pnpm test:web-a11y`, `pnpm test:visual`, `pnpm perf:frontend:check`, `pnpm perf:frontend:soak`, `pnpm qa:frontend:matrix`, `pnpm test:coverage`, `pnpm test:fuzz-differential`, `pnpm test:mutation`, and `pnpm ship:soak` (`reports/quality/soak/ship-gate-soak.report.json` generated `2026-02-20T20:26:15.926Z`).
+- [x] Live runtime smoke checks passed against real server (`/v1/health`, `/v1/help`, `/v1/release/readiness`) via direct API probes.
 - [x] Runtime browser security hardening shipped: same-origin origin/CSRF checks, defensive security headers, endpoint rate limits, and profile-scoped session boundary enforcement in `/v1` mutation routes (`src/game/runtime.ts`).
 - [x] Browser clients now attach CSRF intent headers on mutating runtime calls (`apps/web/index.html`, `apps/web/src/shared/api-client.ts`).
 - [x] Web onboarding now establishes a runtime auth session and propagates `x-session-id` for mutating calls, tightening auth boundaries during core loop actions (`apps/web/index.html`).

@@ -212,8 +212,8 @@ Perform an exhaustive pre-launch validation and deployment-readiness sweep so to
 
 ## Progress
 - [x] L0: Deployment plan created (`docs/release/launch-deployment-plan-2026-02-21.md`).
-- [ ] L1: Exhaustive automated matrix executed (verify/doctor/ship/evidence/perf/security/release).
-- [ ] L2: Live runtime smoke and journey checks completed.
+- [x] L1: Exhaustive automated matrix executed (verify/doctor/ship/evidence/perf/security/release).
+- [x] L2: Live runtime smoke and journey checks completed.
 - [ ] L3: CI status + RG-007 incident evidence refreshed.
 - [ ] L4: Final release report and go/no-go decision published.
 

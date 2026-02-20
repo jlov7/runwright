@@ -1,24 +1,24 @@
 # Five-star TODO (Post-v1)
 
 ## Launch Sweep TODO (2026-02-21)
-- [ ] Create launch deployment plan document.
-- [ ] Run `pnpm verify`.
-- [ ] Run `pnpm run doctor`.
-- [ ] Run `pnpm ship:gate`.
-- [ ] Run `pnpm ship:gate -- --skip mutation --skip fuzz-differential`.
-- [ ] Run `pnpm quality:evidence:verify`.
-- [ ] Run `pnpm tsx scripts/verify_quality_evidence.ts --require-check verify --require-check audit --require-check sbom --require-check release-verify-local`.
-- [ ] Run `pnpm release:verify-local`.
-- [ ] Run `pnpm test:web-a11y`.
-- [ ] Run `pnpm test:visual`.
-- [ ] Run `pnpm perf:frontend:check`.
-- [ ] Run `pnpm perf:frontend:soak`.
-- [ ] Run `pnpm qa:frontend:matrix`.
-- [ ] Run `pnpm test:coverage`.
-- [ ] Run `pnpm test:fuzz-differential`.
-- [ ] Run `pnpm test:mutation`.
-- [ ] Run `pnpm ship:soak`.
-- [ ] Run live runtime smoke checks (`/v1/health`, `/v1/help`, `/v1/release/readiness`).
+- [x] Create launch deployment plan document.
+- [x] Run `pnpm verify`.
+- [x] Run `pnpm run doctor`.
+- [x] Run `pnpm ship:gate`.
+- [x] Run `pnpm ship:gate -- --skip mutation --skip fuzz-differential`.
+- [x] Run `pnpm quality:evidence:verify`.
+- [x] Run `pnpm tsx scripts/verify_quality_evidence.ts --require-check verify --require-check audit --require-check sbom --require-check release-verify-local`.
+- [x] Run `pnpm release:verify-local`.
+- [x] Run `pnpm test:web-a11y`.
+- [x] Run `pnpm test:visual`.
+- [x] Run `pnpm perf:frontend:check`.
+- [x] Run `pnpm perf:frontend:soak`.
+- [x] Run `pnpm qa:frontend:matrix`.
+- [x] Run `pnpm test:coverage`.
+- [x] Run `pnpm test:fuzz-differential`.
+- [x] Run `pnpm test:mutation`.
+- [x] Run `pnpm ship:soak`.
+- [x] Run live runtime smoke checks (`/v1/health`, `/v1/help`, `/v1/release/readiness`).
 - [ ] Refresh CI/CodeQL incident evidence for latest head.
 - [ ] Update release docs with final launch evidence and decision.
 
