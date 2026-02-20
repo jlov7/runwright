@@ -17,55 +17,68 @@
         <p class="lede">Complete onboarding quickly, then move into challenge, ranked, and creator loops.</p>
       </div>
       <nav id="global-nav" class="global-nav" aria-label="Primary navigation">
-        <button type="button" class="nav-item is-active" data-surface="dashboard" data-label="Dashboard" aria-current="page">
+        <button
+          type="button"
+          class="nav-item is-active"
+          data-surface="dashboard"
+          data-label="Dashboard"
+          data-nav-tier="core"
+          aria-current="page"
+        >
           <span class="nav-glyph" aria-hidden="true">[]</span>
           Dashboard
         </button>
-        <button type="button" class="nav-item" data-surface="profile" data-label="Profile">
+        <button type="button" class="nav-item" data-surface="profile" data-label="Profile" data-nav-tier="core">
           <span class="nav-glyph" aria-hidden="true">@</span>
           Profile
         </button>
-        <button type="button" class="nav-item" data-surface="onboarding" data-label="Onboarding">
+        <button type="button" class="nav-item" data-surface="onboarding" data-label="Onboarding" data-nav-tier="core">
           <span class="nav-glyph" aria-hidden="true">*</span>
           Onboarding
         </button>
-        <button type="button" class="nav-item" data-surface="challenge" data-label="Challenge">
-          <span class="nav-glyph" aria-hidden="true">#</span>
-          Challenge
-        </button>
-        <button type="button" class="nav-item" data-surface="campaign" data-label="Campaign">
-          <span class="nav-glyph" aria-hidden="true">%</span>
-          Campaign
-        </button>
-        <button type="button" class="nav-item" data-surface="coop" data-label="Co-op">
-          <span class="nav-glyph" aria-hidden="true">&amp;</span>
-          Co-op
-        </button>
-        <button type="button" class="nav-item" data-surface="ranked" data-label="Ranked">
-          <span class="nav-glyph" aria-hidden="true">^</span>
-          Ranked
-        </button>
-        <button type="button" class="nav-item" data-surface="creator" data-label="Creator">
-          <span class="nav-glyph" aria-hidden="true">+</span>
-          Creator
-        </button>
-        <button type="button" class="nav-item" data-surface="moderation" data-label="Moderation">
-          <span class="nav-glyph" aria-hidden="true">!</span>
-          Moderation
-        </button>
-        <button type="button" class="nav-item" data-surface="liveops" data-label="LiveOps">
-          <span class="nav-glyph" aria-hidden="true">~</span>
-          LiveOps
-        </button>
-        <button type="button" class="nav-item" data-surface="analytics" data-label="Analytics">
-          <span class="nav-glyph" aria-hidden="true">=</span>
-          Analytics
-        </button>
-        <button type="button" class="nav-item" data-surface="help" data-label="Help">
+        <button type="button" class="nav-item" data-surface="help" data-label="Help" data-nav-tier="core">
           <span class="nav-glyph" aria-hidden="true">?</span>
           Help
         </button>
+        <button type="button" class="nav-item" data-surface="challenge" data-label="Challenge" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">#</span>
+          Challenge
+        </button>
+        <button type="button" class="nav-item" data-surface="campaign" data-label="Campaign" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">%</span>
+          Campaign
+        </button>
+        <button type="button" class="nav-item" data-surface="coop" data-label="Co-op" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">&amp;</span>
+          Co-op
+        </button>
+        <button type="button" class="nav-item" data-surface="ranked" data-label="Ranked" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">^</span>
+          Ranked
+        </button>
+        <button type="button" class="nav-item" data-surface="creator" data-label="Creator" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">+</span>
+          Creator
+        </button>
+        <button type="button" class="nav-item" data-surface="moderation" data-label="Moderation" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">!</span>
+          Moderation
+        </button>
+        <button type="button" class="nav-item" data-surface="liveops" data-label="LiveOps" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">~</span>
+          LiveOps
+        </button>
+        <button type="button" class="nav-item" data-surface="analytics" data-label="Analytics" data-nav-tier="advanced">
+          <span class="nav-glyph" aria-hidden="true">=</span>
+          Analytics
+        </button>
       </nav>
+      <div class="nav-controls rw-inline">
+        <button type="button" id="toggle-advanced-nav" class="nav-toggle" aria-expanded="false">
+          Show advanced surfaces
+        </button>
+        <p id="nav-mode-hint" class="muted">Focused mode: showing only core surfaces.</p>
+      </div>
 
       <form id="surface-command" class="command-bar rw-inline" aria-label="Surface quick jump">
         <label for="surface-search">Surface Command Bar</label>
@@ -101,6 +114,7 @@
             <option value="dashboard">Dashboard</option>
             <option value="profile">Profile</option>
             <option value="onboarding">Onboarding</option>
+            <option value="help">Help</option>
             <option value="challenge">Challenge</option>
             <option value="campaign">Campaign</option>
             <option value="coop">Co-op</option>
@@ -109,7 +123,6 @@
             <option value="moderation">Moderation</option>
             <option value="liveops">LiveOps</option>
             <option value="analytics">Analytics</option>
-            <option value="help">Help</option>
           </select>
           <button type="submit">Open</button>
         </div>
@@ -388,11 +401,20 @@
     <div id="toast-stack" class="toast-stack" aria-live="polite" aria-label="Notifications"></div>
 
     <script type="module">
+      import {
+        SURFACE_META,
+        getSurfaceLockReason,
+        getVisibleSurfaces,
+        isAdvancedSurface,
+        normalizeSurfaceInput
+      } from "/navigation.js";
+
       const state = {
         profileId: null,
         sessionId: null,
         score: 1200,
         activeSurface: "dashboard",
+        showAdvancedNav: false,
         profileHandle: null,
         locale: "en-US",
         progress: {
@@ -422,69 +444,6 @@
         window.location.hostname === "127.0.0.1" ||
         window.location.search.includes("debugLatency=1");
       const RESPONSE_CACHE_TTL_MS = 5000;
-
-      const surfaceMeta = {
-        dashboard: {
-          label: "Dashboard",
-          intent: "View launch readiness and choose your next gameplay loop.",
-          primaryAction: "create-profile"
-        },
-        profile: {
-          label: "Profile",
-          intent: "Manage account and settings before deeper gameplay loops.",
-          primaryAction: "open-profile"
-        },
-        onboarding: {
-          label: "Onboarding",
-          intent: "Complete first-run checklist and reach first success quickly.",
-          primaryAction: "run-onboarding"
-        },
-        challenge: {
-          label: "Challenge",
-          intent: "Generate challenge runs and validate progression depth.",
-          primaryAction: "generate-challenge"
-        },
-        campaign: {
-          label: "Campaign",
-          intent: "Run chapter progression to transition from onboarding into core loop play.",
-          primaryAction: "start-campaign"
-        },
-        coop: {
-          label: "Co-op",
-          intent: "Invite friends and stabilize multiplayer readiness.",
-          primaryAction: "open-coop"
-        },
-        ranked: {
-          label: "Ranked",
-          intent: "Submit trusted scores and inspect competitive integrity.",
-          primaryAction: "refresh-ranked"
-        },
-        creator: {
-          label: "Creator",
-          intent: "Publish and review levels with moderation-safe defaults.",
-          primaryAction: "refresh-creator"
-        },
-        moderation: {
-          label: "Moderation",
-          intent: "Report abuse and verify moderation pipeline readiness.",
-          primaryAction: "open-moderation"
-        },
-        liveops: {
-          label: "LiveOps",
-          intent: "Inspect seasonal events and rewards cadence health.",
-          primaryAction: "refresh-liveops"
-        },
-        analytics: {
-          label: "Analytics",
-          intent: "Track funnel completion and first-success conversion health.",
-          primaryAction: "refresh-analytics"
-        },
-        help: {
-          label: "Help",
-          intent: "Find troubleshooting paths and recovery guidance.",
-          primaryAction: "open-help"
-        }
-      };
 
       const feedback = document.querySelector("#feedback");
       const nextAction = document.querySelector("#next-action");
@@ -533,6 +492,8 @@
       const liveopsSummary = document.querySelector("#liveops-summary");
       const analyticsSummary = document.querySelector("#analytics-summary");
       const mobileSurfaceSelect = document.querySelector("#mobile-surface-select");
+      const toggleAdvancedNavButton = document.querySelector("#toggle-advanced-nav");
+      const navModeHint = document.querySelector("#nav-mode-hint");
 
       let retryTimer = null;
       const responseCache = new Map();
@@ -634,22 +595,39 @@
         return "Open onboarding controls";
       }
 
-      function normalizeSurface(input) {
-        const value = input.trim().toLowerCase();
-        if (value.length === 0) return null;
-        const aliases = {
-          home: "dashboard",
-          account: "profile",
-          settings: "profile",
-          tutorial: "onboarding",
-          quest: "challenge",
-          progression: "campaign",
-          social: "coop",
-          support: "help"
+      function navContext() {
+        return {
+          profileReady: profileReady(),
+          onboardingReady: onboardingReady(),
+          showAdvancedNav: state.showAdvancedNav,
+          activeSurface: state.activeSurface
         };
-        if (aliases[value]) return aliases[value];
-        if (surfaceMeta[value]) return value;
-        return null;
+      }
+
+      function syncNavigationDisclosure() {
+        if (onboardingReady()) {
+          state.showAdvancedNav = true;
+        }
+
+        const visible = new Set(getVisibleSurfaces(navContext()));
+        for (const item of navItems) {
+          const surface = item.dataset.surface || "";
+          item.hidden = !visible.has(surface);
+        }
+
+        for (const option of [...mobileSurfaceSelect.options]) {
+          option.hidden = !visible.has(option.value);
+        }
+        if (!visible.has(state.activeSurface)) {
+          const activeOption = [...mobileSurfaceSelect.options].find((option) => option.value === state.activeSurface);
+          if (activeOption) activeOption.hidden = false;
+        }
+
+        toggleAdvancedNavButton.setAttribute("aria-expanded", state.showAdvancedNav ? "true" : "false");
+        toggleAdvancedNavButton.textContent = state.showAdvancedNav ? "Hide advanced surfaces" : "Show advanced surfaces";
+        navModeHint.textContent = state.showAdvancedNav
+          ? "Expanded mode: all surfaces are available."
+          : "Focused mode: showing only core surfaces.";
       }
 
       function syncSurfacePanels(surface) {
@@ -668,15 +646,16 @@
           emptyMessage = "Profile settings are unavailable until a profile is created.";
         } else if (surface === "onboarding" && !profileReady()) {
           emptyMessage = "Onboarding actions are locked until you create a profile.";
-        } else if (surface === "challenge" && !onboardingReady()) {
-          emptyMessage = "Challenge generation unlocks after tutorial, save, and publish are complete.";
-          actionLabel = "Open onboarding controls";
         } else if (surface === "campaign" && !campaignReady()) {
           emptyMessage = "Campaign starts after you publish your first level.";
           actionLabel = "Open onboarding controls";
-        } else if (["coop", "ranked", "creator", "moderation"].includes(surface) && !profileReady()) {
-          emptyMessage = "Create a profile before using this surface.";
-          actionLabel = "Create profile";
+        }
+
+        const lockReason = getSurfaceLockReason(surface, navContext());
+        if (!emptyMessage && lockReason) {
+          emptyMessage = lockReason.message;
+          actionLabel = lockReason.actionLabel;
+          actionTarget = lockReason.actionTarget;
         }
 
         if (emptyMessage) {
@@ -691,7 +670,8 @@
 
       function renderSurfaceChrome(stepLabel = null) {
         const surface = state.activeSurface;
-        const meta = surfaceMeta[surface] || surfaceMeta.dashboard;
+        const meta = SURFACE_META[surface] || SURFACE_META.dashboard;
+        syncNavigationDisclosure();
         const activeItem = navItems.find((item) => item.dataset.surface === surface) || navItems[0];
 
         for (const item of navItems) {
@@ -775,7 +755,10 @@
       }
 
       function setActiveSurface(surface, stepLabel = null) {
-        const nextSurface = surfaceMeta[surface] ? surface : "dashboard";
+        const nextSurface = SURFACE_META[surface] ? surface : "dashboard";
+        if (isAdvancedSurface(nextSurface)) {
+          state.showAdvancedNav = true;
+        }
         if (state.activeSurface === nextSurface && stepLabel === null) return;
         state.activeSurface = nextSurface;
         renderSurfaceChrome(stepLabel);
@@ -954,6 +937,7 @@
             profileId: state.profileId,
             profileHandle: state.profileHandle,
             locale: state.locale,
+            showAdvancedNav: state.showAdvancedNav,
             progress: state.progress,
             accessibility: state.accessibility,
             coachmarkDismissed: state.coachmarkDismissed
@@ -973,6 +957,7 @@
           if (typeof parsed.profileId === "string" && parsed.profileId.length > 0) state.profileId = parsed.profileId;
           if (typeof parsed.profileHandle === "string") state.profileHandle = parsed.profileHandle;
           if (typeof parsed.locale === "string") state.locale = parsed.locale;
+          if (parsed.showAdvancedNav === true) state.showAdvancedNav = true;
           if (parsed.progress && typeof parsed.progress === "object") {
             state.progress.tutorial = parsed.progress.tutorial === true;
             state.progress.saved = parsed.progress.saved === true;
@@ -1592,10 +1577,11 @@
 
       document.querySelector("#surface-command").addEventListener("submit", (event) => {
         event.preventDefault();
-        const surface = normalizeSurface(surfaceSearch.value);
+        const surface = normalizeSurfaceInput(surfaceSearch.value);
         if (!surface) {
+          const visible = getVisibleSurfaces(navContext()).join(", ");
           surfaceSearchFeedback.textContent =
-            "Unknown surface. Try dashboard, profile, onboarding, challenge, campaign, coop, ranked, creator, moderation, liveops, analytics, or help.";
+            `Unknown surface. Try ${visible}. Use Show advanced surfaces to reveal full navigation.`;
           return;
         }
         surfaceSearchFeedback.textContent = "";
@@ -1619,6 +1605,11 @@
           setActiveSurface(navItem.dataset.surface || "dashboard");
         });
       }
+
+      toggleAdvancedNavButton.addEventListener("click", () => {
+        state.showAdvancedNav = !state.showAdvancedNav;
+        renderSurfaceChrome();
+      });
 
       for (const button of document.querySelectorAll("[data-help]")) {
         const helpText = button.getAttribute("data-help");
