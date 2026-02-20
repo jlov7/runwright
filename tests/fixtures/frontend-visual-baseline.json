@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-02-20T22:16:58.000Z",
+  "generatedAt": "2026-02-20T22:22:16.000Z",
   "htmlPath": "apps/web/index.html",
   "cssPath": "apps/web/styles.css",
-  "htmlHash": "359d322ad60d18d002c9fc96a850b9b7d768bde12e7c9667b7523d3f171fce1d",
-  "cssHash": "5ca1a3cb1576eba6d28a78ca4dce02943c7105426cafa485a54adc20c4365601",
-  "combinedHash": "c8a192e8da089d052164ed53dcb6f1dce8d3db028f196ca6535e9a18ce91cdad"
+  "htmlHash": "7b2d0fb5775a0abbc8cccd78776038c83e0b3a321c894ca19dd08fce1f6387ed",
+  "cssHash": "6e43371858601347455254ec3f4b69bee00afe66e3cd266318b00e172869f248",
+  "combinedHash": "b77453f43e85c68bc796dc634e176e016d1de67b1bffc475c01e8809d7fc7e4a"
 }

@@ -57,6 +57,7 @@ describe("frontend navigation disclosure", () => {
 
   it("ships focused-mode controls in the shell markup", () => {
     const html = readFileSync(resolve(process.cwd(), "apps", "web", "index.html"), "utf8");
+    expect(html).toContain('id="advanced-nav-tools"');
     expect(html).toContain('id="toggle-advanced-nav"');
     expect(html).toContain('id="nav-mode-hint"');
     expect(html).toContain('id="journey-strip-steps"');

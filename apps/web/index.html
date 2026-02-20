@@ -80,53 +80,56 @@
         <p id="nav-mode-hint" class="muted">Focused mode: showing only core surfaces.</p>
       </div>
 
-      <form id="surface-command" class="command-bar rw-inline" aria-label="Surface quick jump">
-        <label for="surface-search">Surface Command Bar</label>
-        <input
-          id="surface-search"
-          name="surface-search"
-          type="search"
-          list="surface-options"
-          placeholder="Jump to dashboard, profile, onboarding, challenge..."
-        />
-        <datalist id="surface-options">
-          <option value="dashboard"></option>
-          <option value="profile"></option>
-          <option value="onboarding"></option>
-          <option value="challenge"></option>
-          <option value="campaign"></option>
-          <option value="coop"></option>
-          <option value="ranked"></option>
-          <option value="creator"></option>
-          <option value="moderation"></option>
-          <option value="liveops"></option>
-          <option value="analytics"></option>
-          <option value="help"></option>
-        </datalist>
-        <button type="submit" id="surface-search-go">Go</button>
-        <p id="surface-search-feedback" class="muted" aria-live="polite"></p>
-      </form>
+      <details id="advanced-nav-tools" class="advanced-nav-tools">
+        <summary>Advanced navigation tools</summary>
+        <form id="surface-command" class="command-bar rw-inline" aria-label="Surface quick jump">
+          <label for="surface-search">Surface Command Bar</label>
+          <input
+            id="surface-search"
+            name="surface-search"
+            type="search"
+            list="surface-options"
+            placeholder="Jump to dashboard, profile, onboarding, challenge..."
+          />
+          <datalist id="surface-options">
+            <option value="dashboard"></option>
+            <option value="profile"></option>
+            <option value="onboarding"></option>
+            <option value="challenge"></option>
+            <option value="campaign"></option>
+            <option value="coop"></option>
+            <option value="ranked"></option>
+            <option value="creator"></option>
+            <option value="moderation"></option>
+            <option value="liveops"></option>
+            <option value="analytics"></option>
+            <option value="help"></option>
+          </datalist>
+          <button type="submit" id="surface-search-go">Go</button>
+          <p id="surface-search-feedback" class="muted" aria-live="polite"></p>
+        </form>
 
-      <form id="mobile-surface-nav" class="mobile-surface-nav" aria-label="Mobile surface switcher">
-        <label for="mobile-surface-select">Mobile navigation</label>
-        <div class="rw-inline">
-          <select id="mobile-surface-select" name="mobile-surface-select">
-            <option value="dashboard">Dashboard</option>
-            <option value="profile">Profile</option>
-            <option value="onboarding">Onboarding</option>
-            <option value="help">Help</option>
-            <option value="challenge">Challenge</option>
-            <option value="campaign">Campaign</option>
-            <option value="coop">Co-op</option>
-            <option value="ranked">Ranked</option>
-            <option value="creator">Creator</option>
-            <option value="moderation">Moderation</option>
-            <option value="liveops">LiveOps</option>
-            <option value="analytics">Analytics</option>
-          </select>
-          <button type="submit">Open</button>
-        </div>
-      </form>
+        <form id="mobile-surface-nav" class="mobile-surface-nav" aria-label="Mobile surface switcher">
+          <label for="mobile-surface-select">Mobile navigation</label>
+          <div class="rw-inline">
+            <select id="mobile-surface-select" name="mobile-surface-select">
+              <option value="dashboard">Dashboard</option>
+              <option value="profile">Profile</option>
+              <option value="onboarding">Onboarding</option>
+              <option value="help">Help</option>
+              <option value="challenge">Challenge</option>
+              <option value="campaign">Campaign</option>
+              <option value="coop">Co-op</option>
+              <option value="ranked">Ranked</option>
+              <option value="creator">Creator</option>
+              <option value="moderation">Moderation</option>
+              <option value="liveops">LiveOps</option>
+              <option value="analytics">Analytics</option>
+            </select>
+            <button type="submit">Open</button>
+          </div>
+        </form>
+      </details>
     </header>
 
     <div id="status-live-region" class="sr-only" aria-live="polite"></div>
@@ -504,6 +507,7 @@
       const mobileSurfaceSelect = document.querySelector("#mobile-surface-select");
       const toggleAdvancedNavButton = document.querySelector("#toggle-advanced-nav");
       const navModeHint = document.querySelector("#nav-mode-hint");
+      const advancedNavTools = document.querySelector("#advanced-nav-tools");
       const runTutorialButton = document.querySelector("#run-tutorial");
       const saveProgressButton = document.querySelector("#save-progress");
       const publishLevelButton = document.querySelector("#publish-level");
@@ -757,6 +761,9 @@
         navModeHint.textContent = state.showAdvancedNav
           ? "Expanded mode: all surfaces are available."
           : "Focused mode: showing only core surfaces.";
+        if (state.showAdvancedNav) {
+          advancedNavTools.open = true;
+        }
       }
 
       function syncSurfacePanels(surface) {
@@ -1787,6 +1794,9 @@
 
       toggleAdvancedNavButton.addEventListener("click", () => {
         state.showAdvancedNav = !state.showAdvancedNav;
+        if (state.showAdvancedNav) {
+          advancedNavTools.open = true;
+        }
         renderSurfaceChrome();
       });
 
@@ -1798,6 +1808,7 @@
       window.addEventListener("keydown", (event) => {
         if (event.key === "/" && document.activeElement !== surfaceSearch) {
           event.preventDefault();
+          advancedNavTools.open = true;
           surfaceSearch.focus();
         }
       });

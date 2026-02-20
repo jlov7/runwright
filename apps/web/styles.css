@@ -305,6 +305,32 @@ h4 {
   margin-left: auto;
 }
 
+.advanced-nav-tools {
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-panel) 92%, transparent);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.advanced-nav-tools summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  list-style: none;
+}
+
+.advanced-nav-tools summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-nav-tools summary::after {
+  content: " +";
+  color: var(--color-text-secondary);
+}
+
+.advanced-nav-tools[open] summary::after {
+  content: " -";
+}
+
 .mobile-surface-nav {
   display: none;
 }
