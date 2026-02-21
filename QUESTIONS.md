@@ -198,6 +198,19 @@
   - `pnpm release:verify-local` (`release artifact verification: ok`)
 - Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
 
+### Q4 update (2026-02-21, evaluated head refresh 3)
+- Evaluated `main` head `9820260` still fails pre-execution on both required workflows with zero-step jobs, including explicit rerun attempts:
+  - `CI` run `22262138782` attempt `2` (`verify` matrix + `quality-scorecard` failed with `steps: []`; downstream jobs skipped with `steps: []`)
+  - `CodeQL` run `22262138797` attempt `2` (`Analyze (javascript-typescript)` failed with `steps: []`)
+- `gh run view` confirms no workflow steps executed before failure on both reruns, matching the established billing/quota startup-failure profile.
+- Fresh compensating evidence on `9820260`:
+  - `pnpm verify` (390/390 tests passing, build success)
+  - `pnpm run doctor` (`reports/doctor/doctor.json`, generated `2026-02-21T18:34:37.951Z`, `overall.ok: true`)
+  - `pnpm ship:gate` (`reports/quality/ship-gate.summary.json`, generated `2026-02-21T18:36:26.221Z`, `overall.ok: true`)
+  - `pnpm quality:evidence:verify` (`reports/quality/evidence-verification.json`, `ok: true`)
+  - `pnpm release:verify-local` (`release artifact verification: ok`)
+- Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
+
 ## Q5: npm registry/DNS access for dependency installs
 - Question: What is the approved npm registry/mirror for this environment, or how should DNS be configured so `registry.npmjs.org` is reachable?
 - Why it matters: `pnpm install` currently fails with `ENOTFOUND registry.npmjs.org`, preventing `pnpm run doctor` and all local release gate evidence.
