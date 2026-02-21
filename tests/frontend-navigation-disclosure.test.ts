@@ -57,11 +57,17 @@ describe("frontend navigation disclosure", () => {
 
   it("ships focused-mode controls in the shell markup", () => {
     const html = readFileSync(resolve(process.cwd(), "apps", "web", "index.html"), "utf8");
-    expect(html).toContain('id="advanced-nav-tools"');
-    expect(html).toContain('id="toggle-advanced-nav"');
+    expect(html).toContain('id="open-explore-hub"');
+    expect(html).toContain('id="toggle-help-panel"');
     expect(html).toContain('id="nav-mode-hint"');
+    expect(html).toContain('id="welcome-overlay"');
+    expect(html).toContain('id="explore-hub"');
+    expect(html).toContain('id="reopen-onboarding-guide"');
+    expect(html).toContain('id="jump-to-next-step"');
     expect(html).toContain('id="journey-strip-steps"');
     expect(html).toContain('id="journey-why"');
     expect(html).toContain('id="surface-empty-fallback"');
+    expect(html).not.toContain('id="advanced-nav-tools"');
+    expect(html).not.toContain('id="toggle-advanced-nav"');
   });
 });

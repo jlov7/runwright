@@ -305,30 +305,75 @@ h4 {
   margin-left: auto;
 }
 
-.advanced-nav-tools {
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(5, 10, 18, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.welcome-card {
+  width: min(620px, 100%);
+  border: 1px solid color-mix(in srgb, var(--color-state-info) 55%, var(--color-border-muted));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-bg-panel) 96%, transparent);
+  box-shadow: var(--elevation-3);
+  padding: var(--space-6);
+}
+
+.welcome-card .steps {
+  margin-top: 0;
+}
+
+body.overlay-open .layout,
+body.overlay-open .app-header,
+body.overlay-open .explore-hub {
+  filter: blur(1px);
+}
+
+.explore-hub {
+  position: relative;
+  z-index: 2;
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-bg-panel) 94%, transparent);
+  box-shadow: var(--elevation-2);
+  padding: var(--space-5);
+}
+
+.explore-hub-header {
+  justify-content: space-between;
+}
+
+.explore-hub-list {
+  margin-top: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.explore-card {
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-bg-panel) 92%, transparent);
-  padding: var(--space-2) var(--space-3) var(--space-3);
+  background: color-mix(in srgb, var(--color-bg-surface) 84%, transparent);
+  padding: var(--space-4);
 }
 
-.advanced-nav-tools summary {
-  cursor: pointer;
-  font-weight: var(--font-weight-semibold);
-  list-style: none;
+.explore-card .status-pill {
+  font-size: var(--font-size-100);
 }
 
-.advanced-nav-tools summary::-webkit-details-marker {
-  display: none;
+.explore-card button {
+  width: fit-content;
 }
 
-.advanced-nav-tools summary::after {
-  content: " +";
-  color: var(--color-text-secondary);
-}
-
-.advanced-nav-tools[open] summary::after {
-  content: " -";
+.wayfinding-actions {
+  flex-wrap: wrap;
 }
 
 .mobile-surface-nav {
@@ -676,6 +721,10 @@ a {
     margin-left: 0;
     width: 100%;
   }
+
+  .welcome-card {
+    padding: var(--space-5);
+  }
 }
 
 @media (max-width: 760px) {
@@ -690,6 +739,18 @@ a {
 
   .global-nav {
     display: none;
+  }
+
+  .welcome-overlay {
+    padding: var(--space-2);
+  }
+
+  .welcome-card {
+    padding: var(--space-4);
+  }
+
+  .explore-hub {
+    padding: var(--space-4);
   }
 
   .mobile-surface-nav {

@@ -40,97 +40,121 @@
           <span class="nav-glyph" aria-hidden="true">?</span>
           Help
         </button>
-        <button type="button" class="nav-item" data-surface="challenge" data-label="Challenge" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">#</span>
-          Challenge
-        </button>
-        <button type="button" class="nav-item" data-surface="campaign" data-label="Campaign" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">%</span>
-          Campaign
-        </button>
-        <button type="button" class="nav-item" data-surface="coop" data-label="Co-op" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">&amp;</span>
-          Co-op
-        </button>
-        <button type="button" class="nav-item" data-surface="ranked" data-label="Ranked" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">^</span>
-          Ranked
-        </button>
-        <button type="button" class="nav-item" data-surface="creator" data-label="Creator" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">+</span>
-          Creator
-        </button>
-        <button type="button" class="nav-item" data-surface="moderation" data-label="Moderation" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">!</span>
-          Moderation
-        </button>
-        <button type="button" class="nav-item" data-surface="liveops" data-label="LiveOps" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">~</span>
-          LiveOps
-        </button>
-        <button type="button" class="nav-item" data-surface="analytics" data-label="Analytics" data-nav-tier="advanced">
-          <span class="nav-glyph" aria-hidden="true">=</span>
-          Analytics
-        </button>
       </nav>
       <div class="nav-controls rw-inline">
-        <button type="button" id="toggle-advanced-nav" class="nav-toggle" aria-expanded="false">
-          Show advanced surfaces
+        <button
+          type="button"
+          id="open-explore-hub"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="explore-hub"
+          data-help="Opens advanced surfaces for challenge, campaign, ranked, and operations workflows."
+        >
+          Explore Advanced Surfaces
         </button>
-        <p id="nav-mode-hint" class="muted">Focused mode: showing only core surfaces.</p>
+        <button
+          type="button"
+          id="toggle-help-panel"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="help-panel"
+          data-help="Shows in-context tooltips, recovery playbooks, and diagnostics."
+        >
+          Show Help Panel
+        </button>
+        <p id="nav-mode-hint" class="muted">Focused mode: core surfaces in header. Advanced workflows live in Explore.</p>
       </div>
-
-      <details id="advanced-nav-tools" class="advanced-nav-tools">
-        <summary>Advanced navigation tools</summary>
-        <form id="surface-command" class="command-bar rw-inline" aria-label="Surface quick jump">
-          <label for="surface-search">Surface Command Bar</label>
-          <input
-            id="surface-search"
-            name="surface-search"
-            type="search"
-            list="surface-options"
-            placeholder="Jump to dashboard, profile, onboarding, challenge..."
-          />
-          <datalist id="surface-options">
-            <option value="dashboard"></option>
-            <option value="profile"></option>
-            <option value="onboarding"></option>
-            <option value="challenge"></option>
-            <option value="campaign"></option>
-            <option value="coop"></option>
-            <option value="ranked"></option>
-            <option value="creator"></option>
-            <option value="moderation"></option>
-            <option value="liveops"></option>
-            <option value="analytics"></option>
-            <option value="help"></option>
-          </datalist>
-          <button type="submit" id="surface-search-go">Go</button>
-          <p id="surface-search-feedback" class="muted" aria-live="polite"></p>
-        </form>
-
-        <form id="mobile-surface-nav" class="mobile-surface-nav" aria-label="Mobile surface switcher">
-          <label for="mobile-surface-select">Mobile navigation</label>
-          <div class="rw-inline">
-            <select id="mobile-surface-select" name="mobile-surface-select">
-              <option value="dashboard">Dashboard</option>
-              <option value="profile">Profile</option>
-              <option value="onboarding">Onboarding</option>
-              <option value="help">Help</option>
-              <option value="challenge">Challenge</option>
-              <option value="campaign">Campaign</option>
-              <option value="coop">Co-op</option>
-              <option value="ranked">Ranked</option>
-              <option value="creator">Creator</option>
-              <option value="moderation">Moderation</option>
-              <option value="liveops">LiveOps</option>
-              <option value="analytics">Analytics</option>
-            </select>
-            <button type="submit">Open</button>
-          </div>
-        </form>
-      </details>
     </header>
+
+    <section
+      id="welcome-overlay"
+      class="welcome-overlay rw-page"
+      hidden
+      aria-labelledby="welcome-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="welcome-card rw-stack">
+        <p class="eyebrow">Guided First-Run</p>
+        <h2 id="welcome-title">Start In Three Clear Steps</h2>
+        <p class="muted">This setup keeps noise low. You can open advanced surfaces after your first success is complete.</p>
+        <ol class="steps rw-stack">
+          <li>Create your profile and choose a locale.</li>
+          <li>Run tutorial and save once to confirm persistence.</li>
+          <li>Publish first level to unlock campaign and ranked loops.</li>
+        </ol>
+        <label for="persona-mode">What best describes you?</label>
+        <select id="persona-mode" name="persona-mode">
+          <option value="builder">Builder: create levels and challenges</option>
+          <option value="operator">Operator: safety, moderation, and reliability</option>
+          <option value="analyst">Analyst: ranked integrity and funnel metrics</option>
+        </select>
+        <div class="rw-inline">
+          <button type="button" id="welcome-start" data-help="Opens onboarding and focuses your first required action.">
+            Start Guided Setup
+          </button>
+          <button type="button" id="welcome-dismiss" data-help="Skips guide and opens Explore for advanced workflows.">
+            Explore Without Guide
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="explore-hub" class="explore-hub rw-page" hidden aria-labelledby="explore-hub-title">
+      <div class="rw-inline explore-hub-header">
+        <h2 id="explore-hub-title">Advanced Surface Explorer</h2>
+        <button type="button" id="close-explore-hub">Close</button>
+      </div>
+      <p class="muted">Use this area for advanced workflows. Core onboarding surfaces stay lightweight in the primary header.</p>
+      <form id="surface-command" class="command-bar rw-inline" aria-label="Surface quick jump">
+        <label for="surface-search">Jump To Surface</label>
+        <input
+          id="surface-search"
+          name="surface-search"
+          type="search"
+          list="surface-options"
+          placeholder="Jump to challenge, campaign, coop, ranked..."
+        />
+        <datalist id="surface-options">
+          <option value="dashboard"></option>
+          <option value="profile"></option>
+          <option value="onboarding"></option>
+          <option value="challenge"></option>
+          <option value="campaign"></option>
+          <option value="coop"></option>
+          <option value="ranked"></option>
+          <option value="creator"></option>
+          <option value="moderation"></option>
+          <option value="liveops"></option>
+          <option value="analytics"></option>
+          <option value="help"></option>
+        </datalist>
+        <button type="submit" id="surface-search-go">Go</button>
+        <p id="surface-search-feedback" class="muted" aria-live="polite"></p>
+      </form>
+      <div id="explore-hub-list" class="explore-hub-list" aria-live="polite"></div>
+
+      <form id="mobile-surface-nav" class="mobile-surface-nav" aria-label="Mobile surface switcher">
+        <label for="mobile-surface-select">Mobile navigation</label>
+        <div class="rw-inline">
+          <select id="mobile-surface-select" name="mobile-surface-select">
+            <option value="dashboard">Dashboard</option>
+            <option value="profile">Profile</option>
+            <option value="onboarding">Onboarding</option>
+            <option value="help">Help</option>
+            <option value="challenge">Challenge</option>
+            <option value="campaign">Campaign</option>
+            <option value="coop">Co-op</option>
+            <option value="ranked">Ranked</option>
+            <option value="creator">Creator</option>
+            <option value="moderation">Moderation</option>
+            <option value="liveops">LiveOps</option>
+            <option value="analytics">Analytics</option>
+          </select>
+          <button type="submit">Open</button>
+        </div>
+      </form>
+    </section>
 
     <div id="status-live-region" class="sr-only" aria-live="polite"></div>
     <div id="network-banner" class="network-banner rw-page" hidden role="status" aria-live="polite">
@@ -148,6 +172,22 @@
         <h2 id="wayfinding-title">Where You Are</h2>
         <p id="breadcrumb-trail" class="breadcrumb" aria-live="polite">Home / Dashboard</p>
         <p id="surface-path-hint" class="muted">Use the nav or command bar to move through core surfaces quickly.</p>
+        <div class="rw-inline wayfinding-actions">
+          <button
+            type="button"
+            id="reopen-onboarding-guide"
+            data-help="Replays guided first-run steps and persona selection."
+          >
+            Reopen Guide
+          </button>
+          <button
+            type="button"
+            id="jump-to-next-step"
+            data-help="Navigates to the next unfinished step in the guided journey."
+          >
+            Take Me To Next Step
+          </button>
+        </div>
       </section>
 
       <section class="panel panel-hierarchy rw-panel" aria-labelledby="surface-title">
@@ -377,7 +417,7 @@
         </article>
       </section>
 
-      <aside class="panel panel-help rw-panel" aria-labelledby="help-title">
+      <aside id="help-panel" class="panel panel-help rw-panel" aria-labelledby="help-title" hidden>
         <h2 id="help-title">Help &amp; Tooltips</h2>
         <p>Hover or focus action buttons to see contextual guidance.</p>
         <div id="help-loading-skeleton" class="loading-skeleton" hidden>

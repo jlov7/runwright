@@ -28,6 +28,18 @@ describe("game runtime web shell", () => {
     expect(html).toContain('id="breadcrumb-trail"');
     expect(html).toContain('id="surface-search"');
     expect(html).toContain('id="mobile-surface-select"');
+    expect(html).toContain('id="welcome-overlay"');
+    expect(html).toContain('id="welcome-start"');
+    expect(html).toContain('id="welcome-dismiss"');
+    expect(html).toContain('id="persona-mode"');
+    expect(html).toContain('id="open-explore-hub"');
+    expect(html).toContain('id="explore-hub"');
+    expect(html).toContain('id="explore-hub-list"');
+    expect(html).toContain('id="close-explore-hub"');
+    expect(html).toContain('id="toggle-help-panel"');
+    expect(html).toContain('id="help-panel"');
+    expect(html).toContain('id="reopen-onboarding-guide"');
+    expect(html).toContain('id="jump-to-next-step"');
     expect(html).toContain('id="surface-title"');
     expect(html).toContain('id="surface-status"');
     expect(html).toContain('id="surface-primary-action"');
@@ -87,7 +99,7 @@ describe("game runtime web shell", () => {
       expect(response.status).toBe(200);
       const html = await response.text();
       expect(html).toContain("First Success Control Room");
-      expect(html).toContain("Surface Command Bar");
+      expect(html).toContain("Advanced Surface Explorer");
       expect(html).toContain("Campaign Progression");
       expect(html).toContain("Help &amp; Tooltips");
       expect(html).toContain("Retry Backoff Queue");

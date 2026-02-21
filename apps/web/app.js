@@ -33,7 +33,11 @@ const state = {
   retryQueue: [],
   requestMetrics: [],
   helperModulePromise: null,
-  lastAnnouncedMessage: null
+  lastAnnouncedMessage: null,
+  personaMode: "builder",
+  welcomeDismissed: false,
+  exploreHubOpen: false,
+  helpPanelOpen: false
 };
 const ONBOARDING_STORAGE_KEY = "runwright-onboarding-v1";
 const LATENCY_BUDGET_MS = 1200;
@@ -53,6 +57,7 @@ const surfaceTitle = document.querySelector("#surface-title");
 const surfaceIntent = document.querySelector("#surface-intent");
 const surfaceStatus = document.querySelector("#surface-status");
 const surfacePrimaryAction = document.querySelector("#surface-primary-action");
+const ledeCopy = document.querySelector(".lede");
 const surfaceCriteria = document.querySelector("#surface-success-criteria");
 const journeyStripSteps = document.querySelector("#journey-strip-steps");
 const journeyWhy = document.querySelector("#journey-why");
@@ -93,13 +98,29 @@ const moderationSummary = document.querySelector("#moderation-summary");
 const liveopsSummary = document.querySelector("#liveops-summary");
 const analyticsSummary = document.querySelector("#analytics-summary");
 const mobileSurfaceSelect = document.querySelector("#mobile-surface-select");
-const toggleAdvancedNavButton = document.querySelector("#toggle-advanced-nav");
+const openExploreHubButton = document.querySelector("#open-explore-hub");
+const closeExploreHubButton = document.querySelector("#close-explore-hub");
+const exploreHub = document.querySelector("#explore-hub");
+const exploreHubList = document.querySelector("#explore-hub-list");
+const toggleHelpPanelButton = document.querySelector("#toggle-help-panel");
+const helpPanel = document.querySelector("#help-panel");
 const navModeHint = document.querySelector("#nav-mode-hint");
-const advancedNavTools = document.querySelector("#advanced-nav-tools");
 const runTutorialButton = document.querySelector("#run-tutorial");
 const saveProgressButton = document.querySelector("#save-progress");
 const publishLevelButton = document.querySelector("#publish-level");
 const submitRankedButton = document.querySelector("#submit-ranked");
+const welcomeOverlay = document.querySelector("#welcome-overlay");
+const welcomeStartButton = document.querySelector("#welcome-start");
+const welcomeDismissButton = document.querySelector("#welcome-dismiss");
+const personaModeSelect = document.querySelector("#persona-mode");
+const reopenOnboardingGuideButton = document.querySelector("#reopen-onboarding-guide");
+const jumpToNextStepButton = document.querySelector("#jump-to-next-step");
+
+const PERSONA_GUIDANCE = {
+  builder: "Builder focus: publish your first level, then jump to Challenge and Creator surfaces.",
+  operator: "Operator focus: complete onboarding, then move into Moderation and LiveOps safety checks.",
+  analyst: "Analyst focus: complete onboarding, then validate Ranked and Analytics health."
+};
 
 let retryTimer = null;
 const responseCache = new Map();
@@ -115,6 +136,20 @@ function onboardingReady() {
 
 function campaignReady() {
   return state.progress.published;
+}
+
+function applyAccessibilityStyles() {
+  document.body.style.fontSize = `${state.accessibility.textScale}rem`;
+  document.body.classList.toggle("reduced-motion", state.accessibility.reducedMotion);
+  document.body.classList.toggle("high-contrast", state.accessibility.highContrast);
+  const textScale = document.querySelector("#text-scale");
+  const reducedMotion = document.querySelector("#reduced-motion");
+  const highContrast = document.querySelector("#high-contrast");
+  const remapProfile = document.querySelector("#remap-profile");
+  if (textScale) textScale.value = String(state.accessibility.textScale);
+  if (reducedMotion) reducedMotion.checked = state.accessibility.reducedMotion;
+  if (highContrast) highContrast.checked = state.accessibility.highContrast;
+  if (remapProfile) remapProfile.value = state.accessibility.remapProfile;
 }
 
 function announceStatus(message) {
@@ -322,7 +357,7 @@ function navContext() {
   return {
     profileReady: profileReady(),
     onboardingReady: onboardingReady(),
-    showAdvancedNav: state.showAdvancedNav,
+    showAdvancedNav: state.showAdvancedNav || state.exploreHubOpen,
     activeSurface: state.activeSurface
   };
 }
@@ -346,13 +381,11 @@ function syncNavigationDisclosure() {
     if (activeOption) activeOption.hidden = false;
   }
 
-  toggleAdvancedNavButton.setAttribute("aria-expanded", state.showAdvancedNav ? "true" : "false");
-  toggleAdvancedNavButton.textContent = state.showAdvancedNav ? "Hide advanced surfaces" : "Show advanced surfaces";
-  navModeHint.textContent = state.showAdvancedNav
-    ? "Expanded mode: all surfaces are available."
-    : "Focused mode: showing only core surfaces.";
-  if (state.showAdvancedNav) {
-    advancedNavTools.open = true;
+  navModeHint.textContent = state.exploreHubOpen
+    ? "Explore mode: advanced surfaces are visible in the explorer."
+    : "Focused mode: core surfaces in header. Advanced workflows live in Explore.";
+  if (openExploreHubButton) {
+    openExploreHubButton.setAttribute("aria-expanded", state.exploreHubOpen ? "true" : "false");
   }
 }
 
@@ -397,6 +430,85 @@ function syncSurfacePanels(surface) {
   }
 }
 
+function setExploreHubOpen(open) {
+  state.exploreHubOpen = open;
+  if (exploreHub) {
+    exploreHub.hidden = !open;
+  }
+  if (open && !state.showAdvancedNav) {
+    state.showAdvancedNav = true;
+  }
+  syncNavigationDisclosure();
+  if (open) {
+    renderExploreHub();
+    surfaceSearch.focus();
+  }
+  persistLocalState();
+}
+
+function syncHelpPanelVisibility() {
+  if (helpPanel) {
+    helpPanel.hidden = !state.helpPanelOpen;
+  }
+  if (toggleHelpPanelButton) {
+    toggleHelpPanelButton.setAttribute("aria-expanded", state.helpPanelOpen ? "true" : "false");
+    toggleHelpPanelButton.textContent = state.helpPanelOpen ? "Hide Help Panel" : "Show Help Panel";
+  }
+}
+
+function renderExploreHub() {
+  if (!exploreHubList) return;
+  exploreHubList.innerHTML = "";
+  for (const [surface, meta] of Object.entries(SURFACE_META)) {
+    if (!isAdvancedSurface(surface)) continue;
+    const lock = getSurfaceLockReason(surface, navContext());
+    const card = document.createElement("article");
+    card.className = "explore-card rw-stack";
+
+    const title = document.createElement("h3");
+    title.textContent = meta.label;
+    card.appendChild(title);
+
+    const intent = document.createElement("p");
+    intent.className = "muted";
+    intent.textContent = meta.intent;
+    card.appendChild(intent);
+
+    const status = document.createElement("p");
+    status.className = "status-pill";
+    status.textContent = lock ? "Locked: complete prerequisite" : "Ready";
+    card.appendChild(status);
+
+    const action = document.createElement("button");
+    action.type = "button";
+    action.textContent = lock ? lock.actionLabel : `Open ${meta.label}`;
+    action.dataset.surface = lock ? lock.actionTarget : surface;
+    action.dataset.originSurface = surface;
+    card.appendChild(action);
+
+    const hint = document.createElement("p");
+    hint.className = "muted";
+    hint.textContent = lock ? lock.message : "This surface is available now.";
+    card.appendChild(hint);
+
+    exploreHubList.appendChild(card);
+  }
+}
+
+function personaHint() {
+  return PERSONA_GUIDANCE[state.personaMode] || PERSONA_GUIDANCE.builder;
+}
+
+function setWelcomeOverlayOpen(open) {
+  if (!welcomeOverlay) return;
+  welcomeOverlay.hidden = !open;
+  document.body.classList.toggle("overlay-open", open);
+  if (open) {
+    announceStatus("Guided onboarding is ready. Start setup or choose explore mode.");
+    welcomeStartButton.focus();
+  }
+}
+
 function renderSurfaceChrome(stepLabel = null) {
   const surface = state.activeSurface;
   const meta = SURFACE_META[surface] || SURFACE_META.dashboard;
@@ -431,6 +543,7 @@ function renderSurfaceChrome(stepLabel = null) {
   renderCriteria();
   renderJourneyStrip();
   syncSurfacePanels(surface);
+  syncHelpPanelVisibility();
 }
 
 function renderOnboardingGuidance() {
@@ -473,9 +586,10 @@ function renderSocialInvites() {
 }
 
 function renderSummaries() {
+  const hint = personaHint();
   dashboardSummary.textContent = profileReady()
-    ? `Profile ${state.profileHandle} is active. Continue onboarding to unlock full challenge depth.`
-    : "No profile yet. Create one to unlock onboarding guidance.";
+    ? `Profile ${state.profileHandle} is active. ${hint}`
+    : `No profile yet. Create one to unlock onboarding guidance. ${hint}`;
   profileSummary.textContent = profileReady()
     ? `Handle: ${state.profileHandle} | Locale: ${state.locale}`
     : "No profile is active yet.";
@@ -491,6 +605,11 @@ function renderSummaries() {
   renderUndoAvailability();
   renderRetryQueue();
   renderSocialInvites();
+  if (ledeCopy) {
+    ledeCopy.textContent = onboardingReady()
+      ? "Onboarding complete. Keep the main workspace focused and use Explore for advanced modes."
+      : "Complete onboarding quickly, then move into challenge, ranked, and creator loops.";
+  }
   persistLocalState();
 }
 
@@ -498,6 +617,12 @@ function setActiveSurface(surface, stepLabel = null) {
   const nextSurface = SURFACE_META[surface] ? surface : "dashboard";
   if (isAdvancedSurface(nextSurface)) {
     state.showAdvancedNav = true;
+  }
+  if (nextSurface === "help") {
+    state.helpPanelOpen = true;
+  }
+  if (state.exploreHubOpen) {
+    setExploreHubOpen(false);
   }
   if (state.activeSurface === nextSurface && stepLabel === null) return;
   state.activeSurface = nextSurface;
@@ -678,6 +803,9 @@ function persistLocalState() {
       profileHandle: state.profileHandle,
       locale: state.locale,
       showAdvancedNav: state.showAdvancedNav,
+      personaMode: state.personaMode,
+      welcomeDismissed: state.welcomeDismissed,
+      helpPanelOpen: state.helpPanelOpen,
       progress: state.progress,
       accessibility: state.accessibility,
       coachmarkDismissed: state.coachmarkDismissed
@@ -698,6 +826,11 @@ function restoreLocalState() {
     if (typeof parsed.profileHandle === "string") state.profileHandle = parsed.profileHandle;
     if (typeof parsed.locale === "string") state.locale = parsed.locale;
     if (parsed.showAdvancedNav === true) state.showAdvancedNav = true;
+    if (typeof parsed.personaMode === "string" && PERSONA_GUIDANCE[parsed.personaMode]) {
+      state.personaMode = parsed.personaMode;
+    }
+    if (parsed.welcomeDismissed === true) state.welcomeDismissed = true;
+    if (parsed.helpPanelOpen === true) state.helpPanelOpen = true;
     if (parsed.progress && typeof parsed.progress === "object") {
       state.progress.tutorial = parsed.progress.tutorial === true;
       state.progress.saved = parsed.progress.saved === true;
@@ -1014,7 +1147,8 @@ function runPrimaryAction() {
   }
   if (actionId === "open-help") {
     setActiveSurface("help");
-    window.open("/docs/help/README.md", "_blank", "noopener,noreferrer");
+    state.helpPanelOpen = true;
+    syncHelpPanelVisibility();
     return;
   }
   setActiveSurface("onboarding");
@@ -1053,9 +1187,7 @@ document.querySelector("#accessibility-form").addEventListener("submit", async (
       { label: "save accessibility" }
     );
     state.accessibility = payload.accessibility;
-    document.body.style.fontSize = `${state.accessibility.textScale}rem`;
-    document.body.classList.toggle("reduced-motion", state.accessibility.reducedMotion);
-    document.body.classList.toggle("high-contrast", state.accessibility.highContrast);
+    applyAccessibilityStyles();
     setFeedback("Accessibility preferences saved.");
   } catch (error) {
     setFeedback(`Accessibility update failed: ${error.message}`, true);
@@ -1357,7 +1489,7 @@ document.querySelector("#surface-command").addEventListener("submit", (event) =>
   if (!surface) {
     const visible = getVisibleSurfaces(navContext()).join(", ");
     surfaceSearchFeedback.textContent =
-      `Unknown surface. Try ${visible}. Use Show advanced surfaces to reveal full navigation.`;
+      `Unknown surface. Try ${visible}. Use Explore to reveal advanced navigation.`;
     return;
   }
   surfaceSearchFeedback.textContent = "";
@@ -1367,6 +1499,78 @@ document.querySelector("#surface-command").addEventListener("submit", (event) =>
 document.querySelector("#mobile-surface-nav").addEventListener("submit", (event) => {
   event.preventDefault();
   setActiveSurface(mobileSurfaceSelect.value);
+});
+
+openExploreHubButton.addEventListener("click", () => {
+  setExploreHubOpen(!state.exploreHubOpen);
+  if (!state.exploreHubOpen) {
+    openExploreHubButton.focus();
+  }
+});
+
+closeExploreHubButton.addEventListener("click", () => {
+  setExploreHubOpen(false);
+  openExploreHubButton.focus();
+});
+
+toggleHelpPanelButton.addEventListener("click", () => {
+  state.helpPanelOpen = !state.helpPanelOpen;
+  syncHelpPanelVisibility();
+  persistLocalState();
+});
+
+welcomeStartButton.addEventListener("click", () => {
+  state.welcomeDismissed = true;
+  setWelcomeOverlayOpen(false);
+  setActiveSurface("onboarding", "Guided Setup");
+  document.querySelector("#handle").focus();
+  persistLocalState();
+});
+
+welcomeDismissButton.addEventListener("click", () => {
+  state.welcomeDismissed = true;
+  setWelcomeOverlayOpen(false);
+  setExploreHubOpen(true);
+  setFeedback("Guided overlay dismissed. Explore mode is open for advanced workflows.");
+  persistLocalState();
+});
+
+personaModeSelect.addEventListener("change", () => {
+  const mode = personaModeSelect.value;
+  if (PERSONA_GUIDANCE[mode]) {
+    state.personaMode = mode;
+    renderSummaries();
+    setFeedback(`Persona mode updated: ${mode}.`);
+  }
+});
+
+reopenOnboardingGuideButton.addEventListener("click", () => {
+  state.welcomeDismissed = false;
+  setWelcomeOverlayOpen(true);
+  setActiveSurface("onboarding", "Guide");
+  persistLocalState();
+});
+
+jumpToNextStepButton.addEventListener("click", () => {
+  const step = nextGuidedStep();
+  if (!step) {
+    setExploreHubOpen(true);
+    setFeedback("Guided steps are complete. Use Explore for advanced workflows.");
+    return;
+  }
+  setActiveSurface(step.focusSurface, step.label);
+  surfacePrimaryAction.dataset.actionId = step.actionId;
+  runPrimaryAction();
+});
+
+exploreHubList.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest("button[data-surface]");
+  if (!(button instanceof HTMLButtonElement)) return;
+  const surface = button.dataset.surface || "dashboard";
+  const origin = button.dataset.originSurface;
+  setActiveSurface(surface, origin ? `Explore ${origin}` : null);
 });
 
 surfacePrimaryAction.addEventListener("click", runPrimaryAction);
@@ -1382,14 +1586,6 @@ for (const navItem of navItems) {
   });
 }
 
-toggleAdvancedNavButton.addEventListener("click", () => {
-  state.showAdvancedNav = !state.showAdvancedNav;
-  if (state.showAdvancedNav) {
-    advancedNavTools.open = true;
-  }
-  renderSurfaceChrome();
-});
-
 for (const button of document.querySelectorAll("[data-help]")) {
   const helpText = button.getAttribute("data-help");
   button.setAttribute("title", helpText);
@@ -1398,8 +1594,28 @@ for (const button of document.querySelectorAll("[data-help]")) {
 window.addEventListener("keydown", (event) => {
   if (event.key === "/" && document.activeElement !== surfaceSearch) {
     event.preventDefault();
-    advancedNavTools.open = true;
+    if (!state.exploreHubOpen) {
+      setExploreHubOpen(true);
+    }
     surfaceSearch.focus();
+    return;
+  }
+  if (event.key === "?") {
+    event.preventDefault();
+    state.helpPanelOpen = true;
+    syncHelpPanelVisibility();
+    persistLocalState();
+    return;
+  }
+  if (event.key === "Escape" && welcomeOverlay && !welcomeOverlay.hidden) {
+    state.welcomeDismissed = true;
+    setWelcomeOverlayOpen(false);
+    persistLocalState();
+    return;
+  }
+  if (event.key === "Escape" && state.exploreHubOpen) {
+    setExploreHubOpen(false);
+    openExploreHubButton.focus();
   }
 });
 
@@ -1463,6 +1679,14 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 restoreLocalState();
+applyAccessibilityStyles();
 renderSocialInvites();
 setActiveSurface("dashboard");
+syncHelpPanelVisibility();
+if (personaModeSelect) {
+  personaModeSelect.value = state.personaMode;
+}
+if (!state.welcomeDismissed && !onboardingReady()) {
+  setWelcomeOverlayOpen(true);
+}
 refreshHelp().catch(() => setFeedback("Help service unavailable.", true));
