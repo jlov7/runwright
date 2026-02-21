@@ -172,8 +172,8 @@
   - `pnpm release:verify-local` (`release artifact verification: ok`)
 - Status: Exception path remains active pending GitHub Actions billing/quota recovery and successful reruns on latest head.
 
-### Q4 update (2026-02-21, latest pushed head refresh)
-- Latest pushed `main` head `aac19d2` still fails pre-execution on both required workflows with zero-step jobs, including explicit rerun attempts:
+### Q4 update (2026-02-21, evaluated head refresh)
+- Evaluated `main` head `aac19d2` still fails pre-execution on both required workflows with zero-step jobs, including explicit rerun attempts:
   - `CI` run `22261941895` attempt `2` (`verify` matrix + `quality-scorecard` failed with `steps: []`; downstream jobs skipped with `steps: []`)
   - `CodeQL` run `22261941891` attempt `2` (`Analyze (javascript-typescript)` failed with `steps: []`)
 - `gh run view` confirms no workflow steps executed before failure on both reruns, matching the established billing/quota startup-failure profile.
