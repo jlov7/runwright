@@ -75,6 +75,13 @@ pnpm game:runtime
 
 Then open the printed URL in your browser (default `http://127.0.0.1:4242`).
 
+Recommended first-run web flow:
+1. Use the first-run guide overlay and choose the closest persona.
+2. Complete onboarding in order: `Create Profile` -> `Run Tutorial Hint` -> `Save Progress` -> `Publish Level`.
+3. Use `Take Me To Next Step` for guided progression.
+4. Open `Explore Advanced Surfaces` for challenge/campaign/ranked/creator/liveops flows.
+5. Toggle `Show Help Panel` for tooltips, recovery playbooks, and diagnostic packet copy.
+
 Runtime endpoints:
 - Web shell: `/`
 - Health: `/v1/health`

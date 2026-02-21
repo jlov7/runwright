@@ -250,6 +250,7 @@ Reduce front-end complexity and cognitive load so first-run users can confidentl
 - [x] UXP-4: Phase 4 complete (layout density and visual hierarchy polish).
 - [x] UXP-5: Phase 5 complete (accessibility and keyboard refinement).
 - [x] UXP-6: Phase 6 complete (full quality gates + evidence refresh).
+- [x] UXP-7: Follow-up hardening complete (first-run welcome overlay wiring, explore hub orchestration, collapsible help-panel controls, updated docs/help guidance, and refreshed visual/runtime regression baselines on 2026-02-21).
 
 ## Validation Gates
 - Phase gate: targeted frontend tests for touched behaviors.

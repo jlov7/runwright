@@ -2,6 +2,12 @@
 
 ## P0
 
+### P0-021: Guided first-run UX controls were partially implemented but not wired end-to-end
+- Evidence: `apps/web/index.html` introduced `welcome-overlay`, `explore-hub`, and help/disclosure controls, but runtime behavior still referenced removed `toggleAdvancedNavButton`/`advancedNavTools` and lacked full event wiring (`apps/web/app.js` before 2026-02-21 pass).
+- Impacted journey: First-run onboarding and advanced-surface discovery for new users.
+- Fix strategy: Complete overlay/explorer/help orchestration, remove dead references, wire keyboard shortcuts and quick-actions, and update visual/runtime regression tests.
+- Status: Done (runtime wiring completed in `apps/web/app.js`; UX styling in `apps/web/styles.css`; markup/a11y improvements in `apps/web/index.html`; tests updated in `tests/frontend-navigation-disclosure.test.ts` and `tests/game-runtime-shell.test.ts`)
+
 ### P0-019: First-run web shell still presents excessive cognitive load and weak progressive disclosure
 - Evidence: baseline shell currently renders 12 top-level nav surfaces (`dashboard/profile/onboarding/challenge/campaign/coop/ranked/creator/moderation/liveops/analytics/help`), 40 buttons, and 6 forms in first render (`apps/web/index.html`, captured 2026-02-20); user feedback reports "too much stuff going on" and confusing layout/journeys.
 - Impacted journey: Signup/onboarding/first success moment and early trust for non-technical users.

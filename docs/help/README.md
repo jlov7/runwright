@@ -11,6 +11,18 @@ pnpm tsx src/cli.ts journey
 `journey` shows current onboarding status and the single next best action.
 It also detects stale evidence: if skills or manifest changed after `update`/`scan`/`apply`, those steps return to pending until rerun.
 
+## Fastest web runtime orientation
+
+```bash
+pnpm game:runtime
+```
+
+Then open the runtime URL and follow:
+1. First-run guide overlay (choose persona + start setup).
+2. Guided onboarding actions in order (profile -> tutorial -> save -> publish).
+3. `Take Me To Next Step` for one-click progression.
+4. `Explore Advanced Surfaces` only after first-success (or when explicitly needed).
+
 ## Common diagnostics
 - `pnpm tsx src/cli.ts policy check --explain --json` (policy + trust reasoning)
 - `pnpm tsx src/cli.ts fix --plan --json` (safe remediation plan)
