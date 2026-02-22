@@ -62,6 +62,15 @@
         >
           Show Help Panel
         </button>
+        <button
+          type="button"
+          id="toggle-theme"
+          class="nav-toggle"
+          aria-label="Switch to light mode"
+          data-help="Toggles between light and dark color themes."
+        >
+          Light Mode
+        </button>
         <p id="nav-mode-hint" class="muted">Focused mode: core surfaces in header. Advanced workflows live in Explore.</p>
       </div>
     </header>
@@ -134,27 +143,28 @@
       </form>
       <div id="explore-hub-list" class="explore-hub-list" aria-live="polite"></div>
 
-      <form id="mobile-surface-nav" class="mobile-surface-nav" aria-label="Mobile surface switcher">
-        <label for="mobile-surface-select">Mobile navigation</label>
-        <div class="rw-inline">
-          <select id="mobile-surface-select" name="mobile-surface-select">
-            <option value="dashboard">Dashboard</option>
-            <option value="profile">Profile</option>
-            <option value="onboarding">Onboarding</option>
-            <option value="help">Help</option>
-            <option value="challenge">Challenge</option>
-            <option value="campaign">Campaign</option>
-            <option value="coop">Co-op</option>
-            <option value="ranked">Ranked</option>
-            <option value="creator">Creator</option>
-            <option value="moderation">Moderation</option>
-            <option value="liveops">LiveOps</option>
-            <option value="analytics">Analytics</option>
-          </select>
-          <button type="submit">Open</button>
-        </div>
-      </form>
     </section>
+
+    <form id="mobile-surface-nav" class="mobile-surface-nav rw-page" aria-label="Mobile surface switcher">
+      <label for="mobile-surface-select">Mobile navigation</label>
+      <div class="rw-inline">
+        <select id="mobile-surface-select" name="mobile-surface-select">
+          <option value="dashboard">Dashboard</option>
+          <option value="profile">Profile</option>
+          <option value="onboarding">Onboarding</option>
+          <option value="help">Help</option>
+          <option value="challenge">Challenge</option>
+          <option value="campaign">Campaign</option>
+          <option value="coop">Co-op</option>
+          <option value="ranked">Ranked</option>
+          <option value="creator">Creator</option>
+          <option value="moderation">Moderation</option>
+          <option value="liveops">LiveOps</option>
+          <option value="analytics">Analytics</option>
+        </select>
+        <button type="submit">Open</button>
+      </div>
+    </form>
 
     <div id="status-live-region" class="sr-only" aria-live="polite"></div>
     <div id="network-banner" class="network-banner rw-page" hidden role="status" aria-live="polite">
@@ -162,7 +172,7 @@
     </div>
     <div id="latency-alert" class="network-banner rw-page" hidden role="status" aria-live="polite"></div>
     <div id="global-error-boundary" class="global-error-boundary rw-page" hidden role="alert">
-      <p id="global-error-message">Unexpected issue. Open help docs and retry.</p>
+      <p id="global-error-message" aria-live="assertive">Unexpected issue. Open help docs and retry.</p>
       <a href="/docs/help/README.md" target="_blank" rel="noreferrer">Open help docs</a>
       <a href="/v1/help" target="_blank" rel="noreferrer">Open runtime recovery routes</a>
     </div>
@@ -170,7 +180,9 @@
     <main class="layout rw-page" aria-label="Primary gameplay workspace">
       <section class="panel panel-wayfinding rw-panel" aria-labelledby="wayfinding-title">
         <h2 id="wayfinding-title">Where You Are</h2>
-        <p id="breadcrumb-trail" class="breadcrumb" aria-live="polite">Home / Dashboard</p>
+        <nav id="breadcrumb-trail" class="breadcrumb" aria-label="Breadcrumb" aria-live="polite">
+          <button type="button" id="breadcrumb-home" class="breadcrumb-link">Home</button> / <span id="breadcrumb-surface">Dashboard</span>
+        </nav>
         <p id="surface-path-hint" class="muted">Use the nav or command bar to move through core surfaces quickly.</p>
         <div class="rw-inline wayfinding-actions">
           <button

@@ -1,3 +1,5 @@
+// ── Imports ──────────────────────────────────────────────────────────────────
+
 import {
   SURFACE_META,
   getSurfaceLockReason,
@@ -5,6 +7,9 @@ import {
   isAdvancedSurface,
   normalizeSurfaceInput
 } from "/navigation.js";
+
+// ── State & Constants ────────────────────────────────────────────────────────
+// TODO: Replace with src/app/state-store.ts createFrontendStore() once build pipeline supports TS
 
 const state = {
   profileId: null,
@@ -47,12 +52,15 @@ const DEV_LATENCY_ALERT =
   window.location.search.includes("debugLatency=1");
 const RESPONSE_CACHE_TTL_MS = 5000;
 
+// ── DOM References ───────────────────────────────────────────────────────────
+
 const feedback = document.querySelector("#feedback");
 const nextAction = document.querySelector("#next-action");
 const stepsList = document.querySelector("#onboarding-steps");
 const tipsList = document.querySelector("#tips");
 const recoveryPlaybook = document.querySelector("#recovery-playbook");
-const breadcrumbTrail = document.querySelector("#breadcrumb-trail");
+const breadcrumbHome = document.querySelector("#breadcrumb-home");
+const breadcrumbSurface = document.querySelector("#breadcrumb-surface");
 const surfaceTitle = document.querySelector("#surface-title");
 const surfaceIntent = document.querySelector("#surface-intent");
 const surfaceStatus = document.querySelector("#surface-status");
@@ -115,6 +123,7 @@ const welcomeDismissButton = document.querySelector("#welcome-dismiss");
 const personaModeSelect = document.querySelector("#persona-mode");
 const reopenOnboardingGuideButton = document.querySelector("#reopen-onboarding-guide");
 const jumpToNextStepButton = document.querySelector("#jump-to-next-step");
+const toggleThemeButton = document.querySelector("#toggle-theme");
 
 const PERSONA_GUIDANCE = {
   builder: "Builder focus: publish your first level, then jump to Challenge and Creator surfaces.",
@@ -125,6 +134,8 @@ const PERSONA_GUIDANCE = {
 let retryTimer = null;
 const responseCache = new Map();
 const pendingGetRequests = new Map();
+
+// ── Derived State Helpers ─────────────────────────────────────────────────────
 
 function profileReady() {
   return Boolean(state.profileId);
@@ -152,6 +163,8 @@ function applyAccessibilityStyles() {
   if (remapProfile) remapProfile.value = state.accessibility.remapProfile;
 }
 
+// ── UI Rendering ─────────────────────────────────────────────────────────────
+
 function announceStatus(message) {
   if (state.lastAnnouncedMessage === message) return;
   state.lastAnnouncedMessage = message;
@@ -166,6 +179,18 @@ function setLoading(active, label) {
   }
 }
 
+async function withButtonLoading(button, loadingText, fn) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = loadingText;
+  try {
+    return await fn();
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 function successCriteriaRows() {
   return [
     { label: "Profile created", complete: profileReady() },
@@ -177,7 +202,7 @@ function successCriteriaRows() {
 }
 
 function renderCriteria() {
-  surfaceCriteria.innerHTML = "";
+  surfaceCriteria.replaceChildren();
   for (const row of successCriteriaRows()) {
     const li = document.createElement("li");
     li.textContent = `${row.complete ? "Done" : "Todo"}: ${row.label}`;
@@ -236,7 +261,7 @@ function nextGuidedStep() {
 
 function renderJourneyStrip() {
   const steps = guidedJourneySteps();
-  journeyStripSteps.innerHTML = "";
+  journeyStripSteps.replaceChildren();
   const currentStep = nextGuidedStep();
   for (const step of steps) {
     const li = document.createElement("li");
@@ -458,7 +483,7 @@ function syncHelpPanelVisibility() {
 
 function renderExploreHub() {
   if (!exploreHubList) return;
-  exploreHubList.innerHTML = "";
+  exploreHubList.replaceChildren();
   for (const [surface, meta] of Object.entries(SURFACE_META)) {
     if (!isAdvancedSurface(surface)) continue;
     const lock = getSurfaceLockReason(surface, navContext());
@@ -474,22 +499,12 @@ function renderExploreHub() {
     intent.textContent = meta.intent;
     card.appendChild(intent);
 
-    const status = document.createElement("p");
-    status.className = "status-pill";
-    status.textContent = lock ? "Locked: complete prerequisite" : "Ready";
-    card.appendChild(status);
-
     const action = document.createElement("button");
     action.type = "button";
     action.textContent = lock ? lock.actionLabel : `Open ${meta.label}`;
     action.dataset.surface = lock ? lock.actionTarget : surface;
     action.dataset.originSurface = surface;
     card.appendChild(action);
-
-    const hint = document.createElement("p");
-    hint.className = "muted";
-    hint.textContent = lock ? lock.message : "This surface is available now.";
-    card.appendChild(hint);
 
     exploreHubList.appendChild(card);
   }
@@ -499,13 +514,33 @@ function personaHint() {
   return PERSONA_GUIDANCE[state.personaMode] || PERSONA_GUIDANCE.builder;
 }
 
+function trapFocusInOverlay(event) {
+  if (event.key !== "Tab" || !welcomeOverlay || welcomeOverlay.hidden) return;
+  const focusable = [...welcomeOverlay.querySelectorAll(
+    'button:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )];
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function setWelcomeOverlayOpen(open) {
   if (!welcomeOverlay) return;
   welcomeOverlay.hidden = !open;
   document.body.classList.toggle("overlay-open", open);
   if (open) {
     announceStatus("Guided onboarding is ready. Start setup or choose explore mode.");
+    document.addEventListener("keydown", trapFocusInOverlay);
     welcomeStartButton.focus();
+  } else {
+    document.removeEventListener("keydown", trapFocusInOverlay);
   }
 }
 
@@ -524,7 +559,7 @@ function renderSurfaceChrome(stepLabel = null) {
 
   mobileSurfaceSelect.value = surface;
   const label = meta.label;
-  breadcrumbTrail.textContent = stepLabel ? `Home / ${label} / ${stepLabel}` : `Home / ${label}`;
+  breadcrumbSurface.textContent = stepLabel ? `${label} / ${stepLabel}` : label;
   surfaceTitle.textContent = label;
   surfaceIntent.textContent = meta.intent;
   surfaceStatus.textContent = statusTextFor(surface);
@@ -547,7 +582,7 @@ function renderSurfaceChrome(stepLabel = null) {
 }
 
 function renderOnboardingGuidance() {
-  coachmarkBanner.hidden = state.coachmarkDismissed;
+  coachmarkBanner.hidden = state.coachmarkDismissed || !profileReady();
   celebrationBanner.hidden = !onboardingReady();
 }
 
@@ -556,7 +591,7 @@ function renderUndoAvailability() {
 }
 
 function renderRetryQueue() {
-  retryQueueList.innerHTML = "";
+  retryQueueList.replaceChildren();
   if (state.retryQueue.length === 0) {
     retryQueuePanel.hidden = true;
     return;
@@ -571,7 +606,7 @@ function renderRetryQueue() {
 }
 
 function renderSocialInvites() {
-  coopInvites.innerHTML = "";
+  coopInvites.replaceChildren();
   if (state.socialInvites.length === 0) {
     const li = document.createElement("li");
     li.textContent = "No invites queued in this session.";
@@ -610,16 +645,18 @@ function renderSummaries() {
       ? "Onboarding complete. Keep the main workspace focused and use Explore for advanced modes."
       : "Complete onboarding quickly, then move into challenge, ranked, and creator loops.";
   }
-  persistLocalState();
+  debouncedPersist();
 }
+
+// ── Navigation & Surface Management ──────────────────────────────────────────
 
 function setActiveSurface(surface, stepLabel = null) {
   const nextSurface = SURFACE_META[surface] ? surface : "dashboard";
   if (isAdvancedSurface(nextSurface)) {
     state.showAdvancedNav = true;
   }
-  if (nextSurface === "help") {
-    state.helpPanelOpen = true;
+  if (nextSurface === "help" && state.activeSurface !== "help") {
+    // Navigate to help surface without auto-opening the sidebar
   }
   if (state.exploreHubOpen) {
     setExploreHubOpen(false);
@@ -631,6 +668,10 @@ function setActiveSurface(surface, stepLabel = null) {
   requestAnimationFrame(() => {
     surfaceTitle.focus();
   });
+  if (nextSurface === "ranked") void refreshLeaderboard();
+  else if (nextSurface === "creator") void refreshCreatorFeed();
+  else if (nextSurface === "liveops") void refreshLiveOps();
+  else if (nextSurface === "analytics") void refreshAnalytics();
 }
 
 async function loadSurfaceHelpers() {
@@ -639,6 +680,9 @@ async function loadSurfaceHelpers() {
   }
   return state.helperModulePromise;
 }
+
+// ── Networking & API ─────────────────────────────────────────────────────────
+// TODO: Replace with src/shared/interaction-state.ts phase tracking once wired
 
 function trackRequestMetric(label, durationMs) {
   state.requestMetrics.push({
@@ -796,6 +840,15 @@ async function api(path, init = {}, options = {}) {
   return requestPromise;
 }
 
+// ── Persistence ──────────────────────────────────────────────────────────────
+// TODO: Replace with src/app/state-store.ts persistence layer once wired
+
+let persistTimer = null;
+function debouncedPersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(persistLocalState, 300);
+}
+
 function persistLocalState() {
   try {
     const snapshot = {
@@ -877,26 +930,44 @@ function setFeedback(message, isError = false) {
   pushToast(rendered, isError ? "error" : "info");
 }
 
+// ── Toasts & Feedback ────────────────────────────────────────────────────────
+
 function pushToast(message, tone) {
-  const item = document.createElement("p");
+  const item = document.createElement("div");
   item.className = `toast-item ${tone}`;
-  item.textContent = message;
+  item.setAttribute("role", "status");
+  const text = document.createElement("span");
+  text.textContent = message;
+  item.appendChild(text);
+  const dismiss = document.createElement("button");
+  dismiss.className = "toast-dismiss";
+  dismiss.setAttribute("aria-label", "Dismiss notification");
+  dismiss.textContent = "\u00d7";
+  dismiss.addEventListener("click", () => item.remove());
+  item.appendChild(dismiss);
   toastStack.prepend(item);
-  setTimeout(() => item.remove(), 3800);
+  const prefersReducedMotion =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    document.body.classList.contains("reduced-motion");
+  if (!prefersReducedMotion) {
+    setTimeout(() => item.remove(), 3800);
+  }
 }
+
+// ── Data Fetching ────────────────────────────────────────────────────────────
 
 async function refreshHelp() {
   helpLoadingSkeleton.hidden = false;
   try {
     const help = await api("/v1/help", {}, { label: "load help" });
-    tipsList.innerHTML = "";
+    tipsList.replaceChildren();
     for (const item of help.tooltips) {
       const li = document.createElement("li");
       li.textContent = item.copy;
       tipsList.appendChild(li);
     }
 
-    recoveryPlaybook.innerHTML = "";
+    recoveryPlaybook.replaceChildren();
     const playbooks = [
       "Sync conflict: open save details, merge manually, then retry save with latest base version.",
       "Ranked anti-tamper: regenerate score payload from trusted runtime and resubmit.",
@@ -938,7 +1009,7 @@ async function refreshOnboarding() {
   setLoading(true, "Loading onboarding checklist...");
   try {
     const payload = await api(`/v1/onboarding/${state.profileId}`, {}, { label: "load onboarding" });
-    stepsList.innerHTML = "";
+    stepsList.replaceChildren();
     for (const step of payload.steps) {
       const li = document.createElement("li");
       li.textContent = `${step.complete ? "Done" : "Todo"}: ${step.title}`;
@@ -1010,7 +1081,7 @@ async function refreshLeaderboard() {
   try {
     const helpers = await loadSurfaceHelpers();
     const payload = await api("/v1/ranked/leaderboard", {}, { label: "refresh leaderboard" });
-    rankedLeaderboard.innerHTML = "";
+    rankedLeaderboard.replaceChildren();
     const rows = helpers.mapLeaderboardRows(payload);
     for (const row of rows) {
       const li = document.createElement("li");
@@ -1033,7 +1104,7 @@ async function refreshCreatorFeed() {
   try {
     const helpers = await loadSurfaceHelpers();
     const payload = await api("/v1/ugc/discover", {}, { label: "refresh creator feed" });
-    creatorDiscover.innerHTML = "";
+    creatorDiscover.replaceChildren();
     const rows = helpers.mapCreatorRows(payload);
     for (const row of rows) {
       const li = document.createElement("li");
@@ -1074,6 +1145,8 @@ async function refreshAnalytics() {
     setLoading(false, "");
   }
 }
+
+// ── Action Routing & Event Handlers ──────────────────────────────────────────
 
 function runPrimaryAction() {
   const actionId = surfacePrimaryAction.dataset.actionId;
@@ -1216,62 +1289,66 @@ document.querySelector("#logout-session").addEventListener("click", async () => 
   }
 });
 
-document.querySelector("#run-tutorial").addEventListener("click", async () => {
+document.querySelector("#run-tutorial").addEventListener("click", async function () {
   if (!state.profileId) return setFeedback("Create a profile first.", true);
-  try {
-    await api(
-      "/v1/telemetry/events",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          profileId: state.profileId,
-          type: "tutorial.started",
-          payload: { source: "web-shell" }
-        })
-      },
-      { label: "record tutorial" }
-    );
-    state.progress.tutorial = true;
-    onboardingDiagnostics.textContent = "Diagnostics: tutorial transition passed.";
-    await emitOnboardingTelemetry("onboarding.tutorial_recorded", { surface: "web-shell" });
-    setActiveSurface("onboarding", "Tutorial Hint");
-    setFeedback("Tutorial progress recorded.");
-    await refreshOnboarding();
-  } catch (error) {
-    onboardingDiagnostics.textContent = "Diagnostics: tutorial step failed; retry recommended.";
-    setFeedback(error.message, true);
-  }
+  await withButtonLoading(this, "Recording…", async () => {
+    try {
+      await api(
+        "/v1/telemetry/events",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            profileId: state.profileId,
+            type: "tutorial.started",
+            payload: { source: "web-shell" }
+          })
+        },
+        { label: "record tutorial" }
+      );
+      state.progress.tutorial = true;
+      onboardingDiagnostics.textContent = "Diagnostics: tutorial transition passed.";
+      await emitOnboardingTelemetry("onboarding.tutorial_recorded", { surface: "web-shell" });
+      setActiveSurface("onboarding", "Tutorial Hint");
+      setFeedback("Tutorial progress recorded.");
+      await refreshOnboarding();
+    } catch (error) {
+      onboardingDiagnostics.textContent = "Diagnostics: tutorial step failed; retry recommended.";
+      setFeedback(error.message, true);
+    }
+  });
 });
 
-document.querySelector("#save-progress").addEventListener("click", async () => {
+document.querySelector("#save-progress").addEventListener("click", async function () {
   if (!state.profileId) return setFeedback("Create a profile first.", true);
-  try {
-    await api(
-      "/v1/saves",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          profileId: state.profileId,
-          strategy: "last-write-wins",
-          baseVersion: 0,
-          payload: { chapter: 1, checkpoint: "shell-save" }
-        })
-      },
-      { label: "save progress" }
-    );
-    state.progress.saved = true;
-    onboardingDiagnostics.textContent = "Diagnostics: save transition passed.";
-    await emitOnboardingTelemetry("onboarding.progress_saved", { strategy: "last-write-wins" });
-    setActiveSurface("onboarding", "Save Progress");
-    setFeedback("Progress saved.");
-    await refreshOnboarding();
-  } catch (error) {
-    onboardingDiagnostics.textContent = "Diagnostics: save step failed; inspect sync state.";
-    setFeedback(error.message, true);
-  }
+  await withButtonLoading(this, "Saving…", async () => {
+    try {
+      await api(
+        "/v1/saves",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            profileId: state.profileId,
+            strategy: "last-write-wins",
+            baseVersion: 0,
+            payload: { chapter: 1, checkpoint: "shell-save" }
+          })
+        },
+        { label: "save progress" }
+      );
+      state.progress.saved = true;
+      onboardingDiagnostics.textContent = "Diagnostics: save transition passed.";
+      await emitOnboardingTelemetry("onboarding.progress_saved", { strategy: "last-write-wins" });
+      setActiveSurface("onboarding", "Save Progress");
+      setFeedback("Progress saved.");
+      await refreshOnboarding();
+    } catch (error) {
+      onboardingDiagnostics.textContent = "Diagnostics: save step failed; inspect sync state.";
+      setFeedback(error.message, true);
+    }
+  });
 });
 
-document.querySelector("#publish-level").addEventListener("click", async () => {
+document.querySelector("#publish-level").addEventListener("click", async function () {
   if (!state.profileId) return setFeedback("Create a profile first.", true);
   const previousPublished = state.progress.published;
   const previousAction = state.lastReversibleAction;
@@ -1279,54 +1356,58 @@ document.querySelector("#publish-level").addEventListener("click", async () => {
   state.lastReversibleAction = { type: "publish-level", previousPublished };
   setActiveSurface("creator", "Publish Level (Pending)");
   setFeedback("Publishing level (optimistic update)...");
-  try {
-    await api(
-      "/v1/ugc/levels",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          profileId: state.profileId,
-          title: "First Victory Sprint",
-          difficulty: "silver"
-        })
-      },
-      { label: "publish level" }
-    );
-    onboardingDiagnostics.textContent = "Diagnostics: publish transition passed.";
-    await emitOnboardingTelemetry("onboarding.level_published", { difficulty: "silver" });
-    setActiveSurface("creator", "Publish Level");
-    setFeedback("Level published. First success should now be complete.");
-    await refreshOnboarding();
-  } catch (error) {
-    state.progress.published = previousPublished;
-    state.lastReversibleAction = previousAction;
-    onboardingDiagnostics.textContent = "Diagnostics: publish failed; optimistic update rolled back.";
-    setActiveSurface("onboarding", "Publish Rollback");
-    setFeedback(`Publish failed and was rolled back: ${error.message}`, true);
-  }
+  await withButtonLoading(this, "Publishing…", async () => {
+    try {
+      await api(
+        "/v1/ugc/levels",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            profileId: state.profileId,
+            title: "First Victory Sprint",
+            difficulty: "silver"
+          })
+        },
+        { label: "publish level" }
+      );
+      onboardingDiagnostics.textContent = "Diagnostics: publish transition passed.";
+      await emitOnboardingTelemetry("onboarding.level_published", { difficulty: "silver" });
+      setActiveSurface("creator", "Publish Level");
+      setFeedback("Level published. First success should now be complete.");
+      await refreshOnboarding();
+    } catch (error) {
+      state.progress.published = previousPublished;
+      state.lastReversibleAction = previousAction;
+      onboardingDiagnostics.textContent = "Diagnostics: publish failed; optimistic update rolled back.";
+      setActiveSurface("onboarding", "Publish Rollback");
+      setFeedback(`Publish failed and was rolled back: ${error.message}`, true);
+    }
+  });
 });
 
-document.querySelector("#submit-ranked").addEventListener("click", async () => {
+document.querySelector("#submit-ranked").addEventListener("click", async function () {
   if (!state.profileId) return setFeedback("Create a profile first.", true);
-  try {
-    await api(
-      "/v1/ranked/submit",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          profileId: state.profileId,
-          score: state.score,
-          clientDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        })
-      },
-      { label: "submit ranked" }
-    );
-    setActiveSurface("ranked", "Score Submitted");
-    setFeedback("Ranked score accepted.");
-  } catch (error) {
-    setActiveSurface("ranked", "Submission Error");
-    setFeedback(`Ranked submission rejected: ${error.message}`, true);
-  }
+  await withButtonLoading(this, "Submitting…", async () => {
+    try {
+      await api(
+        "/v1/ranked/submit",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            profileId: state.profileId,
+            score: state.score,
+            clientDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          })
+        },
+        { label: "submit ranked" }
+      );
+      setActiveSurface("ranked", "Score Submitted");
+      setFeedback("Ranked score accepted.");
+    } catch (error) {
+      setActiveSurface("ranked", "Submission Error");
+      setFeedback(`Ranked submission rejected: ${error.message}`, true);
+    }
+  });
 });
 
 document.querySelector("#challenge-generate").addEventListener("click", () => {
@@ -1335,11 +1416,11 @@ document.querySelector("#challenge-generate").addEventListener("click", () => {
     setFeedback("Finish onboarding criteria before generating a challenge.", true);
     return;
   }
-  setLoading(true, "Generating challenge brief...");
+  setLoading(true, "Generating challenge brief (Demo)...");
   setTimeout(() => {
     setLoading(false, "");
-    challengeBrief.textContent = "Challenge: Iron Relay. Objective: Clear three waves without dropping below 40% stability.";
-    setFeedback("Challenge brief generated.");
+    challengeBrief.textContent = "(Demo) Challenge: Iron Relay. Objective: Clear three waves without dropping below 40% stability.";
+    setFeedback("Challenge brief generated (demo mode).");
   }, 320);
 });
 
@@ -1560,7 +1641,20 @@ jumpToNextStepButton.addEventListener("click", () => {
   }
   setActiveSurface(step.focusSurface, step.label);
   surfacePrimaryAction.dataset.actionId = step.actionId;
-  runPrimaryAction();
+  surfacePrimaryAction.classList.add("is-recommended");
+  announceStatus(`Next step: ${step.label}. Use the primary action button to proceed.`);
+});
+
+toggleThemeButton.addEventListener("click", () => {
+  const isDark = document.body.getAttribute("data-theme") === "dark";
+  const nextTheme = isDark ? "light" : "dark";
+  document.body.setAttribute("data-theme", nextTheme);
+  toggleThemeButton.textContent = isDark ? "Dark Mode" : "Light Mode";
+  toggleThemeButton.setAttribute("aria-label", `Switch to ${isDark ? "dark" : "light"} mode`);
+});
+
+breadcrumbHome.addEventListener("click", () => {
+  setActiveSurface("dashboard");
 });
 
 exploreHubList.addEventListener("click", (event) => {
@@ -1591,8 +1685,12 @@ for (const button of document.querySelectorAll("[data-help]")) {
   button.setAttribute("title", helpText);
 }
 
+// ── Keyboard Shortcuts & Global Events ────────────────────────────────────────
+
 window.addEventListener("keydown", (event) => {
-  if (event.key === "/" && document.activeElement !== surfaceSearch) {
+  const activeTag = document.activeElement?.tagName;
+  const inFormField = activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT";
+  if (event.key === "/" && !inFormField && document.activeElement !== surfaceSearch) {
     event.preventDefault();
     if (!state.exploreHubOpen) {
       setExploreHubOpen(true);
@@ -1600,7 +1698,7 @@ window.addEventListener("keydown", (event) => {
     surfaceSearch.focus();
     return;
   }
-  if (event.key === "?") {
+  if (event.key === "?" && !inFormField) {
     event.preventDefault();
     state.helpPanelOpen = true;
     syncHelpPanelVisibility();
@@ -1608,9 +1706,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (event.key === "Escape" && welcomeOverlay && !welcomeOverlay.hidden) {
-    state.welcomeDismissed = true;
     setWelcomeOverlayOpen(false);
-    persistLocalState();
     return;
   }
   if (event.key === "Escape" && state.exploreHubOpen) {
@@ -1677,6 +1773,8 @@ window.addEventListener("unhandledrejection", (event) => {
   const reason = event.reason instanceof Error ? event.reason.message : "Unknown rejection";
   globalErrorMessage.textContent = `Unexpected issue: ${reason}`;
 });
+
+// ── Initialization ───────────────────────────────────────────────────────────
 
 restoreLocalState();
 applyAccessibilityStyles();

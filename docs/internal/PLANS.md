@@ -12,9 +12,9 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 
 ## Files In Scope (initial)
 - `AGENTS.md`
-- `PLANS.md`
-- `RELEASE_CHECKLIST.md`
-- `QUESTIONS.md`
+- `docs/internal/PLANS.md`
+- `docs/release/RELEASE_CHECKLIST.md`
+- `docs/internal/QUESTIONS.md`
 - `src/cli.ts`
 - `tests/journey-ux.test.ts`
 - `tests/help-ux.test.ts`
@@ -64,7 +64,7 @@ Runwright already has strong policy, testing, and release-integrity foundations.
 
 ## Outcomes & Retrospective
 - Done:
-  - Added repo steering artifacts (`AGENTS.md`, `PLANS.md`, `RELEASE_CHECKLIST.md`, `QUESTIONS.md`).
+  - Added repo steering artifacts (`AGENTS.md`, `docs/internal/PLANS.md`, `docs/release/RELEASE_CHECKLIST.md`, `docs/internal/QUESTIONS.md`).
   - Fixed onboarding journey state logic for blocked scan/apply failures with regression tests.
   - Added help landing page and linked it from CLI help + README.
   - Hardened README with setup/run/test/release/env-var sections.
@@ -140,13 +140,13 @@ Execute the full expansion backlog required to move from release-ready v1 to a f
 - Per milestone: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
 
 ## Progress
-- [x] M0: Program tracker created and synced into `TODO.md`.
+- [x] M0: Program tracker created and synced into `docs/internal/TODO.md`.
 - [x] M1: Complete (WRX-001..012 complete).
 - [x] M2: Complete (WRX-013..020 complete).
 - [x] M3: Complete (WRX-021..030 complete).
 - [x] M4: Complete (WRX-031..040 complete).
 - [x] M5: Complete.
-- [x] M6: Additional pre-release gate backlog (PRX-01..040) tracked in `docs/plans/2026-02-17-pre-release-gate-world-class-backlog.md` and mirrored in `TODO.md`.
+- [x] M6: Additional pre-release gate backlog (PRX-01..040) tracked in `docs/plans/2026-02-17-pre-release-gate-world-class-backlog.md` and mirrored in `docs/internal/TODO.md`.
 
 ---
 

@@ -3,15 +3,15 @@ import type { AsyncUiState } from "../shared/ui/primitives";
 export type FrontendSurface =
   | "dashboard"
   | "profile"
-  | "settings"
   | "onboarding"
   | "challenge"
   | "campaign"
-  | "social"
+  | "coop"
   | "ranked"
   | "creator"
+  | "moderation"
   | "liveops"
-  | "diagnostics"
+  | "analytics"
   | "help";
 
 export type FrontendState = {

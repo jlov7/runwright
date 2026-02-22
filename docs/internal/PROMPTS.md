@@ -38,7 +38,7 @@ Prompt:
 
 ## Prompt 1 — Implement manifest parsing (Codex)
 
-> Implement manifest parsing for `skillbase.yml` and `skillbase.json` based on MANIFEST_SPEC.md.  
+> Implement manifest parsing for `skillbase.yml` and `skillbase.json` based on docs/specs/MANIFEST_SPEC.md.  
 > Requirements:
 > - strict schema validation with helpful errors (path to field)
 > - defaults merging

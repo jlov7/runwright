@@ -50,10 +50,10 @@
   - `README.md` includes setup/run/test/deploy/env sections.
   - Steering docs exist and are current:
     - `AGENTS.md`
-    - `PLANS.md`
-    - `RELEASE_CHECKLIST.md`
-    - `GAPS.md`
-    - `QUESTIONS.md`
+    - `docs/internal/PLANS.md`
+    - `docs/release/RELEASE_CHECKLIST.md`
+    - `docs/internal/GAPS.md`
+    - `docs/internal/QUESTIONS.md`
 
 ## Gate RG-007: CI Readiness
 - Requirement: latest commit on release branch has green required workflows.
@@ -70,8 +70,8 @@
   - `pnpm ship:gate`
   - `pnpm release:verify-local`
 - Required documentation:
-  - Record incident run IDs and failure mode in `QUESTIONS.md`.
-  - Record exception usage and timestamp in `RELEASE_CHECKLIST.md`.
+  - Record incident run IDs and failure mode in `docs/internal/QUESTIONS.md`.
+  - Record exception usage and timestamp in `docs/release/RELEASE_CHECKLIST.md`.
 - Exit criteria:
   - Re-run GitHub `CI` and `CodeQL` once platform service recovers.
   - If post-recovery runs reveal code failures, ship a patch release or roll back.

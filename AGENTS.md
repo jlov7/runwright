@@ -5,18 +5,18 @@ Ship a production-ready v1 with coherent end-to-end CLI journeys, strong quality
 
 ## Gap Loop (Strict)
 1. Run baseline evidence collection with `pnpm run doctor`.
-2. Read `RELEASE_GATES.md` and compare each gate against fresh artifacts.
-3. Update `GAPS.md` with any failing/missing evidence as prioritized P0/P1/P2 gaps.
+2. Read `docs/release/RELEASE_GATES.md` and compare each gate against fresh artifacts.
+3. Update `docs/internal/GAPS.md` with any failing/missing evidence as prioritized P0/P1/P2 gaps.
 4. Pick the highest-priority unblocked gap and implement the smallest safe fix.
 5. Run targeted checks first, then rerun `pnpm doctor`.
-6. Update `GAPS.md` statuses and evidence links/commands.
+6. Update `docs/internal/GAPS.md` statuses and evidence links/commands.
 7. Commit one logical change.
 8. Repeat until stop conditions are met.
 
 ## Gap Loop Stop Conditions
 - Stop only when all `RELEASE_GATES.md` gates are satisfied with fresh evidence from `reports/doctor/doctor.json` and latest branch CI is green (or RG-007 platform-incident exception path is explicitly satisfied and documented).
-- If product decisions are missing, log them in `QUESTIONS.md`, mark the affected gap as blocked, and continue on remaining unblocked gaps.
-- If external platform incidents block CI (for example step-less GitHub job startup failures), log incident evidence in `QUESTIONS.md`, mark the gap blocked in `GAPS.md`, and continue all non-blocked local work.
+- If product decisions are missing, log them in `docs/internal/QUESTIONS.md`, mark the affected gap as blocked, and continue on remaining unblocked gaps.
+- If external platform incidents block CI (for example step-less GitHub job startup failures), log incident evidence in `docs/internal/QUESTIONS.md`, mark the gap blocked in `docs/internal/GAPS.md`, and continue all non-blocked local work.
 - Never stop after planning alone. Planning artifacts without implementation and verification are incomplete.
 
 ## Scope Rules
@@ -29,7 +29,7 @@ Ship a production-ready v1 with coherent end-to-end CLI journeys, strong quality
 1. Select one milestone task.
 2. Implement minimal-risk change.
 3. Run verification commands.
-4. Update `PLANS.md`, `RELEASE_CHECKLIST.md`, and `QUESTIONS.md`.
+4. Update `docs/internal/PLANS.md`, `docs/release/RELEASE_CHECKLIST.md`, and `docs/internal/QUESTIONS.md`.
 5. Commit with a clear, scoped message.
 
 ## Standard Commands

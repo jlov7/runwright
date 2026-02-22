@@ -17,7 +17,7 @@
 ## Output expectations
 
 - When implementing a CLI command, update:
-  - CLI_SPEC.md
+  - docs/specs/CLI_SPEC.md
   - tests
   - README examples
 

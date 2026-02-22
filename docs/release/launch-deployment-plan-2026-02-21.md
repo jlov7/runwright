@@ -66,8 +66,8 @@ Validate live behavior with the real runtime:
 ## Phase 4: CI and Exception Handling
 1. Re-run GitHub `CI` and `CodeQL` on latest commit.
 2. If workflows still fail with `steps: 0` startup failures, keep RG-007 exception active:
-   - capture run IDs in `QUESTIONS.md`
-   - record compensating local evidence in `RELEASE_CHECKLIST.md`
+   - capture run IDs in `docs/internal/QUESTIONS.md`
+   - record compensating local evidence in `docs/release/RELEASE_CHECKLIST.md`
 3. Exit exception path once GitHub billing/quota is restored and both workflows run successfully.
 
 ## Exit Criteria (Launch Go)

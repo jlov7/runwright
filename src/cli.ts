@@ -439,7 +439,7 @@ function formatCliErrorGuidance(error: CliError, failedCommand?: string): string
       break;
     case "invalid-manifest":
       hints.push("Fix manifest keys/types, then rerun your command.");
-      hints.push("Reference: MANIFEST_SPEC.md");
+      hints.push("Reference: docs/specs/MANIFEST_SPEC.md");
       break;
     case "invalid-flag":
     case "invalid-argument":

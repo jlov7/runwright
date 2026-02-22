@@ -83,7 +83,7 @@
 - [x] Fresh doctor evidence: `pnpm run doctor` -> `reports/doctor/doctor.json` generated `2026-02-17T18:39:35.630Z`.
 - [x] Fresh quality evidence verification: `pnpm quality:evidence:verify` -> `reports/quality/evidence-verification.json`.
 - [x] Fresh ship gate evidence: `pnpm ship:gate` -> `reports/quality/ship-gate.summary.json` generated `2026-02-17T18:42:25.973Z`, `overall.ok: true`.
-- [x] RG-007 platform incident exception documented with repeated recent-run evidence: sample `CI`/`CodeQL` pairs `22109118266`/`22109118280`, `22110929744`/`22110929736`, `22111146887`/`22111146880`, `22112492942`/`22112492922`, `22112524863`/`22112524890`, and latest `22203952764`/`22203952755` all failed because GitHub Actions jobs were not started due to account billing/spending-limit restrictions (`stepsCount: 0` across failing jobs); incident evidence recorded in `QUESTIONS.md` and `GAPS.md`.
+- [x] RG-007 platform incident exception documented with repeated recent-run evidence: sample `CI`/`CodeQL` pairs `22109118266`/`22109118280`, `22110929744`/`22110929736`, `22111146887`/`22111146880`, `22112492942`/`22112492922`, `22112524863`/`22112524890`, and latest `22203952764`/`22203952755` all failed because GitHub Actions jobs were not started due to account billing/spending-limit restrictions (`stepsCount: 0` across failing jobs); incident evidence recorded in `docs/internal/QUESTIONS.md` and `docs/internal/GAPS.md`.
 - [x] CI/CodeQL rerun on latest head (`a57fff9`) confirms unchanged startup-failure mode: `CI` `22240155561` and `CodeQL` `22240155541` both completed as failure with `stepsCount: 0` across failing jobs, so RG-007 exception remains active with fresh compensating local evidence.
 - [x] CI/CodeQL rerun on latest head (`8b54389`) confirms unchanged startup-failure mode: `CI` `22240196616` and `CodeQL` `22240196630` both completed as failure with `stepsCount: 0` across failing jobs, so RG-007 exception remains active with fresh compensating local evidence.
 - [x] Required RG-007 compensating local command passed on latest head: `pnpm release:verify-local` (`release artifact verification: ok`).
@@ -105,9 +105,9 @@
 - [x] `scripts/doctor.ts` now rejects unknown/malformed arguments with explicit errors; coverage added in `tests/doctor-script.test.ts`.
 - [x] `runwright export --deterministic` now succeeds without env var across timezones via ZIP-safe timestamp clamping; edge cases are covered in `tests/cli.integration.test.ts`.
 - [x] Journey optional verify-bundle guidance now expires on project changes and surfaces rerun guidance with coverage in `tests/journey-ux.test.ts`.
-- [x] Release policy defaults are now explicit in `QUESTIONS.md` (GitHub artifacts required for v1, ed25519 signatures required for production releases).
+- [x] Release policy defaults are now explicit in `docs/internal/QUESTIONS.md` (GitHub artifacts required for v1, ed25519 signatures required for production releases).
 - [x] `runwright init` is now idempotent-success on repeat runs with clear next-step copy and event mutating accuracy coverage in `tests/cli.integration.test.ts`.
 - [x] Release scripts now support explicit help UX (`--help`/`-h`) for operator self-service in `scripts/doctor.ts` and `scripts/verify_quality_evidence.ts`, with tests.
 - [x] `runwright watch` now supports continuous drift monitoring with `--once`, debounce controls, and `--apply-safe`, with integration tests in `tests/cli.integration.test.ts`.
 - [x] Release provenance now includes signed local attestation generate/verify scripts (`release:attestation:generate`, `release:attestation:verify`), schema contracts, workflow integration, and tamper-detection tests.
-- [x] CI platform-incident fallback policy is now formally defined and resolved in `QUESTIONS.md` and `RELEASE_GATES.md` (default: latest-head green CI; exception: strict RG-007 evidence path only).
+- [x] CI platform-incident fallback policy is now formally defined and resolved in `docs/internal/QUESTIONS.md` and `docs/release/RELEASE_GATES.md` (default: latest-head green CI; exception: strict RG-007 evidence path only).

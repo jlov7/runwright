@@ -83,7 +83,7 @@
 ### P0-002: Release gate definitions not formalized
 - Evidence: No dedicated release gate document with explicit evidence requirements.
 - Impacted journey: Go/no-go release decision and audit trail.
-- Fix strategy: Create `RELEASE_GATES.md` with explicit gates, commands, and artifact expectations.
+- Fix strategy: Create `docs/release/RELEASE_GATES.md` with explicit gates, commands, and artifact expectations.
 - Status: Done
 
 ## P1
@@ -211,7 +211,7 @@
 - Status: Done
 
 ### P2-001: Product decision defaults still open
-- Evidence: `QUESTIONS.md` previously contained open release-channel and signing-mode decisions.
+- Evidence: `docs/internal/QUESTIONS.md` previously contained open release-channel and signing-mode decisions.
 - Impacted journey: Final release policy hardening and operator clarity.
 - Fix strategy: Record explicit product defaults for distribution channel and required signing mode.
 - Status: Done

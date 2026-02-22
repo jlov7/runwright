@@ -130,7 +130,7 @@ Tracker: `docs/plans/overnight-super-hard-features.md`
 - [x] Final convergence gate
   - Run targeted tests per task, then full `pnpm verify`
   - Run evidence gates: `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`
-  - Update `GAPS.md`, `RELEASE_CHECKLIST.md`, `PLANS.md`, and release evidence artifacts
+  - Update `docs/internal/GAPS.md`, `docs/release/RELEASE_CHECKLIST.md`, `docs/internal/PLANS.md`, and release evidence artifacts
 
 Latest evidence refresh (2026-02-15):
 - Targeted workstream validation: `pnpm vitest run tests/manifest.test.ts tests/lockfile.test.ts tests/trust-signature.test.ts tests/resolver.test.ts tests/source-provider.contract.test.ts tests/policy-engine.test.ts tests/policy-rule-pack.test.ts tests/workflow-policy.test.ts tests/cli.integration.test.ts` (199/199 passing).

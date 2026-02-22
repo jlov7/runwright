@@ -23,7 +23,7 @@ Cause:
 - Unknown key or schema mismatch in `runwright.yml` (legacy `skillbase.yml` is still accepted).
 
 Fix:
-1. Compare manifest to `MANIFEST_SPEC.md`.
+1. Compare manifest to `docs/specs/MANIFEST_SPEC.md`.
 2. Remove unknown keys/typos.
 3. Re-run `scan --format json`.
 

@@ -14,7 +14,7 @@
 
 ## Q3: CI status confirmation source of truth
 - Question: Should release sign-off require explicit verification of current GitHub Actions run status, or is local `pnpm verify` + `pnpm ship:gate` sufficient for v1 sign-off?
-- Why it matters: `RELEASE_CHECKLIST.md` includes a CI-green requirement that is not directly verifiable offline.
+- Why it matters: `docs/release/RELEASE_CHECKLIST.md` includes a CI-green requirement that is not directly verifiable offline.
 - Current assumption: Remote GitHub checks are required for final sign-off and local gates are preconditions.
 - Status: Resolved (2026-02-14) via successful latest-head runs (`CI` `22020438502`, `CodeQL` `22020438501`) on commit `669df6d`.
 
@@ -26,7 +26,7 @@
   - Default remains unchanged: latest-head `CI` and `CodeQL` must be green.
   - Exception allowed only when both workflows fail before any test/build step executes (startup/platform failure), and at least two reruns still fail the same way.
   - HEAD must pass full local release gates: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`, `pnpm release:verify-local`.
-  - Incident evidence must be logged in `QUESTIONS.md` and `RELEASE_CHECKLIST.md` with run IDs and failure mode.
+  - Incident evidence must be logged in `docs/internal/QUESTIONS.md` and `docs/release/RELEASE_CHECKLIST.md` with run IDs and failure mode.
 - Follow-up required: rerun CI after platform recovery; if code-related failures appear, cut a patch release or roll back.
 - Status: Resolved
 
