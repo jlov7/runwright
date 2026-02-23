@@ -30,7 +30,7 @@ RODNEY_STARTED=0
 
 cleanup() {
   if [[ "$RODNEY_STARTED" == "1" ]]; then
-    rodney --local stop >/dev/null 2>&1 || true
+    rodney stop >/dev/null 2>&1 || true
   fi
 
   if [[ -n "$RUNTIME_PID" ]] && kill -0 "$RUNTIME_PID" >/dev/null 2>&1; then
@@ -63,26 +63,49 @@ fi
 HOME_SCREENSHOT="$ASSET_DIR/runtime-home.png"
 HELP_SCREENSHOT="$ASSET_DIR/runtime-help.png"
 
-showboat init "$OUT_FILE"
-showboat note "Runwright runtime walkthrough generated on $(date -u +%Y-%m-%dT%H:%M:%SZ)."
-showboat exec "curl -sS $RUNTIME_URL/v1/health"
-showboat exec "curl -sS $RUNTIME_URL/v1/release/readiness"
+if [[ -f "$OUT_FILE" ]]; then
+  while IFS= read -r image_ref; do
+    image_path="${image_ref#*\(}"
+    image_path="${image_path%\)}"
+    if [[ -n "$image_path" && "$image_path" != http* ]]; then
+      rm -f "$(dirname "$OUT_FILE")/$image_path"
+    fi
+  done < <(grep -oE '!\[[^]]*\]\([^)]*\)' "$OUT_FILE" || true)
+fi
 
-rodney start --local >/dev/null
+rm -f "$OUT_FILE"
+showboat init "$OUT_FILE" "Runwright Web Runtime Walkthrough"
+showboat note "$OUT_FILE" "Runwright runtime walkthrough generated on $(date -u +%Y-%m-%dT%H:%M:%SZ)."
+showboat exec "$OUT_FILE" bash "curl -sS $RUNTIME_URL/v1/health"
+showboat exec "$OUT_FILE" bash "curl -sS $RUNTIME_URL/v1/release/readiness"
+
+rodney start >/dev/null
 RODNEY_STARTED=1
-rodney --local open "$RUNTIME_URL" >/dev/null
-rodney --local waitidle >/dev/null || true
-rodney --local screenshot "$HOME_SCREENSHOT" >/dev/null
 
-showboat note "Web runtime entry shell with guided onboarding and mode navigation."
-showboat image "$HOME_SCREENSHOT"
+opened=0
+for _ in $(seq 1 40); do
+  if rodney open "$RUNTIME_URL" >/dev/null 2>&1; then
+    opened=1
+    break
+  fi
+  sleep 0.5
+done
+if [[ "$opened" != "1" ]]; then
+  echo "rodney failed to open $RUNTIME_URL after retries" >&2
+  exit 1
+fi
+rodney waitidle >/dev/null || true
+rodney screenshot "$HOME_SCREENSHOT" >/dev/null
 
-rodney --local js "(() => { const button = [...document.querySelectorAll('button')].find((el) => /help/i.test(el.textContent || '')); if (button) { button.click(); return 'help-opened'; } return 'help-button-not-found'; })()" >/dev/null || true
-rodney --local waitstable >/dev/null || true
-rodney --local screenshot "$HELP_SCREENSHOT" >/dev/null
+showboat note "$OUT_FILE" "Web runtime entry shell with guided onboarding and mode navigation."
+showboat image "$OUT_FILE" "$HOME_SCREENSHOT"
 
-showboat note "Contextual help panel state captured for onboarding/recovery guidance evidence."
-showboat image "$HELP_SCREENSHOT"
-showboat verify
+rodney js "(() => { const button = [...document.querySelectorAll('button')].find((el) => /help/i.test(el.textContent || '')); if (button) { button.click(); return 'help-opened'; } return 'help-button-not-found'; })()" >/dev/null || true
+rodney waitstable >/dev/null || true
+rodney screenshot "$HELP_SCREENSHOT" >/dev/null
+
+showboat note "$OUT_FILE" "Contextual help panel state captured for onboarding/recovery guidance evidence."
+showboat image "$OUT_FILE" "$HELP_SCREENSHOT"
+showboat verify "$OUT_FILE"
 
 echo "showboat demo created: $OUT_FILE"
