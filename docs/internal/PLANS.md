@@ -10,7 +10,7 @@ Execute the final high-impact enhancements before release so the product is not 
 
 ## Progress
 - [x] M1: Browser visual regression + E2E + runtime a11y audits.
-- [ ] M2: Frontend state-store migration completion.
+- [x] M2: Frontend state-store migration completion.
 - [ ] M3: Runtime observability + demo mode + resilience tests.
 - [ ] M4: SLO gate + API versioning + copy QA automation.
 - [ ] M5: Full release verification and evidence refresh.
@@ -22,6 +22,7 @@ Execute the final high-impact enhancements before release so the product is not 
 ## Surprises & Discoveries
 - `welcome-overlay`/`explore-hub` used `hidden` attributes but CSS display rules allowed hidden overlays to still capture input in runtime browser tests; fixed with explicit global `[hidden]` enforcement in `apps/web/styles.css`.
 - Browser-level onboarding and keyboard flows are now deterministic across Chromium/Firefox/WebKit with committed screenshot baselines and axe critical-violation assertions.
+- Runtime state initialization is now centralized in `apps/web/state-store.js` with explicit declaration typing in `apps/web/state-store.d.ts`, removing the remaining migration TODO in `apps/web/app.js`.
 
 ## Decision Log
 - 2026-02-23: Prioritize adding missing verification depth (browser runtime checks + SLO gates) before additional UX feature work.

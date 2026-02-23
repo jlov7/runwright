@@ -16,45 +16,12 @@ import {
   retryAction
 } from "/interaction-state.js";
 import { formatActionableErrorMessage } from "/feedback.js";
+import { createRuntimeState } from "/state-store.js";
 
 // ── State & Constants ────────────────────────────────────────────────────────
-// TODO: Replace with src/app/state-store.ts createFrontendStore() once build pipeline supports TS
 
-const state = {
-  profileId: null,
-  sessionId: null,
-  score: 1200,
-  activeSurface: "dashboard",
-  showAdvancedNav: false,
-  profileHandle: null,
-  locale: "en-US",
-  progress: {
-    tutorial: false,
-    saved: false,
-    published: false,
-    campaignStarted: false
-  },
-  accessibility: {
-    textScale: 1,
-    reducedMotion: false,
-    highContrast: false,
-    remapProfile: "default"
-  },
-  coachmarkDismissed: false,
-  lastReversibleAction: null,
-  lastError: null,
-  socialInvites: [],
-  retryQueue: [],
-  requestMetrics: [],
-  interaction: initialInteractionState(),
-  helperModulePromise: null,
-  lastAnnouncedMessage: null,
-  personaMode: "builder",
-  experienceMode: "setup",
-  welcomeDismissed: false,
-  exploreHubOpen: false,
-  helpPanelOpen: false
-};
+const state = createRuntimeState();
+state.interaction = initialInteractionState();
 const ONBOARDING_STORAGE_KEY = "runwright-onboarding-v1";
 const LATENCY_BUDGET_MS = 1200;
 const DEV_LATENCY_ALERT =

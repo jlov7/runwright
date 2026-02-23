@@ -41,7 +41,7 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
 
 ## Progress
 - [x] M1 complete
-- [ ] M2 complete
+- [x] M2 complete
 - [ ] M3 complete
 - [ ] M4 complete
 - [ ] M5 complete
@@ -59,6 +59,13 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
     - `pnpm typecheck`
     - `pnpm test`
     - `pnpm build`
+- M2 (2026-02-23):
+  - Closed runtime state-store migration TODO by extracting default runtime state creation into `apps/web/state-store.js` and wiring `apps/web/app.js` to use `createRuntimeState()`.
+  - Added runtime state-store typing contract in `apps/web/state-store.d.ts`.
+  - Added regression coverage for runtime store defaults/isolation in `tests/frontend-runtime-state-store.test.ts`.
+  - Validation evidence:
+    - `pnpm vitest run tests/frontend-runtime-state-store.test.ts tests/game-runtime-shell.test.ts`
+    - `pnpm verify`
 
 ## Evidence Artifacts
 - Browser visual/e2e outputs: `reports/frontend/browser/`

@@ -2,6 +2,12 @@
 
 ## P0
 
+### P0-026: Frontend runtime state-store migration TODO was still open in the production shell
+- Evidence: `apps/web/app.js` still carried an in-file TODO to migrate runtime state creation to a store module, leaving state initialization duplicated in a monolithic file.
+- Impacted journey: Frontend maintainability and regression safety for onboarding/runtime state changes.
+- Fix strategy: Extract runtime state initialization into a dedicated store module and wire shell runtime to that path with tests.
+- Status: Done (state initialization moved into `apps/web/state-store.js`, typed with `apps/web/state-store.d.ts`, wired in `apps/web/app.js`, and covered by `tests/frontend-runtime-state-store.test.ts`; `pnpm verify` passed)
+
 ### P0-025: Browser-level journey and accessibility evidence was missing from release hardening gates
 - Evidence: frontend verification previously relied on vitest/JSDOM + static hash checks and lacked cross-browser runtime journey validation for first-run overlay behavior, onboarding success, and keyboard/axe assertions.
 - Impacted journey: First visit, onboarding completion, ranked failure recovery, keyboard-only accessibility confidence.
