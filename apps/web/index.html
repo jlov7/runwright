@@ -9,6 +9,7 @@
   <body data-theme="dark">
     <a class="skip-link" href="#workspace-title">Skip to surface workspace</a>
     <div class="aurora" aria-hidden="true"></div>
+    <div id="overlay-backdrop" class="overlay-backdrop" hidden aria-hidden="true"></div>
 
     <header class="app-header rw-page" aria-label="Runtime shell header">
       <div class="brand-block">
@@ -114,7 +115,14 @@
       </div>
     </section>
 
-    <section id="explore-hub" class="explore-hub rw-page" hidden aria-labelledby="explore-hub-title">
+    <section
+      id="explore-hub"
+      class="explore-hub rw-page"
+      hidden
+      aria-labelledby="explore-hub-title"
+      role="dialog"
+      aria-modal="true"
+    >
       <div class="rw-inline explore-hub-header">
         <h2 id="explore-hub-title">Advanced Surface Explorer</h2>
         <button type="button" id="close-explore-hub">Close</button>
@@ -307,6 +315,8 @@
               required
               minlength="2"
               maxlength="32"
+              aria-invalid="false"
+              aria-errormessage="form-error"
               autocomplete="nickname"
               inputmode="text"
             />
@@ -324,7 +334,7 @@
 
             <button type="submit" id="create-profile">Create Profile</button>
             <p id="profile-help" class="muted">This creates local runtime state in your current workspace.</p>
-            <p id="form-error" class="feedback error" aria-live="polite"></p>
+            <p id="form-error" class="feedback error" role="alert" aria-live="assertive"></p>
           </form>
 
           <div class="actions rw-stack" aria-label="Primary gameplay actions">

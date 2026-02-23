@@ -112,6 +112,7 @@ const openExploreHubButton = document.querySelector("#open-explore-hub");
 const closeExploreHubButton = document.querySelector("#close-explore-hub");
 const exploreHub = document.querySelector("#explore-hub");
 const exploreHubList = document.querySelector("#explore-hub-list");
+const overlayBackdrop = document.querySelector("#overlay-backdrop");
 const toggleHelpPanelButton = document.querySelector("#toggle-help-panel");
 const helpPanel = document.querySelector("#help-panel");
 const navModeHint = document.querySelector("#nav-mode-hint");
@@ -138,6 +139,7 @@ const PERSONA_GUIDANCE = {
 };
 
 let retryTimer = null;
+let overlayFocusReturnElement = null;
 const responseCache = new Map();
 const pendingGetRequests = new Map();
 
@@ -507,6 +509,9 @@ function syncSurfacePanels(surface) {
 }
 
 function setExploreHubOpen(open) {
+  if (open && document.activeElement instanceof HTMLElement) {
+    overlayFocusReturnElement = document.activeElement;
+  }
   state.exploreHubOpen = open;
   if (exploreHub) {
     exploreHub.hidden = !open;
@@ -516,9 +521,17 @@ function setExploreHubOpen(open) {
   }
   syncNavigationDisclosure();
   if (open) {
+    document.addEventListener("keydown", trapFocusInOverlay);
     renderExploreHub();
     surfaceSearch.focus();
+  } else if (overlayFocusReturnElement) {
+    overlayFocusReturnElement.focus();
+    overlayFocusReturnElement = null;
   }
+  if (!open && !activeOverlay()) {
+    document.removeEventListener("keydown", trapFocusInOverlay);
+  }
+  syncOverlayBackdrop();
   persistLocalState();
 }
 
@@ -565,9 +578,23 @@ function personaHint() {
   return PERSONA_GUIDANCE[state.personaMode] || PERSONA_GUIDANCE.builder;
 }
 
-function trapFocusInOverlay(event) {
-  if (event.key !== "Tab" || !welcomeOverlay || welcomeOverlay.hidden) return;
-  const focusable = [...welcomeOverlay.querySelectorAll(
+function activeOverlay() {
+  if (welcomeOverlay && !welcomeOverlay.hidden) return welcomeOverlay;
+  if (exploreHub && !exploreHub.hidden) return exploreHub;
+  return null;
+}
+
+function syncOverlayBackdrop() {
+  const overlayOpen = Boolean(activeOverlay());
+  if (overlayBackdrop) {
+    overlayBackdrop.hidden = !overlayOpen;
+  }
+  document.body.classList.toggle("overlay-open", overlayOpen);
+}
+
+function trapFocusInElement(event, element) {
+  if (event.key !== "Tab" || !element) return;
+  const focusable = [...element.querySelectorAll(
     'button:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
   )];
   if (focusable.length === 0) return;
@@ -582,17 +609,32 @@ function trapFocusInOverlay(event) {
   }
 }
 
+function trapFocusInOverlay(event) {
+  const overlay = activeOverlay();
+  if (!overlay) return;
+  trapFocusInElement(event, overlay);
+}
+
 function setWelcomeOverlayOpen(open) {
   if (!welcomeOverlay) return;
+  if (open && document.activeElement instanceof HTMLElement) {
+    overlayFocusReturnElement = document.activeElement;
+  }
   welcomeOverlay.hidden = !open;
-  document.body.classList.toggle("overlay-open", open);
   if (open) {
     announceStatus("Guided onboarding is ready. Start setup or choose explore mode.");
     document.addEventListener("keydown", trapFocusInOverlay);
     welcomeStartButton.focus();
   } else {
-    document.removeEventListener("keydown", trapFocusInOverlay);
+    if (!activeOverlay()) {
+      document.removeEventListener("keydown", trapFocusInOverlay);
+    }
+    if (overlayFocusReturnElement) {
+      overlayFocusReturnElement.focus();
+      overlayFocusReturnElement = null;
+    }
   }
+  syncOverlayBackdrop();
 }
 
 function renderSurfaceChrome(stepLabel = null) {
@@ -1096,11 +1138,19 @@ async function refreshOnboarding() {
 
 async function createProfileFromForm() {
   const form = document.querySelector("#profile-form");
+  const handleInput = document.querySelector("#handle");
   const handle = form.handle.value.trim();
   const locale = form.locale.value;
   if (handle.length < 2) {
     formError.textContent = "Handle must be at least 2 characters.";
+    if (handleInput) {
+      handleInput.setAttribute("aria-invalid", "true");
+      handleInput.focus();
+    }
     throw new Error("Handle must be at least 2 characters.");
+  }
+  if (handleInput) {
+    handleInput.setAttribute("aria-invalid", "false");
   }
   formError.textContent = "";
   setLoading(true, "Creating profile...");
@@ -1665,6 +1715,26 @@ closeExploreHubButton.addEventListener("click", () => {
   openExploreHubButton.focus();
 });
 
+overlayBackdrop?.addEventListener("click", () => {
+  if (welcomeOverlay && !welcomeOverlay.hidden) {
+    state.welcomeDismissed = true;
+    setWelcomeOverlayOpen(false);
+    persistLocalState();
+    return;
+  }
+  if (state.exploreHubOpen) {
+    setExploreHubOpen(false);
+    openExploreHubButton.focus();
+  }
+});
+
+welcomeOverlay?.addEventListener("click", (event) => {
+  if (event.target !== welcomeOverlay) return;
+  state.welcomeDismissed = true;
+  setWelcomeOverlayOpen(false);
+  persistLocalState();
+});
+
 toggleHelpPanelButton.addEventListener("click", () => {
   state.helpPanelOpen = !state.helpPanelOpen;
   syncHelpPanelVisibility();
@@ -1794,7 +1864,9 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (event.key === "Escape" && welcomeOverlay && !welcomeOverlay.hidden) {
+    state.welcomeDismissed = true;
     setWelcomeOverlayOpen(false);
+    persistLocalState();
     return;
   }
   if (event.key === "Escape" && state.exploreHubOpen) {
@@ -1869,6 +1941,7 @@ applyAccessibilityStyles();
 renderSocialInvites();
 setActiveSurface("dashboard");
 syncHelpPanelVisibility();
+syncOverlayBackdrop();
 if (personaModeSelect) {
   personaModeSelect.value = state.personaMode;
 }
