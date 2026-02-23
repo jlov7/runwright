@@ -232,6 +232,9 @@
         <h2 id="surface-title" tabindex="-1">Dashboard</h2>
         <p id="surface-intent" class="muted">View launch readiness and choose your next gameplay loop.</p>
         <p id="surface-status" class="status-pill">Status: Needs action</p>
+        <p id="inline-help" class="muted inline-help" aria-live="polite">
+          Tip: Use the primary action for the strongest next step.
+        </p>
         <div class="rw-inline">
           <button type="button" id="surface-primary-action">Create profile</button>
           <button type="button" id="undo-last-action" hidden>Undo Last Action</button>
@@ -249,14 +252,15 @@
       <section class="panel panel-surface rw-panel" aria-labelledby="workspace-title">
         <h2 id="workspace-title">Surface Workspace</h2>
 
-        <div id="surface-loading-skeleton" class="loading-skeleton" hidden aria-live="polite">
-          <p>Loading surface content...</p>
+        <div id="surface-loading-skeleton" class="loading-skeleton" hidden aria-live="polite" role="status">
+          <p id="surface-loading-copy">Loading surface content...</p>
           <div class="skeleton-row"></div>
           <div class="skeleton-row"></div>
           <div class="skeleton-row"></div>
         </div>
 
         <div id="surface-empty-state" class="empty-state" hidden>
+          <p id="surface-empty-title" class="status-pill">Needs action</p>
           <p id="surface-empty-copy"></p>
           <button type="button" id="surface-empty-action">Create profile</button>
           <p id="surface-empty-fallback" class="muted">Need help? Open docs/help/README.md from the help panel.</p>

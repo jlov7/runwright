@@ -21,6 +21,7 @@ describe("frontend accessibility and responsive guards", () => {
     expect(html).toContain("<main class=\"layout rw-page\"");
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('id="surface-title" tabindex="-1"');
+    expect(html).toContain('id="inline-help"');
     expect(html).toContain('id="explore-hub"');
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
@@ -41,6 +42,8 @@ describe("frontend accessibility and responsive guards", () => {
     expect(html).toContain('aria-invalid="false"');
     expect(html).toContain('aria-errormessage="form-error"');
     expect(html).toContain('id="form-error" class="feedback error" role="alert" aria-live="assertive"');
+    expect(html).toContain('id="surface-empty-title"');
+    expect(html).toContain('id="surface-loading-copy"');
   });
 
   it("enforces reduced-motion and mobile breakpoint behavior in CSS", () => {

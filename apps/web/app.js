@@ -66,6 +66,7 @@ const breadcrumbSurface = document.querySelector("#breadcrumb-surface");
 const surfaceTitle = document.querySelector("#surface-title");
 const surfaceIntent = document.querySelector("#surface-intent");
 const surfaceStatus = document.querySelector("#surface-status");
+const inlineHelp = document.querySelector("#inline-help");
 const surfacePrimaryAction = document.querySelector("#surface-primary-action");
 const ledeCopy = document.querySelector(".lede");
 const surfaceCriteria = document.querySelector("#surface-success-criteria");
@@ -76,6 +77,7 @@ const surfaceSearchFeedback = document.querySelector("#surface-search-feedback")
 const surfacePanels = [...document.querySelectorAll("[data-surface-panel]")];
 const navItems = [...document.querySelectorAll(".nav-item[data-surface]")];
 const emptyState = document.querySelector("#surface-empty-state");
+const emptyTitle = document.querySelector("#surface-empty-title");
 const emptyCopy = document.querySelector("#surface-empty-copy");
 const emptyAction = document.querySelector("#surface-empty-action");
 const emptyFallback = document.querySelector("#surface-empty-fallback");
@@ -99,6 +101,7 @@ const statusLiveRegion = document.querySelector("#status-live-region");
 const retryQueuePanel = document.querySelector("#retry-queue-panel");
 const retryQueueList = document.querySelector("#retry-queue-list");
 const surfaceLoadingSkeleton = document.querySelector("#surface-loading-skeleton");
+const surfaceLoadingCopy = document.querySelector("#surface-loading-copy");
 const helpLoadingSkeleton = document.querySelector("#help-loading-skeleton");
 const diagnosticOutput = document.querySelector("#diagnostic-output");
 const coopInvites = document.querySelector("#coop-invites");
@@ -179,11 +182,22 @@ function announceStatus(message) {
   statusLiveRegion.textContent = message;
 }
 
+function setInlineHelp(message) {
+  if (!inlineHelp || !message) return;
+  inlineHelp.textContent = message;
+}
+
 function setLoading(active, label) {
   surfaceLoadingSkeleton.hidden = !active;
   if (active) {
-    surfaceLoadingSkeleton.querySelector("p").textContent = label;
-    announceStatus(label);
+    const loadingLabel = label || `Loading ${SURFACE_META[state.activeSurface]?.label || "surface"}...`;
+    if (surfaceLoadingCopy) {
+      surfaceLoadingCopy.textContent = loadingLabel;
+    }
+    announceStatus(loadingLabel);
+    if (inlineHelp) {
+      inlineHelp.textContent = "Loading in progress. You can continue navigating while data resolves.";
+    }
   }
 }
 
@@ -474,24 +488,30 @@ function syncSurfacePanels(surface) {
   }
 
   let emptyMessage = null;
+  let emptySeverity = "Needs action";
   let actionLabel = "Create profile";
   let actionTarget = "onboarding";
   let fallbackCopy = "Need help? Open docs/help/README.md from the help panel.";
 
   if (surface === "dashboard" && !profileReady()) {
     emptyMessage = "Dashboard is empty because no profile exists yet.";
+    emptySeverity = "Prerequisite required";
   } else if (surface === "profile" && !profileReady()) {
     emptyMessage = "Profile settings are unavailable until a profile is created.";
+    emptySeverity = "Prerequisite required";
   } else if (surface === "onboarding" && !profileReady()) {
     emptyMessage = "Onboarding actions are locked until you create a profile.";
+    emptySeverity = "Blocked";
   } else if (surface === "campaign" && !campaignReady()) {
     emptyMessage = "Campaign starts after you publish your first level.";
+    emptySeverity = "Blocked";
     actionLabel = "Open onboarding controls";
   }
 
   const lockReason = getSurfaceLockReason(surface, navContext());
   if (!emptyMessage && lockReason) {
     emptyMessage = lockReason.message;
+    emptySeverity = "Locked";
     actionLabel = lockReason.actionLabel;
     actionTarget = lockReason.actionTarget;
     fallbackCopy = lockReason.fallback;
@@ -499,6 +519,9 @@ function syncSurfacePanels(surface) {
 
   if (emptyMessage) {
     emptyState.hidden = false;
+    if (emptyTitle) {
+      emptyTitle.textContent = emptySeverity;
+    }
     emptyCopy.textContent = emptyMessage;
     emptyAction.textContent = actionLabel;
     emptyAction.dataset.targetSurface = actionTarget;
@@ -657,6 +680,7 @@ function renderSurfaceChrome(stepLabel = null) {
   surfaceTitle.textContent = label;
   surfaceIntent.textContent = meta.intent;
   surfaceStatus.textContent = statusTextFor(surface);
+  setInlineHelp(`Tip: ${meta.intent}`);
   const guidedStep = nextGuidedStep();
   if (guidedStep && (surface === "dashboard" || surface === "onboarding")) {
     const steps = guidedJourneySteps();
@@ -664,6 +688,7 @@ function renderSurfaceChrome(stepLabel = null) {
     surfaceStatus.textContent = `Status: Guided step ${position}/${steps.length}`;
     surfacePrimaryAction.textContent = primaryActionLabel(guidedStep.actionId);
     surfacePrimaryAction.dataset.actionId = guidedStep.actionId;
+    setInlineHelp(`Recommended now: ${guidedStep.label}. Why: ${guidedStep.why}`);
   } else {
     surfacePrimaryAction.textContent = primaryActionLabel(meta.primaryAction);
     surfacePrimaryAction.dataset.actionId = meta.primaryAction;
@@ -1040,6 +1065,9 @@ function setFeedback(message, isError = false) {
   feedback.className = isError ? "feedback error" : "feedback success";
   state.lastError = isError ? rendered : state.lastError;
   announceStatus(rendered);
+  if (isError) {
+    setInlineHelp(`Recovery: ${rendered}`);
+  }
   pushToast(rendered, isError ? "error" : "info");
 }
 
@@ -1839,8 +1867,22 @@ for (const navItem of navItems) {
 }
 
 for (const button of document.querySelectorAll("[data-help]")) {
-  const helpText = button.getAttribute("data-help");
+  const helpText = button.getAttribute("data-help") || "Action help unavailable.";
   button.setAttribute("title", helpText);
+  button.addEventListener("focus", () => {
+    setInlineHelp(helpText);
+  });
+  button.addEventListener("mouseenter", () => {
+    setInlineHelp(helpText);
+  });
+  button.addEventListener("blur", () => {
+    const meta = SURFACE_META[state.activeSurface] || SURFACE_META.dashboard;
+    setInlineHelp(`Tip: ${meta.intent}`);
+  });
+  button.addEventListener("mouseleave", () => {
+    const meta = SURFACE_META[state.activeSurface] || SURFACE_META.dashboard;
+    setInlineHelp(`Tip: ${meta.intent}`);
+  });
 }
 
 // ── Keyboard Shortcuts & Global Events ────────────────────────────────────────

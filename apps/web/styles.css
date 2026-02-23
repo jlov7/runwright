@@ -443,6 +443,15 @@ body.overlay-open .app-header {
   width: fit-content;
 }
 
+.inline-help {
+  margin: 0;
+  padding: 0.45rem 0.62rem;
+  border: 1px solid color-mix(in srgb, var(--color-state-info) 34%, var(--color-border-muted));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-state-info) 8%, transparent);
+  font-size: var(--font-size-200);
+}
+
 .mobile-surface-nav {
   display: none;
   margin-top: var(--space-3);
@@ -593,6 +602,10 @@ body.overlay-open .app-header {
   border-radius: var(--radius-md);
   padding: var(--space-4);
   background: color-mix(in srgb, var(--color-state-warning) 10%, transparent);
+}
+
+.empty-state .status-pill {
+  margin-bottom: var(--space-2);
 }
 
 .loading-skeleton {
