@@ -8,6 +8,14 @@ import {
   isAdvancedSurface,
   normalizeSurfaceInput
 } from "/navigation.js";
+import {
+  beginAction,
+  completeAction,
+  failAction,
+  initialInteractionState,
+  retryAction
+} from "/interaction-state.js";
+import { formatActionableErrorMessage } from "/feedback.js";
 
 // ── State & Constants ────────────────────────────────────────────────────────
 // TODO: Replace with src/app/state-store.ts createFrontendStore() once build pipeline supports TS
@@ -38,6 +46,7 @@ const state = {
   socialInvites: [],
   retryQueue: [],
   requestMetrics: [],
+  interaction: initialInteractionState(),
   helperModulePromise: null,
   lastAnnouncedMessage: null,
   personaMode: "builder",
@@ -816,7 +825,6 @@ async function loadSurfaceHelpers() {
 }
 
 // ── Networking & API ─────────────────────────────────────────────────────────
-// TODO: Replace with src/shared/interaction-state.ts phase tracking once wired
 
 function trackRequestMetric(label, durationMs) {
   state.requestMetrics.push({
@@ -872,6 +880,8 @@ async function processRetryQueue(forceNow = false) {
       const backoff = Math.min(16000, 500 * 2 ** entry.attempt);
       entry.nextRunAt = Date.now() + backoff;
       state.lastError = error.message;
+      state.interaction = retryAction(state.interaction);
+      setInlineHelp(`Retry queued: ${entry.label} (attempt ${entry.attempt}).`);
     }
   }
   renderRetryQueue();
@@ -902,6 +912,8 @@ function applyLatencyAlert(durationMs, label) {
 
 async function api(path, init = {}, options = {}) {
   const method = String(init.method || "GET").toUpperCase();
+  const actionLabel = options.label || `${method} ${path}`;
+  state.interaction = beginAction(state.interaction, actionLabel);
   const isMutating = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
   const cacheKey = `${method} ${path}`;
   const cached = responseCache.get(cacheKey);
@@ -923,8 +935,10 @@ async function api(path, init = {}, options = {}) {
   };
   const startedAt = performance.now();
   if (!navigator.onLine) {
+    state.interaction = failAction(state.interaction, "network-offline", "Network is offline.");
     if (!options.skipRetryQueue) {
       enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+      state.interaction = retryAction(state.interaction);
     }
     throw new Error("network-offline");
   }
@@ -936,8 +950,14 @@ async function api(path, init = {}, options = {}) {
       response = await fetch(path, requestInit);
       payload = await response.json();
     } catch {
+      state.interaction = failAction(
+        state.interaction,
+        "network-transient-failure",
+        "Network request failed before server response."
+      );
       if (!options.skipRetryQueue) {
         enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+        state.interaction = retryAction(state.interaction);
       }
       throw new Error("network-transient-failure");
     } finally {
@@ -950,8 +970,10 @@ async function api(path, init = {}, options = {}) {
       const error = payload?.error?.message || "Request failed";
       const code = payload?.error?.code || "unknown-error";
       const transient = response.status >= 500 || response.status === 429 || code === "network-offline";
+      state.interaction = failAction(state.interaction, code, error);
       if (transient && !options.skipRetryQueue) {
         enqueueRetry(path, requestInit, options.label || `${requestInit.method || "GET"} ${path}`);
+        state.interaction = retryAction(state.interaction);
       }
       throw new Error(error);
     }
@@ -959,6 +981,7 @@ async function api(path, init = {}, options = {}) {
     if (method === "GET") {
       responseCache.set(cacheKey, { payload, storedAt: Date.now() });
     }
+    state.interaction = completeAction(state.interaction, `${actionLabel} completed.`);
     return payload;
   })();
 
@@ -1040,27 +1063,8 @@ function restoreLocalState() {
   }
 }
 
-function formatActionableError(message) {
-  const value = String(message || "Unexpected runtime failure");
-  const lower = value.toLowerCase();
-  if (lower.includes("network-offline")) {
-    return "You are offline. Next: keep working and the retry queue will flush after reconnect.";
-  }
-  if (lower.includes("network-transient-failure")) {
-    return "Temporary network issue. Next: wait for automatic retry or press Retry Now.";
-  }
-  if (lower.includes("digest")) {
-    return "Ranked submission rejected by anti-tamper checks. Next: resubmit with a trusted payload.";
-  }
-  if (lower.includes("profile")) {
-    return "Profile context is missing or invalid. Next: create/select a profile and retry.";
-  }
-  if (value.includes("Next:")) return value;
-  return `${value} Next: open Help if this repeats and include the diagnostic packet.`;
-}
-
 function setFeedback(message, isError = false) {
-  const rendered = isError ? formatActionableError(message) : message;
+  const rendered = isError ? formatActionableErrorMessage(message) : message;
   feedback.textContent = rendered;
   feedback.className = isError ? "feedback error" : "feedback success";
   state.lastError = isError ? rendered : state.lastError;
