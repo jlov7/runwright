@@ -44,7 +44,7 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
 - [x] M2 complete
 - [x] M3 complete
 - [x] M4 complete
-- [ ] M5 complete
+- [x] M5 complete
 
 ## Milestone Notes
 - M1 (2026-02-23):
@@ -85,6 +85,15 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
   - Validation evidence:
     - `pnpm vitest run tests/game-runtime.test.ts tests/game-runtime-security-hardening.test.ts tests/runtime-slo-script.test.ts tests/runtime-api-compat-script.test.ts tests/frontend-copy-consistency-script.test.ts`
     - `pnpm verify`
+- M5 (2026-02-23):
+  - Final convergence gates executed and green:
+    - `pnpm verify`
+    - `pnpm run doctor` -> `reports/doctor/doctor.json` (`generatedAt: 2026-02-23T14:40:00.145Z`, `overall.ok: true`)
+    - `pnpm run quality:evidence:verify` -> `reports/quality/evidence-verification.json` (`ok: true`)
+    - `pnpm ship:gate` -> `reports/quality/ship-gate.summary.json` (`generatedAt: 2026-02-23T14:37:53.569Z`, `overall.ok: true`)
+    - `pnpm runtime:slo:check` -> `reports/quality/runtime-slo.report.json` (`ok: true`)
+    - `pnpm api:compat:runtime` -> `reports/quality/runtime-api-compat.report.json` (`ok: true`)
+    - `pnpm qa:copy:check` -> `reports/quality/frontend-copy-consistency.report.json` (`ok: true`)
 
 ## Evidence Artifacts
 - Browser visual/e2e outputs: `reports/frontend/browser/`

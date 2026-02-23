@@ -13,7 +13,7 @@ Execute the final high-impact enhancements before release so the product is not 
 - [x] M2: Frontend state-store migration completion.
 - [x] M3: Runtime observability + demo mode + resilience tests.
 - [x] M4: SLO gate + API versioning + copy QA automation.
-- [ ] M5: Full release verification and evidence refresh.
+- [x] M5: Full release verification and evidence refresh.
 
 ## Validation Gates
 - Per milestone: `pnpm lint`, `pnpm typecheck`, targeted tests, `pnpm build`.
