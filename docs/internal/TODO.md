@@ -1,5 +1,19 @@
 # Five-star TODO (Post-v1)
 
+## P0 (Active final world-class hardening: 2026-02-23)
+Tracker: `docs/plans/2026-02-23-final-world-class-hardening.md`
+
+- [ ] FWH-01 Real rendered screenshot regression + browser matrix.
+- [ ] FWH-02 Real browser E2E journeys for first visit, returning user, onboarding, and recovery.
+- [ ] FWH-03 Runtime accessibility audits (axe + keyboard traversal assertions).
+- [ ] FWH-04 Frontend runtime store migration TODO closure.
+- [ ] FWH-05 Runtime observability (request IDs, structured errors, endpoint p95 metrics route).
+- [ ] FWH-06 Deterministic demo mode bootstrap flow.
+- [ ] FWH-07 Backend resilience expansion (restart/retry/idempotency).
+- [ ] FWH-08 Runtime SLO policy + enforceable gate script.
+- [ ] FWH-09 API contract versioning governance + compatibility checks.
+- [ ] FWH-10 Copy and interaction consistency automated QA.
+
 ## P0 (Active deep frontend UX overhaul: 2026-02-23)
 Tracker: `docs/internal/UX_FRONTEND_EXECUTION_TRACKER.md`
 

@@ -1,3 +1,33 @@
+# ExecPlan: Final World-class Hardening (2026-02-23)
+
+## Purpose / Big Picture
+Execute the final high-impact enhancements before release so the product is not only functional and verified, but demonstrably world-class in UX rigor, backend reliability, and release governance.
+
+## Approach
+- Implement all ten required hardening items in strict milestones with evidence artifacts.
+- Keep changes reviewable and commit per logical milestone.
+- Preserve existing v1 gate stability while extending verification depth.
+
+## Progress
+- [ ] M1: Browser visual regression + E2E + runtime a11y audits.
+- [ ] M2: Frontend state-store migration completion.
+- [ ] M3: Runtime observability + demo mode + resilience tests.
+- [ ] M4: SLO gate + API versioning + copy QA automation.
+- [ ] M5: Full release verification and evidence refresh.
+
+## Validation Gates
+- Per milestone: `pnpm lint`, `pnpm typecheck`, targeted tests, `pnpm build`.
+- Final: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
+
+## Surprises & Discoveries
+- In progress.
+
+## Decision Log
+- 2026-02-23: Prioritize adding missing verification depth (browser runtime checks + SLO gates) before additional UX feature work.
+
+## Outcomes & Retrospective
+- In progress.
+
 # ExecPlan: Frontend Deep UX Overhaul (2026-02-23)
 
 ## Purpose / Big Picture
