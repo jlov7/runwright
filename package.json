@@ -12,6 +12,7 @@
     "dev": "tsx src/cli.ts",
     "game:runtime": "pnpm tsx scripts/game_runtime.ts",
     "game:runtime:json": "pnpm tsx scripts/game_runtime.ts --json",
+    "demo:showboat": "bash scripts/showboat_demo.sh",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:visual": "vitest run tests/frontend-visual-regression.test.ts",

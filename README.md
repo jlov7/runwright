@@ -180,6 +180,22 @@ pnpm game:runtime
 
 **Keyboard shortcuts:** `/` opens Explore, `?` opens Help, `Esc` closes overlays.
 
+### Visual Walkthroughs (Showboat + Rodney)
+
+Generate a reproducible product walkthrough (commands + screenshots) for demos, reviews, and release evidence:
+
+```bash
+pnpm demo:showboat
+```
+
+Artifacts:
+
+- Markdown demo: `docs/demos/runwright-web-runtime-demo.md`
+- Screenshot assets: `docs/demos/assets/`
+- Runtime log: `reports/demos/runtime.log`
+
+Setup details: [docs/demos/README.md](docs/demos/README.md)
+
 ---
 
 ## Core Commands
@@ -194,6 +210,7 @@ pnpm game:runtime
 | Plan safe remediations | `runwright fix --plan --json` |
 | Dry-run install | `runwright apply --dry-run --json` |
 | Install to all tools | `runwright apply --target all --scope project --mode copy --json` |
+| Generate visual walkthrough | `pnpm demo:showboat` |
 | Package release bundle | `runwright export --out release.zip --deterministic --json` |
 | Verify release bundle | `runwright verify-bundle --bundle release.zip --json` |
 
