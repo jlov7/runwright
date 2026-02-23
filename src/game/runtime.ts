@@ -45,6 +45,34 @@ type RateLimitBucket = {
 };
 
 type JsonMap = Record<string, unknown>;
+type EndpointMetric = {
+  route: string;
+  count: number;
+  errors: number;
+  totalMs: number;
+  maxMs: number;
+  samples: number[];
+  lastStatus: number;
+};
+type RuntimeMetricsSnapshot = {
+  generatedAt: string;
+  requests: {
+    total: number;
+    errors: number;
+    p50Ms: number;
+    p95Ms: number;
+  };
+  endpoints: Array<{
+    route: string;
+    count: number;
+    errors: number;
+    p50Ms: number;
+    p95Ms: number;
+    avgMs: number;
+    maxMs: number;
+    lastStatus: number;
+  }>;
+};
 
 const DEFAULT_RATE_LIMIT_CONFIG: ResolvedRateLimitConfig = {
   defaultMutating: { max: 240, windowMs: 60_000 },
@@ -176,8 +204,49 @@ const PreferencePatchSchema = z.object({
   accessibility: AccessibilitySettingsSchema.partial().optional()
 });
 
+const DemoBootstrapRequestSchema = z.object({
+  seed: z.string().min(1).max(64).optional()
+});
+
 function nowIso(clock: (() => Date) | undefined): string {
   return (clock ?? (() => new Date()))().toISOString();
+}
+
+function nowMs(clock: (() => Date) | undefined): number {
+  return (clock ?? (() => new Date()))().getTime();
+}
+
+function sanitizeDemoSeed(value: string): string {
+  const next = value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  if (next.length === 0) return "launch";
+  return next.slice(0, 24);
+}
+
+function percentile(samples: number[], ratio: number): number {
+  if (samples.length === 0) return 0;
+  const sorted = [...samples].sort((left, right) => left - right);
+  const index = Math.max(0, Math.min(sorted.length - 1, Math.ceil(sorted.length * ratio) - 1));
+  return sorted[index] ?? 0;
+}
+
+function summarizeEndpointMetric(metric: EndpointMetric) {
+  return {
+    route: metric.route,
+    count: metric.count,
+    errors: metric.errors,
+    p50Ms: percentile(metric.samples, 0.5),
+    p95Ms: percentile(metric.samples, 0.95),
+    avgMs: metric.count === 0 ? 0 : Number((metric.totalMs / metric.count).toFixed(2)),
+    maxMs: metric.maxMs,
+    lastStatus: metric.lastStatus
+  };
+}
+
+function normalizeRequestId(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const normalized = raw.trim();
+  if (!/^[A-Za-z0-9._:-]{6,120}$/.test(normalized)) return null;
+  return normalized;
 }
 
 function buildDefaultAccessibility() {
@@ -629,6 +698,7 @@ async function handleRequest(
       rankedSalt: string;
       staticRoot?: string;
       rateLimitConfig: ResolvedRateLimitConfig;
+      getMetricsSnapshot: () => RuntimeMetricsSnapshot;
     }
 ): Promise<void> {
   if (!req.url) throw new HttpError(400, "missing-url", "Request URL is required");
@@ -646,6 +716,11 @@ async function handleRequest(
       schemaVersion: state.schemaVersion,
       persistence: state.persistence.backend
     });
+    return;
+  }
+
+  if (pathname === "/v1/metrics" && method === "GET") {
+    sendJson(res, 200, options.getMetricsSnapshot());
     return;
   }
 
@@ -1366,6 +1441,101 @@ async function handleRequest(
     return;
   }
 
+  if (pathname === "/v1/demo/bootstrap" && method === "POST") {
+    const body = DemoBootstrapRequestSchema.parse(await parseBodyChunks(req));
+    const state = readRuntimeState(options.stateFile);
+    const seed = sanitizeDemoSeed(body.seed ?? "launch");
+    const profileId = `P-DEMO-${sha256Digest(seed).slice(7, 15).toUpperCase()}`;
+    const handle = `demo-${seed}`;
+    const createdAt = nowIso(options.clock);
+    let profile = getProfile(state, profileId);
+    if (!profile) {
+      profile = {
+        id: profileId,
+        handle,
+        locale: "en-US",
+        createdAt,
+        sessions: 1,
+        accessibility: buildDefaultAccessibility()
+      };
+      state.profiles.push(profile);
+    }
+
+    if (!state.authLinks.some((entry) => entry.profileId === profileId && entry.provider === "email")) {
+      state.authLinks.push({
+        profileId,
+        provider: "email",
+        externalId: handle,
+        linkedAt: createdAt
+      });
+    }
+
+    const tutorialEventId = `demo-bootstrap-tutorial-${seed}`;
+    if (!state.telemetry.some((entry) => entry.profileId === profileId && entry.eventId === tutorialEventId)) {
+      state.telemetry.push({
+        id: `EVT-DEMO-${sha256Digest(`${seed}:tutorial`).slice(7, 17).toUpperCase()}`,
+        profileId,
+        eventId: tutorialEventId,
+        type: "tutorial.started",
+        payload: { source: "demo-bootstrap", seed },
+        createdAt
+      });
+    }
+
+    if (!state.saves.some((entry) => entry.profileId === profileId && entry.version >= 1)) {
+      const savePayload = { chapter: 1, checkpoint: "demo-bootstrap", seed };
+      const digest = sha256Digest(savePayload);
+      state.saves.push({
+        profileId,
+        version: 1,
+        digest,
+        savedAt: createdAt
+      });
+      state.syncHistory.push({
+        profileId,
+        strategy: "last-write-wins",
+        localDigest: digest,
+        cloudDigest: digest,
+        resolvedDigest: digest,
+        createdAt
+      });
+    }
+
+    if (!state.ugcLevels.some((entry) => entry.authorProfileId === profileId)) {
+      state.ugcLevels.push({
+        id: `UGC-DEMO-${sha256Digest(seed).slice(7, 15).toUpperCase()}`,
+        title: "Demo Launch Level",
+        difficulty: "silver",
+        authorProfileId: profileId,
+        status: "published",
+        rating: 4.7,
+        votes: 12,
+        createdAt
+      });
+    }
+
+    const score = 1400;
+    const digest = createRankedDigest(profileId, score, options.rankedSalt);
+    if (!state.ranked.some((entry) => entry.profileId === profileId && entry.score === score && entry.accepted)) {
+      state.ranked.push({
+        profileId,
+        score,
+        antiTamperDigest: digest,
+        createdAt,
+        accepted: true
+      });
+    }
+
+    writeRuntimeState(options.stateFile, state);
+    sendJson(res, 200, {
+      seed,
+      profile,
+      onboarding: createOnboardingPayload(state, profileId),
+      firstSuccess: true
+    });
+    return;
+  }
+
   if (pathname === "/v1/help" && method === "GET") {
     sendJson(res, 200, {
       docsPath: "docs/help/README.md",
@@ -1442,33 +1612,97 @@ export async function createGameRuntimeServer(options: RuntimeServerOptions): Pr
   const rankedSalt = options.rankedSalt ?? process.env.RUNWRIGHT_RANKED_SALT ?? "runwright-local-salt";
   const staticRoot = options.staticRoot ? resolve(options.staticRoot) : undefined;
   const rateLimitConfig = resolveRateLimitConfig(options.rateLimitConfig);
+  const endpointMetrics = new Map<string, EndpointMetric>();
+  let totalRequests = 0;
+  let totalErrors = 0;
+  const totalSamples: number[] = [];
+
+  const appendSample = (samples: number[], value: number): void => {
+    samples.push(value);
+    if (samples.length > 240) samples.shift();
+  };
+
+  const recordMetric = (route: string, status: number, durationMs: number): void => {
+    totalRequests += 1;
+    if (status >= 400) totalErrors += 1;
+    appendSample(totalSamples, durationMs);
+    const current = endpointMetrics.get(route);
+    if (!current) {
+      endpointMetrics.set(route, {
+        route,
+        count: 1,
+        errors: status >= 400 ? 1 : 0,
+        totalMs: durationMs,
+        maxMs: durationMs,
+        samples: [durationMs],
+        lastStatus: status
+      });
+      return;
+    }
+    current.count += 1;
+    if (status >= 400) current.errors += 1;
+    current.totalMs += durationMs;
+    current.maxMs = Math.max(current.maxMs, durationMs);
+    appendSample(current.samples, durationMs);
+    current.lastStatus = status;
+  };
+
+  const getMetricsSnapshot = (): RuntimeMetricsSnapshot => ({
+    generatedAt: nowIso(options.clock),
+    requests: {
+      total: totalRequests,
+      errors: totalErrors,
+      p50Ms: percentile(totalSamples, 0.5),
+      p95Ms: percentile(totalSamples, 0.95)
+    },
+    endpoints: [...endpointMetrics.values()]
+      .map((entry) => summarizeEndpointMetric(entry))
+      .sort((left, right) => right.count - left.count || left.route.localeCompare(right.route))
+  });
+
   const server = createServer((req, res) => {
+    const startedMs = nowMs(options.clock);
+    const method = req.method ?? "GET";
+    const pathname = req.url ? new URL(req.url, "http://runtime.local").pathname : "/<missing-url>";
+    const route = `${method} ${pathname}`;
+    const requestId = normalizeRequestId(headerValue(req, "x-request-id")) ?? `req_${randomUUID().replaceAll("-", "")}`;
+    res.setHeader("x-request-id", requestId);
+
     void handleRequest(req, res, {
       stateFile: options.stateFile,
       clock: options.clock,
       rankedSalt,
       staticRoot,
-      rateLimitConfig
-    }).catch((error) => {
-      const normalized = normalizeError(error);
-      if (normalized.code === "rate-limit-exceeded") {
-        const retryAfterRaw =
-          normalized.details && typeof normalized.details === "object"
-            ? Reflect.get(normalized.details, "retryAfterMs")
-            : undefined;
-        if (typeof retryAfterRaw === "number" && Number.isFinite(retryAfterRaw)) {
-          res.setHeader("retry-after", String(Math.max(1, Math.ceil(retryAfterRaw / 1000))));
+      rateLimitConfig,
+      getMetricsSnapshot
+    })
+      .catch((error) => {
+        const normalized = normalizeError(error);
+        if (normalized.code === "rate-limit-exceeded") {
+          const retryAfterRaw =
+            normalized.details && typeof normalized.details === "object"
+              ? Reflect.get(normalized.details, "retryAfterMs")
+              : undefined;
+          if (typeof retryAfterRaw === "number" && Number.isFinite(retryAfterRaw)) {
+            res.setHeader("retry-after", String(Math.max(1, Math.ceil(retryAfterRaw / 1000))));
+          }
         }
-      }
-      sendJson(res, normalized.status, {
-        error: {
-          code: normalized.code,
-          message: normalized.message,
-          details: normalized.details ?? null,
-          nextAction: errorNextAction(normalized.code)
-        }
+        sendJson(res, normalized.status, {
+          error: {
+            code: normalized.code,
+            message: normalized.message,
+            details: normalized.details ?? null,
+            nextAction: errorNextAction(normalized.code),
+            requestId,
+            occurredAt: nowIso(options.clock)
+          }
+        });
+      })
+      .finally(() => {
+        const status = Number.isFinite(res.statusCode) ? res.statusCode : 500;
+        const durationMs = Math.max(0, nowMs(options.clock) - startedMs);
+        recordMetric(route, status, durationMs);
       });
-    });
   });
 
   await new Promise<void>((resolvePromise, rejectPromise) => {

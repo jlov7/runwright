@@ -2,6 +2,24 @@
 
 ## P0
 
+### P0-029: Runtime observability lacked request-level correlation and latency distribution visibility
+- Evidence: runtime responses did not include request IDs and no endpoint metrics route existed for p95 latency visibility.
+- Impacted journey: Launch diagnostics, production incident triage, backend quality gate evidence.
+- Fix strategy: Add request correlation IDs, structured error fields, and a metrics endpoint with endpoint latency distributions.
+- Status: Done (runtime now sets `x-request-id`, includes `requestId` + `occurredAt` on error payloads, and serves `GET /v1/metrics` with p50/p95 endpoint summaries in `src/game/runtime.ts`; coverage added in `tests/game-runtime.test.ts`)
+
+### P0-028: Demo bootstrap flow was frontend-local and not deterministic on backend state
+- Evidence: onboarding bootstrap action only toggled client-side state and did not produce deterministic persisted backend demo data.
+- Impacted journey: Demo reproducibility, first-success walkthroughs, launch stakeholder demos.
+- Fix strategy: Add deterministic backend bootstrap endpoint and wire frontend bootstrap action to consume it.
+- Status: Done (`POST /v1/demo/bootstrap` in `src/game/runtime.ts` and frontend wiring in `apps/web/app.js`; validated in `tests/game-runtime.test.ts` and browser journeys)
+
+### P0-027: Runtime resilience coverage missed restart persistence and retry idempotency
+- Evidence: existing runtime tests covered happy/failure paths but lacked explicit restart-state persistence and retry-safe duplicate handling scenarios.
+- Impacted journey: Reliability confidence for production restart/reconnect behavior.
+- Fix strategy: Add resilience-focused runtime tests for restart persistence and idempotent retries.
+- Status: Done (`tests/game-runtime-resilience.test.ts` now validates restart-safe onboarding state and event-id dedupe retry behavior)
+
 ### P0-026: Frontend runtime state-store migration TODO was still open in the production shell
 - Evidence: `apps/web/app.js` still carried an in-file TODO to migrate runtime state creation to a store module, leaving state initialization duplicated in a monolithic file.
 - Impacted journey: Frontend maintainability and regression safety for onboarding/runtime state changes.

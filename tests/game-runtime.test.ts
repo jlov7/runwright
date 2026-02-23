@@ -18,7 +18,7 @@ afterEach(() => {
   }
 });
 
-async function jsonRequest<T>(url: string, init?: RequestInit): Promise<{ status: number; payload: T }> {
+async function jsonRequest<T>(url: string, init?: RequestInit): Promise<{ status: number; payload: T; headers: Headers }> {
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -28,7 +28,8 @@ async function jsonRequest<T>(url: string, init?: RequestInit): Promise<{ status
   });
   return {
     status: response.status,
-    payload: (await response.json()) as T
+    payload: (await response.json()) as T,
+    headers: response.headers
   };
 }
 
@@ -335,6 +336,105 @@ describe("game runtime", () => {
       const response = await fetch(`${runtime.baseUrl}/`);
       expect(response.status).toBe(200);
       expect(await response.text()).toContain("Runtime shell");
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("provides deterministic demo bootstrap with idempotent replay", async () => {
+    const projectDir = makeTempDir("runwright-runtime-demo-bootstrap-");
+    const stateFile = join(projectDir, ".skillbase", "runtime-state.json");
+    const runtime = await createGameRuntimeServer({
+      host: "127.0.0.1",
+      port: 0,
+      stateFile,
+      rankedSalt: "test-salt"
+    });
+    try {
+      const first = await jsonRequest<{
+        seed: string;
+        profile: { id: string; handle: string };
+        onboarding: { completionPercent: number; nextAction: null };
+        firstSuccess: boolean;
+      }>(`${runtime.baseUrl}/v1/demo/bootstrap`, {
+        method: "POST",
+        body: JSON.stringify({ seed: "launch-seed" })
+      });
+      expect(first.status).toBe(200);
+      expect(first.payload.seed).toBe("launch-seed");
+      expect(first.payload.profile.handle).toBe("demo-launch-seed");
+      expect(first.payload.onboarding.completionPercent).toBe(100);
+      expect(first.payload.onboarding.nextAction).toBeNull();
+      expect(first.payload.firstSuccess).toBe(true);
+
+      const second = await jsonRequest<{
+        profile: { id: string };
+        onboarding: { completionPercent: number };
+      }>(`${runtime.baseUrl}/v1/demo/bootstrap`, {
+        method: "POST",
+        body: JSON.stringify({ seed: "launch-seed" })
+      });
+      expect(second.status).toBe(200);
+      expect(second.payload.profile.id).toBe(first.payload.profile.id);
+      expect(second.payload.onboarding.completionPercent).toBe(100);
+
+      const persisted = JSON.parse(readFileSync(stateFile, "utf8")) as {
+        profiles: Array<{ id: string }>;
+        saves: Array<{ profileId: string }>;
+        ranked: Array<{ profileId: string; accepted: boolean }>;
+      };
+      const profileId = first.payload.profile.id;
+      expect(persisted.profiles.filter((entry) => entry.id === profileId)).toHaveLength(1);
+      expect(persisted.saves.filter((entry) => entry.profileId === profileId)).toHaveLength(1);
+      expect(persisted.ranked.filter((entry) => entry.profileId === profileId && entry.accepted)).toHaveLength(1);
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("attaches request IDs and serves latency metrics with p95", async () => {
+    const projectDir = makeTempDir("runwright-runtime-metrics-");
+    const stateFile = join(projectDir, ".skillbase", "runtime-state.json");
+    const runtime = await createGameRuntimeServer({
+      host: "127.0.0.1",
+      port: 0,
+      stateFile
+    });
+    try {
+      const health = await jsonRequest<{ ok: boolean }>(`${runtime.baseUrl}/v1/health`);
+      expect(health.status).toBe(200);
+      expect(health.headers.get("x-request-id")).toMatch(/^req_/);
+
+      const customId = await jsonRequest<{ ok: boolean }>(`${runtime.baseUrl}/v1/health`, {
+        headers: {
+          "x-request-id": "runwright-metrics-check-001"
+        }
+      });
+      expect(customId.headers.get("x-request-id")).toBe("runwright-metrics-check-001");
+
+      const notFound = await jsonRequest<{ error: { requestId: string; occurredAt: string } }>(
+        `${runtime.baseUrl}/v1/missing-route`
+      );
+      expect(notFound.status).toBe(404);
+      expect(notFound.payload.error.requestId).toMatch(/^req_/);
+      expect(notFound.payload.error.occurredAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+      await jsonRequest<{ profile: { id: string } }>(`${runtime.baseUrl}/v1/auth/signup`, {
+        method: "POST",
+        body: JSON.stringify({ handle: "metrics-user", locale: "en-US" })
+      });
+
+      const metrics = await jsonRequest<{
+        requests: { total: number; errors: number; p95Ms: number };
+        endpoints: Array<{ route: string; count: number; p95Ms: number }>;
+      }>(`${runtime.baseUrl}/v1/metrics`);
+      expect(metrics.status).toBe(200);
+      expect(metrics.payload.requests.total).toBeGreaterThanOrEqual(3);
+      expect(metrics.payload.requests.errors).toBeGreaterThanOrEqual(0);
+      expect(metrics.payload.requests.p95Ms).toBeGreaterThanOrEqual(0);
+      expect(metrics.payload.endpoints).toEqual(
+        expect.arrayContaining([expect.objectContaining({ route: "GET /v1/health", count: expect.any(Number) })])
+      );
     } finally {
       await runtime.close();
     }

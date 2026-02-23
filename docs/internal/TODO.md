@@ -7,9 +7,9 @@ Tracker: `docs/plans/2026-02-23-final-world-class-hardening.md`
 - [x] FWH-02 Real browser E2E journeys for first visit, returning user, onboarding, and recovery.
 - [x] FWH-03 Runtime accessibility audits (axe + keyboard traversal assertions).
 - [x] FWH-04 Frontend runtime store migration TODO closure.
-- [ ] FWH-05 Runtime observability (request IDs, structured errors, endpoint p95 metrics route).
-- [ ] FWH-06 Deterministic demo mode bootstrap flow.
-- [ ] FWH-07 Backend resilience expansion (restart/retry/idempotency).
+- [x] FWH-05 Runtime observability (request IDs, structured errors, endpoint p95 metrics route).
+- [x] FWH-06 Deterministic demo mode bootstrap flow.
+- [x] FWH-07 Backend resilience expansion (restart/retry/idempotency).
 - [ ] FWH-08 Runtime SLO policy + enforceable gate script.
 - [ ] FWH-09 API contract versioning governance + compatibility checks.
 - [ ] FWH-10 Copy and interaction consistency automated QA.

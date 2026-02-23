@@ -1666,13 +1666,34 @@ document.querySelector("#onboarding-resume").addEventListener("click", async () 
   setFeedback("Onboarding resumed.");
 });
 
-document.querySelector("#onboarding-bootstrap").addEventListener("click", async () => {
-  state.progress.tutorial = true;
-  state.progress.saved = true;
-  onboardingDiagnostics.textContent = "Diagnostics: bootstrap loaded (tutorial + save complete).";
-  await emitOnboardingTelemetry("onboarding.bootstrap_loaded", { preset: "sample-progress" });
-  setActiveSurface("onboarding", "Bootstrap");
-  setFeedback("Sample progress loaded.");
+document.querySelector("#onboarding-bootstrap").addEventListener("click", async function () {
+  await withButtonLoading(this, "Loading…", async () => {
+    try {
+      const payload = await api(
+        "/v1/demo/bootstrap",
+        {
+          method: "POST",
+          body: JSON.stringify({ seed: "web-shell" })
+        },
+        { label: "load demo bootstrap" }
+      );
+      if (payload.profile?.id) state.profileId = payload.profile.id;
+      if (payload.profile?.handle) state.profileHandle = payload.profile.handle;
+      if (payload.profile?.locale) state.locale = payload.profile.locale;
+
+      state.progress.tutorial = true;
+      state.progress.saved = true;
+      state.progress.published = true;
+      onboardingDiagnostics.textContent = "Diagnostics: deterministic demo bootstrap loaded.";
+      await emitOnboardingTelemetry("onboarding.bootstrap_loaded", { preset: "deterministic-demo" });
+      setActiveSurface("onboarding", "Bootstrap");
+      setFeedback("Deterministic demo progress loaded.");
+      await refreshOnboarding();
+    } catch (error) {
+      onboardingDiagnostics.textContent = "Diagnostics: demo bootstrap failed.";
+      setFeedback(`Demo bootstrap failed: ${error.message}`, true);
+    }
+  });
 });
 
 document.querySelector("#coachmark-dismiss").addEventListener("click", () => {

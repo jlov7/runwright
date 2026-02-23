@@ -42,7 +42,7 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
 ## Progress
 - [x] M1 complete
 - [x] M2 complete
-- [ ] M3 complete
+- [x] M3 complete
 - [ ] M4 complete
 - [ ] M5 complete
 
@@ -66,6 +66,14 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
   - Validation evidence:
     - `pnpm vitest run tests/frontend-runtime-state-store.test.ts tests/game-runtime-shell.test.ts`
     - `pnpm verify`
+- M3 (2026-02-23):
+  - Added runtime observability primitives in `src/game/runtime.ts`: `x-request-id` response headers, structured error envelopes with `requestId` and `occurredAt`, and `/v1/metrics` endpoint with endpoint-level latency p50/p95 summaries.
+  - Added deterministic backend bootstrap route `POST /v1/demo/bootstrap` and wired frontend onboarding bootstrap action to consume it from `apps/web/app.js`.
+  - Expanded resilience coverage with runtime restart persistence and retry-idempotency checks (`tests/game-runtime-resilience.test.ts`) plus runtime observability/bootstrap assertions in `tests/game-runtime.test.ts`.
+  - Validation evidence:
+    - `pnpm vitest run tests/game-runtime.test.ts tests/game-runtime-security-hardening.test.ts tests/game-runtime-resilience.test.ts tests/game-runtime-shell.test.ts`
+    - `pnpm verify`
+    - `pnpm test:web:browser`
 
 ## Evidence Artifacts
 - Browser visual/e2e outputs: `reports/frontend/browser/`
