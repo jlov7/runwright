@@ -1,3 +1,58 @@
+# ExecPlan: Frontend Deep UX Overhaul (2026-02-23)
+
+## Purpose / Big Picture
+Raise the web frontend from release-capable to world-class usability by reducing cognitive load, strengthening onboarding progression, hardening interaction/a11y behavior, and improving maintainability confidence with explicit regression coverage.
+
+## Approach
+- Run a strict gap loop with evidence-first execution.
+- Work in small increments (<= 5 files per change).
+- Verify after each milestone (`pnpm lint`, `pnpm typecheck`, targeted tests, `pnpm build`).
+- Keep behavior changes test-backed before marking gaps complete.
+
+## Scope
+- Frontend shell only (`apps/web/*`, frontend tests, release evidence docs).
+- No backend contract refactors unless required for journey correctness.
+
+## Milestones
+- M0: Tracking artifacts + refreshed gap backlog.
+- M1: IA simplification and guided onboarding clarity.
+- M2: Interaction reliability and recovery UX hardening.
+- M3: Accessibility, modal mechanics, and mobile safe-area polish.
+- M4: Visual hierarchy and contextual help improvements.
+- M5: Code-structure extraction and typed model adoption where safe.
+- M6: Full verification sweep + release evidence refresh.
+
+## Validation Gates
+- Per milestone:
+  - `pnpm lint`
+  - `pnpm typecheck`
+  - targeted frontend suites
+  - `pnpm build`
+- Final:
+  - `pnpm verify`
+  - `pnpm run doctor`
+  - `pnpm ship:gate`
+
+## Progress
+- [x] M0: Tracking artifacts + backlog refresh.
+- [ ] M1: IA simplification and guided onboarding clarity.
+- [ ] M2: Interaction reliability and recovery UX hardening.
+- [ ] M3: Accessibility, modal mechanics, and mobile safe-area polish.
+- [ ] M4: Visual hierarchy and contextual help improvements.
+- [ ] M5: Code-structure extraction and typed model adoption where safe.
+- [ ] M6: Full verification sweep + release evidence refresh.
+
+## Surprises & Discoveries
+- Frontend shell has strong baseline UX scaffolding, but runtime behavior still concentrates too much orchestration in `apps/web/app.js`.
+- Existing a11y/visual tests are mostly static-assertion guards and do not validate runtime keyboard/modal flows deeply.
+
+## Decision Log
+- 2026-02-23: Prioritize user journey coherence and recovery clarity over large architectural rewrites in the first pass.
+- 2026-02-23: Keep advanced workflows available but progressively disclosed behind clearer mode framing.
+
+## Outcomes & Retrospective
+- In progress.
+
 # ExecPlan: Release-ready v1
 
 ## Purpose / Big Picture

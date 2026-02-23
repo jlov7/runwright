@@ -2,6 +2,24 @@
 
 ## P0
 
+### P0-022: Frontend IA remains cognitively heavy for first-run and returning users
+- Evidence: core shell still requires users to parse multiple regions and control clusters simultaneously (`apps/web/index.html`, `apps/web/app.js`); advanced surfaces remain conceptually mixed with primary onboarding workspace.
+- Impacted journey: First visit, onboarding completion, returning-user re-entry.
+- Fix strategy: Introduce explicit mode framing (`Setup`, `Operate`, `Analyze`), reduce first-view density, and enforce one strongest next action per mode.
+- Status: In progress
+
+### P0-023: Overlay/modal behavior is inconsistent across welcome/explore/help flows
+- Evidence: welcome overlay has focus trap, but explore/help overlays do not share equivalent dialog behavior or consistent focus return/backdrop semantics (`apps/web/app.js`, `apps/web/index.html`).
+- Impacted journey: Keyboard-only navigation, recovery/help discoverability, and mobile overlay usability.
+- Fix strategy: Standardize overlay controller behavior (focus trap + return focus + escape + backdrop + scroll lock) and add regression coverage.
+- Status: In progress
+
+### P0-024: Accessibility and mobile ergonomics gaps remain in field errors, focus tokens, and safe-area handling
+- Evidence: `.breadcrumb-link:focus-visible` references undefined `--color-focus` token (`apps/web/styles.css`), form validation lacks explicit `aria-invalid`/`aria-errormessage` wiring, and no safe-area inset handling exists for mobile viewport chrome.
+- Impacted journey: Keyboard focus visibility, assistive tech form recovery, mobile comfort.
+- Fix strategy: Fix token usage, add field-level aria bindings + invalid focus behavior, and add safe-area layout rules with regression tests.
+- Status: In progress
+
 ### P0-021: Guided first-run UX controls were partially implemented but not wired end-to-end
 - Evidence: `apps/web/index.html` introduced `welcome-overlay`, `explore-hub`, and help/disclosure controls, but runtime behavior still referenced removed `toggleAdvancedNavButton`/`advancedNavTools` and lacked full event wiring (`apps/web/app.js` before 2026-02-21 pass).
 - Impacted journey: First-run onboarding and advanced-surface discovery for new users.
