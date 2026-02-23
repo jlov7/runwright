@@ -43,7 +43,7 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
 - [x] M1 complete
 - [x] M2 complete
 - [x] M3 complete
-- [ ] M4 complete
+- [x] M4 complete
 - [ ] M5 complete
 
 ## Milestone Notes
@@ -74,6 +74,17 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
     - `pnpm vitest run tests/game-runtime.test.ts tests/game-runtime-security-hardening.test.ts tests/game-runtime-resilience.test.ts tests/game-runtime-shell.test.ts`
     - `pnpm verify`
     - `pnpm test:web:browser`
+- M4 (2026-02-23):
+  - Added enforceable runtime SLO gate script `scripts/check_runtime_slo.ts` (`pnpm runtime:slo:check`) with pass/fail test coverage in `tests/runtime-slo-script.test.ts`.
+  - Added runtime API compatibility governance and checks:
+    - Runtime API version metadata + header in `src/game/runtime.ts` (`GET /v1/meta/version`, `x-runwright-api-version`).
+    - Compatibility gate script `scripts/check_runtime_api_compatibility.ts` (`pnpm api:compat:runtime`) with tests in `tests/runtime-api-compat-script.test.ts`.
+    - Governance doc `docs/release/runtime-api-versioning-policy.md`.
+  - Added automated frontend copy/interaction consistency QA script `scripts/check_frontend_copy_consistency.ts` (`pnpm qa:copy:check`) with tests in `tests/frontend-copy-consistency-script.test.ts`.
+  - Updated release gates and SLO policy docs (`docs/release/RELEASE_GATES.md`, `docs/release/runtime-slo-policy.md`).
+  - Validation evidence:
+    - `pnpm vitest run tests/game-runtime.test.ts tests/game-runtime-security-hardening.test.ts tests/runtime-slo-script.test.ts tests/runtime-api-compat-script.test.ts tests/frontend-copy-consistency-script.test.ts`
+    - `pnpm verify`
 
 ## Evidence Artifacts
 - Browser visual/e2e outputs: `reports/frontend/browser/`

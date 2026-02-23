@@ -2,6 +2,24 @@
 
 ## P0
 
+### P0-032: Frontend copy and interaction consistency lacked an automated quality gate
+- Evidence: no deterministic check ensured critical CTA labels/help text/recovery phrases remained consistent after UI refactors.
+- Impacted journey: onboarding clarity, recovery guidance trust, and UX regression detection.
+- Fix strategy: add a copy/interaction consistency script with explicit required-copy checks and fail-fast behavior.
+- Status: Done (`scripts/check_frontend_copy_consistency.ts`, `pnpm qa:copy:check`, and tests in `tests/frontend-copy-consistency-script.test.ts`)
+
+### P0-031: Runtime API versioning governance and compatibility checks were not automated
+- Evidence: runtime had no explicit API version metadata endpoint/header and no enforcement command for compatibility checks.
+- Impacted journey: backend contract stability and release confidence for integrations.
+- Fix strategy: add runtime API version metadata surface, governance policy doc, and compatibility gate script.
+- Status: Done (`x-runwright-api-version`, `GET /v1/meta/version` in `src/game/runtime.ts`; governance doc `docs/release/runtime-api-versioning-policy.md`; gate script `scripts/check_runtime_api_compatibility.ts`; tests in `tests/runtime-api-compat-script.test.ts`)
+
+### P0-030: Runtime SLO policy existed implicitly but lacked an enforceable gate command
+- Evidence: no dedicated runtime latency SLO policy/check command produced a pass/fail artifact for release gating.
+- Impacted journey: launch signoff and post-change regression detection for runtime performance basics.
+- Fix strategy: publish explicit runtime SLO policy and add a deterministic SLO checker script.
+- Status: Done (`docs/release/runtime-slo-policy.md`, `scripts/check_runtime_slo.ts`, `pnpm runtime:slo:check`, tests in `tests/runtime-slo-script.test.ts`)
+
 ### P0-029: Runtime observability lacked request-level correlation and latency distribution visibility
 - Evidence: runtime responses did not include request IDs and no endpoint metrics route existed for p95 latency visibility.
 - Impacted journey: Launch diagnostics, production incident triage, backend quality gate evidence.

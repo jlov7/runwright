@@ -12,7 +12,7 @@ Execute the final high-impact enhancements before release so the product is not 
 - [x] M1: Browser visual regression + E2E + runtime a11y audits.
 - [x] M2: Frontend state-store migration completion.
 - [x] M3: Runtime observability + demo mode + resilience tests.
-- [ ] M4: SLO gate + API versioning + copy QA automation.
+- [x] M4: SLO gate + API versioning + copy QA automation.
 - [ ] M5: Full release verification and evidence refresh.
 
 ## Validation Gates
@@ -25,6 +25,7 @@ Execute the final high-impact enhancements before release so the product is not 
 - Runtime state initialization is now centralized in `apps/web/state-store.js` with explicit declaration typing in `apps/web/state-store.d.ts`, removing the remaining migration TODO in `apps/web/app.js`.
 - Runtime now emits structured request-correlation data (`x-request-id` headers + error payload `requestId`) and exposes in-process endpoint latency distributions via `GET /v1/metrics`.
 - Deterministic demo bootstrap moved from frontend-only simulation into backend route `POST /v1/demo/bootstrap`, enabling restart-safe idempotent seeded demos.
+- Added three new enforceable release-quality checks with report artifacts and failing-mode tests: runtime SLO (`pnpm runtime:slo:check`), runtime API compatibility (`pnpm api:compat:runtime`), and frontend copy consistency (`pnpm qa:copy:check`).
 
 ## Decision Log
 - 2026-02-23: Prioritize adding missing verification depth (browser runtime checks + SLO gates) before additional UX feature work.

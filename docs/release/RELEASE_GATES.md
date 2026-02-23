@@ -82,3 +82,23 @@
   - `pnpm release:attestation:generate -- --artifact <bundle.zip> --private-key <private.pem> --out <attestation.json>`
   - `pnpm release:attestation:verify -- --attestation <attestation.json> --artifact <bundle.zip> --public-key <public.pem> --out <attestation.verify.json>`
   - CI workflow `release-verify.yml` includes both `release:attestation:generate` and `release:attestation:verify`.
+
+## Gate RG-009: Runtime SLO Guard
+- Requirement: runtime SLO thresholds pass for local launch gate.
+- Evidence:
+  - Policy: `docs/release/runtime-slo-policy.md`
+  - Command: `pnpm runtime:slo:check`
+  - Artifact: `reports/quality/runtime-slo.report.json`
+
+## Gate RG-010: Runtime API Compatibility
+- Requirement: runtime contract versioning and compatibility checks pass.
+- Evidence:
+  - Policy: `docs/release/runtime-api-versioning-policy.md`
+  - Command: `pnpm api:compat:runtime`
+  - Artifact: `reports/quality/runtime-api-compat.report.json`
+
+## Gate RG-011: Frontend Copy & Interaction Consistency
+- Requirement: critical UX copy and interaction guidance remain consistent across runtime shell updates.
+- Evidence:
+  - Command: `pnpm qa:copy:check`
+  - Artifact: `reports/quality/frontend-copy-consistency.report.json`

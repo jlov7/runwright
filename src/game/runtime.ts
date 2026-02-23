@@ -83,6 +83,8 @@ const DEFAULT_RATE_LIMIT_CONFIG: ResolvedRateLimitConfig = {
 };
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
+const RUNTIME_API_VERSION = "1.0";
+const RUNTIME_API_MIN_SUPPORTED = "1.0";
 
 class HttpError extends Error {
   status: number;
@@ -285,6 +287,7 @@ function applySecurityHeaders(res: ServerResponse): void {
   res.setHeader("referrer-policy", "no-referrer");
   res.setHeader("cross-origin-opener-policy", "same-origin");
   res.setHeader("cross-origin-resource-policy", "same-origin");
+  res.setHeader("x-runwright-api-version", RUNTIME_API_VERSION);
 }
 
 function validateOriginAndCsrf(req: IncomingMessage, res: ServerResponse): boolean {
@@ -721,6 +724,15 @@ async function handleRequest(
 
   if (pathname === "/v1/metrics" && method === "GET") {
     sendJson(res, 200, options.getMetricsSnapshot());
+    return;
+  }
+
+  if (pathname === "/v1/meta/version" && method === "GET") {
+    sendJson(res, 200, {
+      apiVersion: RUNTIME_API_VERSION,
+      minSupportedVersion: RUNTIME_API_MIN_SUPPORTED,
+      compatibilityWindow: "v1.x"
+    });
     return;
   }
 

@@ -10,9 +10,9 @@ Tracker: `docs/plans/2026-02-23-final-world-class-hardening.md`
 - [x] FWH-05 Runtime observability (request IDs, structured errors, endpoint p95 metrics route).
 - [x] FWH-06 Deterministic demo mode bootstrap flow.
 - [x] FWH-07 Backend resilience expansion (restart/retry/idempotency).
-- [ ] FWH-08 Runtime SLO policy + enforceable gate script.
-- [ ] FWH-09 API contract versioning governance + compatibility checks.
-- [ ] FWH-10 Copy and interaction consistency automated QA.
+- [x] FWH-08 Runtime SLO policy + enforceable gate script.
+- [x] FWH-09 API contract versioning governance + compatibility checks.
+- [x] FWH-10 Copy and interaction consistency automated QA.
 
 ## P0 (Active deep frontend UX overhaul: 2026-02-23)
 Tracker: `docs/internal/UX_FRONTEND_EXECUTION_TRACKER.md`
