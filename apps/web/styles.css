@@ -738,10 +738,12 @@ a:focus-visible,
 
 .feedback.error {
   color: var(--color-state-error);
+  animation: feedback-pop var(--motion-fast) var(--easing-emphasized);
 }
 
 .feedback.success {
   color: var(--color-state-success);
+  animation: feedback-pop var(--motion-fast) var(--easing-emphasized);
 }
 
 .retry-queue {
@@ -780,6 +782,7 @@ a:focus-visible,
   padding: 0.56rem 0.7rem;
   box-shadow: var(--elevation-1);
   font-size: var(--font-size-200);
+  animation: toast-in var(--motion-base) var(--easing-emphasized);
 }
 
 .toast-item span {
@@ -818,6 +821,30 @@ a:focus-visible,
 
 a {
   color: var(--color-link);
+}
+
+@keyframes feedback-pop {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 1100px) {
@@ -890,6 +917,10 @@ a {
   }
 
   .nav-controls .muted {
+    width: 100%;
+  }
+
+  .mode-primary button {
     width: 100%;
   }
 

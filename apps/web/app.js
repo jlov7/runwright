@@ -196,9 +196,30 @@ function setInlineHelp(message) {
   inlineHelp.textContent = message;
 }
 
+function skeletonRowCountForSurface(surface) {
+  if (surface === "analytics" || surface === "ranked") return 4;
+  if (surface === "onboarding" || surface === "campaign") return 3;
+  return 2;
+}
+
+function syncSkeletonRows(count) {
+  if (!surfaceLoadingSkeleton) return;
+  const rows = [...surfaceLoadingSkeleton.querySelectorAll(".skeleton-row")];
+  while (rows.length < count) {
+    const row = document.createElement("div");
+    row.className = "skeleton-row";
+    surfaceLoadingSkeleton.appendChild(row);
+    rows.push(row);
+  }
+  rows.forEach((row, index) => {
+    row.hidden = index >= count;
+  });
+}
+
 function setLoading(active, label) {
   surfaceLoadingSkeleton.hidden = !active;
   if (active) {
+    syncSkeletonRows(skeletonRowCountForSurface(state.activeSurface));
     const loadingLabel = label || `Loading ${SURFACE_META[state.activeSurface]?.label || "surface"}...`;
     if (surfaceLoadingCopy) {
       surfaceLoadingCopy.textContent = loadingLabel;
