@@ -194,6 +194,21 @@ Artifacts:
 
 Setup details: [docs/demos/README.md](docs/demos/README.md)
 
+### Public Showcase (Optional Vercel)
+
+If you want a polished public-facing page without deploying the full runtime/backend, deploy the static showcase in `apps/showcase`.
+
+```bash
+# one-time in this repo
+pnpm hooks:install
+
+# deploy showcase only
+npx vercel --cwd apps/showcase
+npx vercel --prod --cwd apps/showcase
+```
+
+The showcase is intentionally static and links to real release evidence and demos.
+
 ---
 
 ## Core Commands
@@ -272,6 +287,7 @@ runwright/
 │   ├── app.js              # Application logic (ESM)
 │   ├── styles.css          # Design token system (light/dark)
 │   └── src/                # TypeScript modules
+├── apps/showcase/          # Static public showcase (optional Vercel deploy)
 ├── tests/                  # 390+ tests (Vitest)
 ├── scripts/                # Build, release, and QA scripts
 ├── docs/                   # Documentation
