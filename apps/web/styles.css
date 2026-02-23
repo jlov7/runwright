@@ -244,6 +244,43 @@ h4 {
   margin: 0;
 }
 
+.mode-switcher {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: 0.18rem;
+  border: 1px solid color-mix(in srgb, var(--color-border-muted) 85%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg-surface) 78%, transparent);
+}
+
+.mode-toggle {
+  min-height: 36px;
+  padding: 0.4rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--color-text-secondary);
+  background: transparent;
+  font-size: var(--font-size-100);
+  font-weight: var(--font-weight-semibold);
+}
+
+.mode-toggle:hover {
+  transform: none;
+  filter: none;
+  color: var(--color-text-primary);
+}
+
+.mode-toggle.is-active {
+  color: #0f172a;
+  background: color-mix(in srgb, var(--color-state-success) 82%, white);
+  border-color: color-mix(in srgb, var(--color-state-success) 62%, var(--color-border-muted));
+}
+
+.mode-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .nav-toggle {
   color: var(--color-text-primary);
   background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
@@ -378,6 +415,21 @@ body.overlay-open .explore-hub {
 
 .wayfinding-actions {
   flex-wrap: wrap;
+}
+
+.mode-primary {
+  border: 1px solid color-mix(in srgb, var(--color-state-info) 48%, var(--color-border-muted));
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--color-state-info) 10%, transparent);
+}
+
+.mode-primary .status-pill {
+  margin-bottom: var(--space-1);
+}
+
+.mode-primary button {
+  width: fit-content;
 }
 
 .mobile-surface-nav {

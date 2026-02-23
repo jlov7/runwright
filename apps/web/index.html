@@ -42,6 +42,11 @@
         </button>
       </nav>
       <div class="nav-controls rw-inline">
+        <div id="experience-mode-switcher" class="mode-switcher" role="group" aria-label="Experience mode">
+          <button type="button" class="mode-toggle is-active" data-mode="setup" aria-pressed="true">Setup</button>
+          <button type="button" class="mode-toggle" data-mode="operate" aria-pressed="false">Operate</button>
+          <button type="button" class="mode-toggle" data-mode="analyze" aria-pressed="false">Analyze</button>
+        </div>
         <button
           type="button"
           id="open-explore-hub"
@@ -71,7 +76,7 @@
         >
           Light Mode
         </button>
-        <p id="nav-mode-hint" class="muted">Focused mode: core surfaces in header. Advanced workflows live in Explore.</p>
+        <p id="nav-mode-hint" class="muted">Setup mode: complete first success with minimal surface noise.</p>
       </div>
     </header>
 
@@ -184,6 +189,19 @@
           <button type="button" id="breadcrumb-home" class="breadcrumb-link">Home</button> / <span id="breadcrumb-surface">Dashboard</span>
         </nav>
         <p id="surface-path-hint" class="muted">Use the nav or command bar to move through core surfaces quickly.</p>
+        <div class="mode-primary rw-stack" aria-live="polite">
+          <p id="mode-name" class="status-pill">Mode: Setup</p>
+          <p id="mode-primary-intent" class="muted">
+            Focus on profile creation and onboarding so your first success is complete quickly.
+          </p>
+          <button
+            type="button"
+            id="mode-primary-action"
+            data-help="Runs the most important next action for the selected experience mode."
+          >
+            Create profile
+          </button>
+        </div>
         <div class="rw-inline wayfinding-actions">
           <button
             type="button"

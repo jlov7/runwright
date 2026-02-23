@@ -21,13 +21,22 @@ export type SurfaceMeta = {
 };
 
 export const SURFACE_META: Record<SurfaceId, SurfaceMeta>;
+export const EXPERIENCE_MODE_META: Record<
+  "setup" | "operate" | "analyze",
+  {
+    label: string;
+    intent: string;
+    defaultSurface: SurfaceId;
+  }
+>;
 
 export function normalizeSurfaceInput(input: string): SurfaceId | null;
 export function isAdvancedSurface(surface: string): boolean;
 export function getVisibleSurfaces(context: {
   showAdvancedNav: boolean;
-  onboardingReady: boolean;
+  onboardingReady?: boolean;
   profileReady?: boolean;
+  experienceMode?: "setup" | "operate" | "analyze";
   activeSurface?: string;
 }): SurfaceId[];
 export function getSurfaceLockReason(

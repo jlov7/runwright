@@ -1,6 +1,7 @@
 // ── Imports ──────────────────────────────────────────────────────────────────
 
 import {
+  EXPERIENCE_MODE_META,
   SURFACE_META,
   getSurfaceLockReason,
   getVisibleSurfaces,
@@ -40,6 +41,7 @@ const state = {
   helperModulePromise: null,
   lastAnnouncedMessage: null,
   personaMode: "builder",
+  experienceMode: "setup",
   welcomeDismissed: false,
   exploreHubOpen: false,
   helpPanelOpen: false
@@ -124,6 +126,10 @@ const personaModeSelect = document.querySelector("#persona-mode");
 const reopenOnboardingGuideButton = document.querySelector("#reopen-onboarding-guide");
 const jumpToNextStepButton = document.querySelector("#jump-to-next-step");
 const toggleThemeButton = document.querySelector("#toggle-theme");
+const modeToggleButtons = [...document.querySelectorAll(".mode-toggle[data-mode]")];
+const modeName = document.querySelector("#mode-name");
+const modePrimaryIntent = document.querySelector("#mode-primary-intent");
+const modePrimaryAction = document.querySelector("#mode-primary-action");
 
 const PERSONA_GUIDANCE = {
   builder: "Builder focus: publish your first level, then jump to Challenge and Creator surfaces.",
@@ -378,20 +384,65 @@ function primaryActionLabel(actionId) {
   return "Open onboarding controls";
 }
 
+function activeModeMeta() {
+  return EXPERIENCE_MODE_META[state.experienceMode] || EXPERIENCE_MODE_META.setup;
+}
+
+function modePrimaryActionId() {
+  if (state.experienceMode === "setup") {
+    if (!profileReady()) return "create-profile";
+    if (!onboardingReady()) return "run-onboarding";
+    return "open-help";
+  }
+  if (state.experienceMode === "operate") {
+    if (!onboardingReady()) return "run-onboarding";
+    return "generate-challenge";
+  }
+  if (!onboardingReady()) return "run-onboarding";
+  return "refresh-analytics";
+}
+
+function modeHintCopy() {
+  if (state.experienceMode === "setup") {
+    return "Setup mode: complete first success with minimal surface noise.";
+  }
+  if (state.experienceMode === "operate") {
+    return "Operate mode: challenge, campaign, creator, and moderation loops are prioritized.";
+  }
+  return "Analyze mode: ranked integrity and analytics health are prioritized.";
+}
+
+function renderExperienceMode() {
+  const meta = activeModeMeta();
+  if (modeName) {
+    modeName.textContent = `Mode: ${meta.label}`;
+  }
+  if (modePrimaryIntent) {
+    modePrimaryIntent.textContent = meta.intent;
+  }
+  const modeActionId = modePrimaryActionId();
+  if (modePrimaryAction) {
+    modePrimaryAction.dataset.actionId = modeActionId;
+    modePrimaryAction.textContent = primaryActionLabel(modeActionId);
+  }
+  for (const button of modeToggleButtons) {
+    const active = button.dataset.mode === state.experienceMode;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+}
+
 function navContext() {
   return {
     profileReady: profileReady(),
     onboardingReady: onboardingReady(),
     showAdvancedNav: state.showAdvancedNav || state.exploreHubOpen,
-    activeSurface: state.activeSurface
+    activeSurface: state.activeSurface,
+    experienceMode: state.experienceMode
   };
 }
 
 function syncNavigationDisclosure() {
-  if (onboardingReady()) {
-    state.showAdvancedNav = true;
-  }
-
   const visible = new Set(getVisibleSurfaces(navContext()));
   for (const item of navItems) {
     const surface = item.dataset.surface || "";
@@ -408,7 +459,7 @@ function syncNavigationDisclosure() {
 
   navModeHint.textContent = state.exploreHubOpen
     ? "Explore mode: advanced surfaces are visible in the explorer."
-    : "Focused mode: core surfaces in header. Advanced workflows live in Explore.";
+    : modeHintCopy();
   if (openExploreHubButton) {
     openExploreHubButton.setAttribute("aria-expanded", state.exploreHubOpen ? "true" : "false");
   }
@@ -548,6 +599,7 @@ function renderSurfaceChrome(stepLabel = null) {
   const surface = state.activeSurface;
   const meta = SURFACE_META[surface] || SURFACE_META.dashboard;
   syncNavigationDisclosure();
+  renderExperienceMode();
   const activeItem = navItems.find((item) => item.dataset.surface === surface) || navItems[0];
 
   for (const item of navItems) {
@@ -641,9 +693,15 @@ function renderSummaries() {
   renderRetryQueue();
   renderSocialInvites();
   if (ledeCopy) {
-    ledeCopy.textContent = onboardingReady()
-      ? "Onboarding complete. Keep the main workspace focused and use Explore for advanced modes."
-      : "Complete onboarding quickly, then move into challenge, ranked, and creator loops.";
+    if (!onboardingReady()) {
+      ledeCopy.textContent = "Complete onboarding quickly, then move into challenge, ranked, and creator loops.";
+    } else if (state.experienceMode === "operate") {
+      ledeCopy.textContent = "Operate mode active: execute gameplay and moderation loops while keeping setup noise low.";
+    } else if (state.experienceMode === "analyze") {
+      ledeCopy.textContent = "Analyze mode active: track ranked integrity and funnel health before shipping changes.";
+    } else {
+      ledeCopy.textContent = "Setup mode active: review profile and onboarding foundations before expanding scope.";
+    }
   }
   debouncedPersist();
 }
@@ -672,6 +730,15 @@ function setActiveSurface(surface, stepLabel = null) {
   else if (nextSurface === "creator") void refreshCreatorFeed();
   else if (nextSurface === "liveops") void refreshLiveOps();
   else if (nextSurface === "analytics") void refreshAnalytics();
+}
+
+function setExperienceMode(mode, stepLabel = null) {
+  if (!EXPERIENCE_MODE_META[mode]) return;
+  state.experienceMode = mode;
+  const visible = getVisibleSurfaces(navContext());
+  const target = visible.includes(state.activeSurface) ? state.activeSurface : activeModeMeta().defaultSurface;
+  renderExperienceMode();
+  setActiveSurface(target, stepLabel);
 }
 
 async function loadSurfaceHelpers() {
@@ -856,6 +923,7 @@ function persistLocalState() {
       profileHandle: state.profileHandle,
       locale: state.locale,
       showAdvancedNav: state.showAdvancedNav,
+      experienceMode: state.experienceMode,
       personaMode: state.personaMode,
       welcomeDismissed: state.welcomeDismissed,
       helpPanelOpen: state.helpPanelOpen,
@@ -879,6 +947,9 @@ function restoreLocalState() {
     if (typeof parsed.profileHandle === "string") state.profileHandle = parsed.profileHandle;
     if (typeof parsed.locale === "string") state.locale = parsed.locale;
     if (parsed.showAdvancedNav === true) state.showAdvancedNav = true;
+    if (typeof parsed.experienceMode === "string" && EXPERIENCE_MODE_META[parsed.experienceMode]) {
+      state.experienceMode = parsed.experienceMode;
+    }
     if (typeof parsed.personaMode === "string" && PERSONA_GUIDANCE[parsed.personaMode]) {
       state.personaMode = parsed.personaMode;
     }
@@ -1148,8 +1219,8 @@ async function refreshAnalytics() {
 
 // ── Action Routing & Event Handlers ──────────────────────────────────────────
 
-function runPrimaryAction() {
-  const actionId = surfacePrimaryAction.dataset.actionId;
+function runPrimaryAction(actionIdOverride = null) {
+  const actionId = actionIdOverride || surfacePrimaryAction.dataset.actionId;
   if (actionId === "create-profile") {
     setActiveSurface("onboarding", "Create Profile");
     document.querySelector("#handle").focus();
@@ -1620,7 +1691,12 @@ personaModeSelect.addEventListener("change", () => {
   const mode = personaModeSelect.value;
   if (PERSONA_GUIDANCE[mode]) {
     state.personaMode = mode;
+    if (mode === "analyst") state.experienceMode = "analyze";
+    else if (mode === "operator") state.experienceMode = "operate";
+    else state.experienceMode = "setup";
     renderSummaries();
+    renderExperienceMode();
+    syncNavigationDisclosure();
     setFeedback(`Persona mode updated: ${mode}.`);
   }
 });
@@ -1645,6 +1721,15 @@ jumpToNextStepButton.addEventListener("click", () => {
   announceStatus(`Next step: ${step.label}. Use the primary action button to proceed.`);
 });
 
+for (const modeButton of modeToggleButtons) {
+  modeButton.addEventListener("click", () => {
+    const mode = modeButton.dataset.mode;
+    if (!mode || mode === state.experienceMode) return;
+    setExperienceMode(mode, `${activeModeMeta().label} Mode`);
+    setFeedback(`${activeModeMeta().label} mode active.`);
+  });
+}
+
 toggleThemeButton.addEventListener("click", () => {
   const isDark = document.body.getAttribute("data-theme") === "dark";
   const nextTheme = isDark ? "light" : "dark";
@@ -1668,6 +1753,9 @@ exploreHubList.addEventListener("click", (event) => {
 });
 
 surfacePrimaryAction.addEventListener("click", runPrimaryAction);
+modePrimaryAction?.addEventListener("click", () => {
+  runPrimaryAction(modePrimaryAction.dataset.actionId || "run-onboarding");
+});
 
 emptyAction.addEventListener("click", () => {
   const target = emptyAction.dataset.targetSurface || "onboarding";

@@ -85,6 +85,24 @@ export const SURFACE_META = {
   }
 };
 
+export const EXPERIENCE_MODE_META = {
+  setup: {
+    label: "Setup",
+    intent: "Complete profile and first-success onboarding steps with minimal cognitive load.",
+    defaultSurface: "onboarding"
+  },
+  operate: {
+    label: "Operate",
+    intent: "Run challenge, campaign, social, and moderation loops once setup is stable.",
+    defaultSurface: "dashboard"
+  },
+  analyze: {
+    label: "Analyze",
+    intent: "Inspect ranked integrity and analytics health with focused operational context.",
+    defaultSurface: "analytics"
+  }
+};
+
 const SURFACE_ORDER = [
   "dashboard",
   "profile",
@@ -111,6 +129,12 @@ const SURFACE_ALIASES = {
   support: "help"
 };
 
+const MODE_SURFACES = {
+  setup: ["dashboard", "profile", "onboarding", "help"],
+  operate: ["dashboard", "profile", "onboarding", "challenge", "campaign", "coop", "creator", "moderation", "liveops", "help"],
+  analyze: ["dashboard", "profile", "onboarding", "ranked", "analytics", "help"]
+};
+
 export function normalizeSurfaceInput(input) {
   const value = input.trim().toLowerCase();
   if (value.length === 0) return null;
@@ -124,12 +148,12 @@ export function isAdvancedSurface(surface) {
 }
 
 export function getVisibleSurfaces(context) {
-  const { showAdvancedNav, onboardingReady, activeSurface } = context;
-  const surfaces = SURFACE_ORDER.filter((surface) => {
-    if (!SURFACE_META[surface]) return false;
-    if (SURFACE_META[surface].tier === "core") return true;
-    return showAdvancedNav || onboardingReady;
-  });
+  const { showAdvancedNav, activeSurface, experienceMode } = context;
+  const mode = EXPERIENCE_MODE_META[experienceMode] ? experienceMode : "setup";
+  const base = MODE_SURFACES[mode];
+  const surfaces = showAdvancedNav
+    ? SURFACE_ORDER.filter((surface) => Boolean(SURFACE_META[surface]))
+    : SURFACE_ORDER.filter((surface) => base.includes(surface));
   if (activeSurface && SURFACE_META[activeSurface] && !surfaces.includes(activeSurface)) {
     surfaces.push(activeSurface);
   }

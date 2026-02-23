@@ -13,17 +13,43 @@ describe("frontend navigation disclosure", () => {
       profileReady: false,
       onboardingReady: false,
       showAdvancedNav: false,
-      activeSurface: "dashboard"
+      activeSurface: "dashboard",
+      experienceMode: "setup"
     });
     expect(visible).toEqual(["dashboard", "profile", "onboarding", "help"]);
   });
 
-  it("shows advanced surfaces when expanded mode is enabled", () => {
+  it("uses mode-specific surfaces when expanded mode is disabled", () => {
+    const operate = getVisibleSurfaces({
+      profileReady: true,
+      onboardingReady: true,
+      showAdvancedNav: false,
+      activeSurface: "dashboard",
+      experienceMode: "operate"
+    });
+    expect(operate).toContain("challenge");
+    expect(operate).toContain("creator");
+    expect(operate).not.toContain("analytics");
+
+    const analyze = getVisibleSurfaces({
+      profileReady: true,
+      onboardingReady: true,
+      showAdvancedNav: false,
+      activeSurface: "dashboard",
+      experienceMode: "analyze"
+    });
+    expect(analyze).toContain("analytics");
+    expect(analyze).toContain("ranked");
+    expect(analyze).not.toContain("challenge");
+  });
+
+  it("shows all advanced surfaces when explorer mode is enabled", () => {
     const visible = getVisibleSurfaces({
       profileReady: true,
       onboardingReady: false,
       showAdvancedNav: true,
-      activeSurface: "dashboard"
+      activeSurface: "dashboard",
+      experienceMode: "setup"
     });
     const advanced = ["challenge", "campaign", "coop", "ranked", "creator", "moderation", "liveops", "analytics"];
     for (const surface of advanced) {
@@ -57,6 +83,10 @@ describe("frontend navigation disclosure", () => {
 
   it("ships focused-mode controls in the shell markup", () => {
     const html = readFileSync(resolve(process.cwd(), "apps", "web", "index.html"), "utf8");
+    expect(html).toContain('id="experience-mode-switcher"');
+    expect(html).toContain('class="mode-toggle is-active" data-mode="setup"');
+    expect(html).toContain('id="mode-primary-action"');
+    expect(html).toContain('id="mode-primary-intent"');
     expect(html).toContain('id="open-explore-hub"');
     expect(html).toContain('id="toggle-help-panel"');
     expect(html).toContain('id="nav-mode-hint"');
