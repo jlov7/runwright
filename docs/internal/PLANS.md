@@ -35,12 +35,12 @@ Raise the web frontend from release-capable to world-class usability by reducing
 
 ## Progress
 - [x] M0: Tracking artifacts + backlog refresh.
-- [ ] M1: IA simplification and guided onboarding clarity.
-- [ ] M2: Interaction reliability and recovery UX hardening.
-- [ ] M3: Accessibility, modal mechanics, and mobile safe-area polish.
-- [ ] M4: Visual hierarchy and contextual help improvements.
-- [ ] M5: Code-structure extraction and typed model adoption where safe.
-- [ ] M6: Full verification sweep + release evidence refresh.
+- [x] M1: IA simplification and guided onboarding clarity.
+- [x] M2: Interaction reliability and recovery UX hardening.
+- [x] M3: Accessibility, modal mechanics, and mobile safe-area polish.
+- [x] M4: Visual hierarchy and contextual help improvements.
+- [x] M5: Code-structure extraction and typed model adoption where safe.
+- [x] M6: Full verification sweep + release evidence refresh.
 
 ## Surprises & Discoveries
 - Frontend shell has strong baseline UX scaffolding, but runtime behavior still concentrates too much orchestration in `apps/web/app.js`.
@@ -51,7 +51,16 @@ Raise the web frontend from release-capable to world-class usability by reducing
 - 2026-02-23: Keep advanced workflows available but progressively disclosed behind clearer mode framing.
 
 ## Outcomes & Retrospective
-- In progress.
+- Done:
+  - Added mode-driven IA (`Setup`, `Operate`, `Analyze`) with a mode-level primary CTA and progressive disclosure.
+  - Hardened overlays with focus trap/return, escape behavior, backdrop click handling, and scroll lock.
+  - Improved a11y with focus-ring token fix, field-level form aria semantics, and strengthened landmark/state markup.
+  - Added mobile safe-area support and stronger mobile CTA ergonomics.
+  - Standardized loading/empty/error guidance and introduced inline contextual help for critical actions.
+  - Extracted shared runtime interaction + feedback logic into dedicated modules with declaration files and tests.
+  - Refreshed visual baseline and passed full verification gates (`verify`, `doctor`, `quality:evidence:verify`, `ship:gate`).
+- Not done:
+  - None in this tracked deep frontend overhaul scope.
 
 # ExecPlan: Release-ready v1
 

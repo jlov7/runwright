@@ -4,9 +4,9 @@
 Tracker: `docs/internal/UX_FRONTEND_EXECUTION_TRACKER.md`
 
 - [x] UX-000 Create exhaustive tracker and milestone plan.
-- [ ] UX-001..UX-014 Critical journey, onboarding, interaction, a11y, modal, and mobile hardening tasks.
-- [ ] UX-015..UX-021 Visual polish, contextual help, structure extraction, and runtime journey regression tasks.
-- [ ] UX-022..UX-025 Secondary polish and visual QA tasks.
+- [x] UX-001..UX-014 Critical journey, onboarding, interaction, a11y, modal, and mobile hardening tasks.
+- [x] UX-015..UX-021 Visual polish, contextual help, structure extraction, and runtime journey regression tasks.
+- [x] UX-022..UX-025 Secondary polish and visual QA tasks.
 
 ## P0 (Active UX simplification world-class pass: 2026-02-20)
 Tracker: `docs/plans/2026-02-20-ux-simplification-world-class-pass.md`
