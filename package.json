@@ -15,6 +15,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:visual": "vitest run tests/frontend-visual-regression.test.ts",
+    "test:web:browser": "playwright test --config playwright.config.ts",
+    "test:web:browser:baseline": "playwright test --config playwright.config.ts --update-snapshots",
     "test:compat-matrix": "vitest run tests/compatibility-replay.test.ts tests/migration-compatibility.test.ts",
     "test:contracts": "vitest run tests/adapters.contract.test.ts tests/source-provider.contract.test.ts",
     "test:perf": "vitest run tests/resolver.benchmark.test.ts -t \"benchmark guards\"",
@@ -55,8 +57,10 @@
     "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@cyclonedx/cdxgen": "^12.1.0",
     "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.58.2",
     "@stryker-mutator/core": "^9.5.1",
     "@stryker-mutator/typescript-checker": "^9.5.1",
     "@stryker-mutator/vitest-runner": "^9.5.1",

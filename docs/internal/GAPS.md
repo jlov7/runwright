@@ -2,6 +2,12 @@
 
 ## P0
 
+### P0-025: Browser-level journey and accessibility evidence was missing from release hardening gates
+- Evidence: frontend verification previously relied on vitest/JSDOM + static hash checks and lacked cross-browser runtime journey validation for first-run overlay behavior, onboarding success, and keyboard/axe assertions.
+- Impacted journey: First visit, onboarding completion, ranked failure recovery, keyboard-only accessibility confidence.
+- Fix strategy: Add Playwright browser matrix coverage with committed screenshot baselines and runtime accessibility assertions; fix runtime defects surfaced by browser tests.
+- Status: Done (added `playwright.config.ts`, `tests/browser/frontend-runtime.spec.ts`, `tests/browser/__screenshots__/`, `package.json` browser scripts, and fixed hidden-overlay interception bug in `apps/web/styles.css`; commands passed: `pnpm test:web:browser:baseline`, `pnpm test:web:browser`)
+
 ### P0-022: Frontend IA remains cognitively heavy for first-run and returning users
 - Evidence: core shell still requires users to parse multiple regions and control clusters simultaneously (`apps/web/index.html`, `apps/web/app.js`); advanced surfaces remain conceptually mixed with primary onboarding workspace.
 - Impacted journey: First visit, onboarding completion, returning-user re-entry.

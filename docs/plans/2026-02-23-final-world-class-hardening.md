@@ -40,11 +40,25 @@ Close the remaining pre-release quality gaps that separate “release-ready” f
   - `pnpm ship:gate`
 
 ## Progress
-- [ ] M1 complete
+- [x] M1 complete
 - [ ] M2 complete
 - [ ] M3 complete
 - [ ] M4 complete
 - [ ] M5 complete
+
+## Milestone Notes
+- M1 (2026-02-23):
+  - Added Playwright browser matrix + runtime journey suite (`playwright.config.ts`, `tests/browser/frontend-runtime.spec.ts`).
+  - Added browser regression scripts (`test:web:browser`, `test:web:browser:baseline`) and dependencies.
+  - Added committed cross-browser screenshot baselines in `tests/browser/__screenshots__/`.
+  - Fixed overlay rendering defect where hidden dialogs still intercepted input by enforcing `[hidden] { display: none !important; }`.
+  - Validation evidence:
+    - `pnpm test:web:browser:baseline`
+    - `pnpm test:web:browser`
+    - `pnpm lint`
+    - `pnpm typecheck`
+    - `pnpm test`
+    - `pnpm build`
 
 ## Evidence Artifacts
 - Browser visual/e2e outputs: `reports/frontend/browser/`

@@ -9,7 +9,7 @@ Execute the final high-impact enhancements before release so the product is not 
 - Preserve existing v1 gate stability while extending verification depth.
 
 ## Progress
-- [ ] M1: Browser visual regression + E2E + runtime a11y audits.
+- [x] M1: Browser visual regression + E2E + runtime a11y audits.
 - [ ] M2: Frontend state-store migration completion.
 - [ ] M3: Runtime observability + demo mode + resilience tests.
 - [ ] M4: SLO gate + API versioning + copy QA automation.
@@ -20,7 +20,8 @@ Execute the final high-impact enhancements before release so the product is not 
 - Final: `pnpm verify`, `pnpm run doctor`, `pnpm quality:evidence:verify`, `pnpm ship:gate`.
 
 ## Surprises & Discoveries
-- In progress.
+- `welcome-overlay`/`explore-hub` used `hidden` attributes but CSS display rules allowed hidden overlays to still capture input in runtime browser tests; fixed with explicit global `[hidden]` enforcement in `apps/web/styles.css`.
+- Browser-level onboarding and keyboard flows are now deterministic across Chromium/Firefox/WebKit with committed screenshot baselines and axe critical-violation assertions.
 
 ## Decision Log
 - 2026-02-23: Prioritize adding missing verification depth (browser runtime checks + SLO gates) before additional UX feature work.

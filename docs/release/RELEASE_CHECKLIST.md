@@ -47,6 +47,7 @@
 - [x] README includes required/optional environment variables.
 
 ## Latest Evidence (2026-02-21)
+- [x] Final world-class hardening M1 completed on `2026-02-23`: added cross-browser Playwright journey + accessibility suite (`tests/browser/frontend-runtime.spec.ts`) with matrix config (`playwright.config.ts`), committed screenshot baselines (`tests/browser/__screenshots__/`), and fixed hidden-overlay interaction defect in `apps/web/styles.css`; verification commands passed: `pnpm test:web:browser:baseline`, `pnpm test:web:browser`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - [x] Frontend deep UX overhaul pass completed on `2026-02-23`: mode-driven IA (`Setup/Operate/Analyze`), mode-primary CTA guidance, inline contextual help, unified loading/empty/error messaging, overlay focus/backdrop hardening, field-level aria validation semantics, safe-area mobile support, and runtime interaction/feedback module extraction (`apps/web/index.html`, `apps/web/app.js`, `apps/web/navigation.js`, `apps/web/styles.css`, `apps/web/interaction-state.js`, `apps/web/feedback.js`).
 - [x] Frontend regression suites for this pass are green: `pnpm exec vitest run tests/frontend-navigation-disclosure.test.ts tests/frontend-accessibility-responsive.test.ts tests/game-runtime-shell.test.ts tests/frontend-web-runtime-modules.test.ts`.
 - [x] Visual/a11y evidence refreshed on this pass: `pnpm visual:baseline:capture`, `pnpm test:visual`, and `pnpm test:web-a11y`.
