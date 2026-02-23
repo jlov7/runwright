@@ -14,9 +14,9 @@ Ship a production-ready v1 with coherent end-to-end CLI journeys, strong quality
 8. Repeat until stop conditions are met.
 
 ## Gap Loop Stop Conditions
-- Stop only when all `RELEASE_GATES.md` gates are satisfied with fresh evidence from `reports/doctor/doctor.json` and latest branch CI is green (or RG-007 platform-incident exception path is explicitly satisfied and documented).
+- Stop only when all `RELEASE_GATES.md` gates are satisfied with fresh local evidence (`pnpm ci:local`, `pnpm ci:local:full`, `reports/doctor/doctor.json`, and release-quality artifacts).
 - If product decisions are missing, log them in `docs/internal/QUESTIONS.md`, mark the affected gap as blocked, and continue on remaining unblocked gaps.
-- If external platform incidents block CI (for example step-less GitHub job startup failures), log incident evidence in `docs/internal/QUESTIONS.md`, mark the gap blocked in `docs/internal/GAPS.md`, and continue all non-blocked local work.
+- If optional hosted workflows are run manually and fail for external platform reasons, log incident evidence in `docs/internal/QUESTIONS.md`, mark the gap blocked in `docs/internal/GAPS.md`, and continue all non-blocked local work.
 - Never stop after planning alone. Planning artifacts without implementation and verification are incomplete.
 
 ## Scope Rules
@@ -39,6 +39,9 @@ Ship a production-ready v1 with coherent end-to-end CLI journeys, strong quality
 - Tests: `pnpm test`
 - Build: `pnpm build`
 - Full local gate: `pnpm verify`
+- Local CI gate: `pnpm ci:local`
+- Full local CI gate: `pnpm ci:local:full`
+- Install git hooks: `pnpm hooks:install`
 - Ship gate: `pnpm ship:gate`
 - Quality evidence: `pnpm quality:evidence:verify`
 

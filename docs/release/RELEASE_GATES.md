@@ -2,7 +2,8 @@
 
 ## How to use
 - Run `pnpm run doctor` to collect local evidence into `reports/doctor/doctor.json`.
-- Confirm branch CI status is green for latest commit (`CI` and `CodeQL`).
+- Run `pnpm ci:local` before each push.
+- Run `pnpm ci:local:full` before release cut.
 - Mark a gate pass only when required evidence is present and current.
 
 ## Gate RG-001: Build & Static Quality
@@ -55,33 +56,20 @@
     - `docs/internal/GAPS.md`
     - `docs/internal/QUESTIONS.md`
 
-## Gate RG-007: CI Readiness
-- Requirement: latest commit on release branch has green required workflows.
+## Gate RG-007: Local CI Enforcement
+- Requirement: local pre-push quality gate is enforced and passing.
 - Evidence:
-  - GitHub `CI` workflow status = success on latest commit.
-  - GitHub `CodeQL` workflow status = success on latest commit.
-
-### RG-007 Exception Path (Platform Incident Only)
-- Allowed only when workflow failures are clearly infrastructure startup failures (for example `steps: []` / no test execution) and persist across at least two reruns.
-- Required compensating evidence on HEAD:
-  - `pnpm verify`
-  - `pnpm run doctor`
-  - `pnpm quality:evidence:verify`
-  - `pnpm ship:gate`
-  - `pnpm release:verify-local`
-- Required documentation:
-  - Record incident run IDs and failure mode in `docs/internal/QUESTIONS.md`.
-  - Record exception usage and timestamp in `docs/release/RELEASE_CHECKLIST.md`.
-- Exit criteria:
-  - Re-run GitHub `CI` and `CodeQL` once platform service recovers.
-  - If post-recovery runs reveal code failures, ship a patch release or roll back.
+  - Hook path is set to `.githooks`: `git config --get core.hooksPath`
+  - Hook installer command succeeds: `pnpm hooks:install`
+  - Pre-push gate command succeeds: `pnpm ci:local`
+  - Release-level local gate succeeds: `pnpm ci:local:full`
 
 ## Gate RG-008: Release Provenance & Attestation
 - Requirement: release bundle provenance includes signed local attestation and successful verification.
 - Evidence:
   - `pnpm release:attestation:generate -- --artifact <bundle.zip> --private-key <private.pem> --out <attestation.json>`
   - `pnpm release:attestation:verify -- --attestation <attestation.json> --artifact <bundle.zip> --public-key <public.pem> --out <attestation.verify.json>`
-  - CI workflow `release-verify.yml` includes both `release:attestation:generate` and `release:attestation:verify`.
+  - Manual workflow `release-verify.yml` includes both `release:attestation:generate` and `release:attestation:verify`.
 
 ## Gate RG-009: Runtime SLO Guard
 - Requirement: runtime SLO thresholds pass for local launch gate.

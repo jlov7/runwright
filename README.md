@@ -12,9 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jlov7/runwright/actions/workflows/ci.yml"><img src="https://github.com/jlov7/runwright/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/jlov7/runwright/actions/workflows/release-verify.yml"><img src="https://github.com/jlov7/runwright/actions/workflows/release-verify.yml/badge.svg" alt="Release Verify" /></a>
-  <a href="https://github.com/jlov7/runwright/actions/workflows/codeql.yml"><img src="https://github.com/jlov7/runwright/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" /></a>
+  <strong>Local-first quality gates:</strong> `pnpm ci:local` on every push, `pnpm ci:local:full` before release.
 </p>
 
 ---
@@ -234,7 +232,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    A["Standardize<br/>runwright.yml"] --> B["CI enforces<br/>frozen-lockfile + scan"]
+    A["Standardize<br/>runwright.yml"] --> B["Local gate enforces<br/>verify + doctor + evidence"]
     B --> C["ship:gate<br/>before release"]
     C --> D["export + sign<br/>verified bundles"]
 ```
@@ -243,7 +241,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    A["Review scan<br/>policies"] --> B["Check CI<br/>scorecards"]
+    A["Review scan<br/>policies"] --> B["Check local<br/>scorecards"]
     B --> C["Verify signatures<br/>& checksums"]
     C --> D["Audit evidence<br/>is machine-readable"]
 ```
@@ -285,7 +283,7 @@ runwright/
 │   ├── specs/              # CLI, manifest, and product specs
 │   ├── testing/            # Test strategy & regression
 │   └── ...
-└── .github/                # CI workflows & templates
+└── .github/                # Optional manual workflows
 ```
 
 ---
@@ -301,6 +299,14 @@ pnpm lint             # ESLint
 pnpm typecheck        # TypeScript strict checks
 pnpm test             # Run all 390+ tests
 pnpm verify           # lint + typecheck + test + build
+```
+
+### Local CI (Recommended)
+
+```bash
+pnpm hooks:install    # Enforce local pre-push gate in this repo
+pnpm ci:local         # Fast local CI gate (verify + doctor + evidence)
+pnpm ci:local:full    # Full release gate (ship:gate)
 ```
 
 ### Quality Gates
@@ -349,7 +355,7 @@ Runwright treats all skill content as untrusted input. The security model includ
 - **Policy engine** — allowlists with required justification, severity overrides, expiry enforcement
 - **Bundle integrity** — SHA-256 checksums, ed25519 signatures, deterministic archives
 - **Path safety** — traversal prevention in all resolver, store, and bundle operations
-- **CI enforcement** — CodeQL, dependency audit, mutation testing, SBOM generation
+- **Quality gate enforcement** — local CI gate (`ci:local`), full ship gate, dependency audit, mutation testing, SBOM generation
 
 See [SECURITY.md](SECURITY.md) for the full threat model and vulnerability disclosure policy.
 
@@ -361,8 +367,8 @@ See [SECURITY.md](SECURITY.md) for the full threat model and vulnerability discl
 | --- | --- | --- |
 | `SOURCE_DATE_EPOCH` | Optional | Fixed Unix timestamp for deterministic exports |
 | `RUNWRIGHT_RANKED_SALT` | Optional local / Required shared | Server-side salt for ranked anti-tamper verification |
-| `SKILLBASE_RELEASE_PRIVATE_KEY` | CI only | ed25519 private key for release signing |
-| `SKILLBASE_RELEASE_PUBLIC_KEY` | CI only | ed25519 public key for release verification |
+| `SKILLBASE_RELEASE_PRIVATE_KEY` | Manual release workflow only | ed25519 private key for release signing |
+| `SKILLBASE_RELEASE_PUBLIC_KEY` | Manual release workflow only | ed25519 public key for release verification |
 
 > **Note:** Some files and environment variables use the historical `skillbase` prefix for backward compatibility. This does not indicate a separate system.
 
