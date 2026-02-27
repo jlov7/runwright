@@ -14,6 +14,11 @@ pnpm tsx src/cli.ts scan --format json
 pnpm tsx src/cli.ts apply --target all --scope project --mode copy --json
 ```
 
+## Run the unified pipeline gate
+```bash
+pnpm tsx src/cli.ts pipeline run --json
+```
+
 ## Enforce deterministic setup in CI
 ```bash
 pnpm tsx src/cli.ts update --frozen-lockfile --json

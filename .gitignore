@@ -8,3 +8,5 @@ skillbase.lock.json
 reports/
 .DS_Store
 .specstory/
+
+.claude/

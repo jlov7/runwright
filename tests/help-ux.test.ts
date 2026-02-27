@@ -23,6 +23,7 @@ describe("help UX", () => {
     expect(result.stdout).toContain("Core loop after first success:");
     expect(result.stdout).toContain("runwright init");
     expect(result.stdout).toContain("runwright journey");
+    expect(result.stdout).toContain("runwright pipeline");
     expect(result.stdout).toContain("runwright help <command>");
     expect(result.stdout).toContain("docs/help/README.md");
     expect(result.stdout).toContain("docs/help/troubleshooting.md");
@@ -40,5 +41,13 @@ describe("help UX", () => {
     const result = runCli(["help", "not-a-command"]);
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("Unknown help topic: not-a-command");
+  });
+
+  it("supports dedicated help for pipeline command", () => {
+    const result = runCli(["help", "pipeline"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("runwright pipeline");
+    expect(result.stdout).toContain("pipeline run");
+    expect(result.stdout).toContain("--fail-on-warnings");
   });
 });

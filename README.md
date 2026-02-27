@@ -4,11 +4,29 @@
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" />
 </p>
 
-<h1 align="center">Runwright</h1>
+<h1 align="center">SkillSet by Runwright</h1>
+
+<pre align="center">
+   _____ _    _ _____ _      _      _____ ______ _______ 
+  / ____| |  | |_   _| |    | |    / ____|  ____|__   __|
+ | (___ | |__| | | | | |    | |   | (___ | |__     | |   
+  \___ \|  __  | | | | |    | |    \___ \|  __|    | |   
+  ____) | |  | |_| |_| |____| |____ ____) | |____   | |   
+ |_____/|_|  |_|_____|______|______|_____/|______|  |_|   
+      ____        ____                                   _     _   
+     |  _ \ _   _|  _ \   _ __ _   _ _ ____      ___ __(_) __| |_ 
+     | |_) | | | | | | | | '__| | | | '_ \ \ /\ / / '__| |/ _` __|
+     |  _ <| |_| | |_| | | |  | |_| | | | \ V  V /| |  | | (_| |_ 
+     |_| \_\\__,_|____/  |_|   \__,_|_| |_|\_/\_/ |_|  |_|\__,_(_)
+</pre>
 
 <p align="center">
-  <strong>Policy-first skill distribution for AI coding tools.</strong><br/>
+  <strong>Policy-first skill lifecycle platform for AI coding tools.</strong><br/>
   Define once. Scan for risk. Apply everywhere.
+</p>
+
+<p align="center">
+  <strong>CLI name:</strong> <code>runwright</code> | <strong>Platform name:</strong> SkillSet by Runwright
 </p>
 
 <p align="center">
@@ -158,6 +176,9 @@ pnpm tsx src/cli.ts update --json
 pnpm tsx src/cli.ts scan --format json
 pnpm tsx src/cli.ts apply --target all --scope project --mode copy --dry-run --json
 pnpm tsx src/cli.ts apply --target all --scope project --mode copy --json
+
+# Or run the unified pipeline gate
+pnpm tsx src/cli.ts pipeline run --json
 ```
 
 ### Web Runtime Shell
@@ -219,6 +240,7 @@ The showcase is intentionally static and links to real release evidence and demo
 | Create starter manifest | `runwright init` |
 | Resolve and lock sources | `runwright update --json` |
 | Run security checks | `runwright scan --format json` |
+| Run unified delivery pipeline | `runwright pipeline run --json` |
 | Explain policy decisions | `runwright policy check --explain --json` |
 | Plan safe remediations | `runwright fix --plan --json` |
 | Dry-run install | `runwright apply --dry-run --json` |
@@ -228,6 +250,14 @@ The showcase is intentionally static and links to real release evidence and demo
 | Verify release bundle | `runwright verify-bundle --bundle release.zip --json` |
 
 During development, prefix commands with `pnpm tsx src/cli.ts` instead of `runwright`.
+
+---
+
+## API Reference
+
+- Full API and contract reference: [docs/api-reference.md](docs/api-reference.md)
+- CLI JSON contracts: [docs/schemas/cli/](docs/schemas/cli)
+- Runtime API versioning policy: [docs/release/runtime-api-versioning-policy.md](docs/release/runtime-api-versioning-policy.md)
 
 ---
 
@@ -401,9 +431,11 @@ See [SECURITY.md](SECURITY.md) for the full threat model and vulnerability discl
 | CLI specification | [docs/specs/CLI_SPEC.md](docs/specs/CLI_SPEC.md) |
 | Manifest specification | [docs/specs/MANIFEST_SPEC.md](docs/specs/MANIFEST_SPEC.md) |
 | Product requirements | [docs/specs/PRD.md](docs/specs/PRD.md) |
+| API and contract reference | [docs/api-reference.md](docs/api-reference.md) |
 | Web runtime guide | [docs/help/game-runtime.md](docs/help/game-runtime.md) |
 | Help & troubleshooting | [docs/help/troubleshooting.md](docs/help/troubleshooting.md) |
 | CLI recipes | [docs/help/cli-recipes.md](docs/help/cli-recipes.md) |
+| Contribution guide | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Security policy | [SECURITY.md](SECURITY.md) |
 | Release signing | [docs/policies/release-signing-runbook.md](docs/policies/release-signing-runbook.md) |
 
@@ -452,11 +484,7 @@ The web shell features:
 
 ## Contributing
 
-1. Fork the repo and create a feature branch
-2. Make changes — keep them minimal and reversible
-3. Add tests for every behavior change
-4. Run `pnpm verify` before pushing
-5. Open a PR with a clear description
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full contribution standards, quality gates, and PR requirements.
 
 ---
 

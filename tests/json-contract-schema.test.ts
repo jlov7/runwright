@@ -50,7 +50,7 @@ afterEach(() => {
 });
 
 describe("json schema contracts", () => {
-  it("validates scan/apply/update/export/verify-bundle payloads against JSON schemas", () => {
+  it("validates scan/apply/update/pipeline/export/verify-bundle payloads against JSON schemas", () => {
     const projectDir = makeTempDir("skillbase-json-schema-contract-");
     mkdirSync(join(projectDir, "skills", "safe"), { recursive: true });
     writeFileSync(
@@ -69,6 +69,7 @@ describe("json schema contracts", () => {
     const validateScan = compileSchema(join(schemaRoot, "scan-output.schema.json"));
     const validateApply = compileSchema(join(schemaRoot, "apply-output.schema.json"));
     const validateUpdate = compileSchema(join(schemaRoot, "update-output.schema.json"));
+    const validatePipeline = compileSchema(join(schemaRoot, "pipeline-output.schema.json"));
     const validateExport = compileSchema(join(schemaRoot, "export-output.schema.json"));
     const validateVerify = compileSchema(join(schemaRoot, "verify-bundle-output.schema.json"));
 
@@ -86,6 +87,10 @@ describe("json schema contracts", () => {
     const update = runCli(["update", "--json"], projectDir);
     expect(update.status).toBe(0);
     assertValidPayload(validateUpdate, JSON.parse(update.stdout));
+
+    const pipeline = runCli(["pipeline", "run", "--target", "codex", "--scope", "project", "--mode", "copy", "--dry-run", "--json"], projectDir);
+    expect(pipeline.status).toBe(0);
+    assertValidPayload(validatePipeline, JSON.parse(pipeline.stdout));
 
     const bundlePath = join(projectDir, "bundle.zip");
     const exported = runCli(

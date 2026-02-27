@@ -27,6 +27,7 @@ Then open the runtime URL and follow:
 - `pnpm tsx src/cli.ts policy check --explain --json` (policy + trust reasoning)
 - `pnpm tsx src/cli.ts fix --plan --json` (safe remediation plan)
 - `pnpm tsx src/cli.ts scan --refresh-sources` (re-resolve remote sources)
+- `pnpm tsx src/cli.ts pipeline run --json` (single-command update -> scan -> apply gate)
 
 ## Help topics
 - Command recipes: `docs/help/cli-recipes.md`

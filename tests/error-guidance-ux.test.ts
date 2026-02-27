@@ -79,6 +79,15 @@ describe("error guidance UX", () => {
     expect(result.stderr).not.toContain("No runwright.yml/runwright.json found");
   });
 
+  it("returns actionable error for missing pipeline subcommand", () => {
+    const projectDir = makeTempDir("skillbase-ux-pipeline-subcommand-");
+    const result = runCli(["pipeline", "--json"], projectDir);
+    expect(result.status).toBe(1);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.code).toBe("invalid-argument");
+    expect(String(payload.error ?? "")).toContain("pipeline run");
+  });
+
   it("renders lockfile failure guidance in text mode without success copy", () => {
     const projectDir = makeTempDir("skillbase-ux-lockfile-text-");
     expect(runCli(["init"], projectDir).status).toBe(0);

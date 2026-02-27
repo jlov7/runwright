@@ -235,6 +235,20 @@ const COMMAND_HELP: Record<string, CommandHelpEntry> = {
       "runwright apply --frozen-lockfile --target all --scope project --mode copy --json"
     ]
   },
+  pipeline: {
+    summary: "Run the unified delivery pipeline: update -> scan -> apply with evaluation gates.",
+    usage: [
+      "runwright pipeline run [--security off|warn|fail] [--target codex|claude-code|cursor|all]",
+      "                     [--scope global|project] [--mode link|copy|mirror] [--dry-run]",
+      "                     [--frozen-lockfile] [--fail-on-warnings] [--json]",
+      "                     [--refresh-sources] [--remote-cache-ttl <seconds>]"
+    ],
+    examples: [
+      "runwright pipeline run --json",
+      "runwright pipeline run --security fail --target all --scope project --mode copy --json",
+      "runwright pipeline run --dry-run --fail-on-warnings --json"
+    ]
+  },
   "apply-resume": {
     summary: "Recover from interrupted apply transactions using the persisted apply journal.",
     usage: ["runwright apply-resume [--json]"],
@@ -535,6 +549,7 @@ Core commands:
   runwright analytics journey
   runwright gameplay
   runwright apply
+  runwright pipeline
   runwright apply-resume
   runwright remediate
   runwright watch
@@ -612,6 +627,18 @@ const FLAG_SPECS_BY_COMMAND: Record<string, Record<string, FlagValueType>> = {
     "refresh-sources": "boolean",
     "remote-cache-ttl": "string",
     "frozen-lockfile": "boolean"
+  },
+  pipeline: {
+    json: "boolean",
+    security: "string",
+    target: "string",
+    scope: "string",
+    mode: "string",
+    "dry-run": "boolean",
+    "frozen-lockfile": "boolean",
+    "fail-on-warnings": "boolean",
+    "refresh-sources": "boolean",
+    "remote-cache-ttl": "string"
   },
   "apply-resume": { json: "boolean" },
   remediate: {
@@ -774,6 +801,11 @@ function validateAllowedFlags(args: ParsedArgs): void {
     const subcommand = args.positionals[0];
     if (args.positionals.length !== 1 || (subcommand !== "status" && subcommand !== "revoke" && subcommand !== "rotate-plan")) {
       throw new CliError("trust command requires subcommand: trust status|revoke|rotate-plan", 1, "invalid-argument");
+    }
+  } else if (args.command === "pipeline") {
+    const subcommand = args.positionals[0];
+    if (args.positionals.length !== 1 || subcommand !== "run") {
+      throw new CliError("pipeline command requires subcommand: pipeline run", 1, "invalid-argument");
     }
   } else if (args.positionals.length > 0) {
     throw new CliError(
@@ -940,6 +972,15 @@ function validateSemanticFlags(args: ParsedArgs): void {
     parseScope(getStringFlag(args, "scope"), "project");
     parseMode(getStringFlag(args, "mode"), "link");
     parseSecurityMode(getStringFlag(args, "scan-security"), "warn");
+    parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
+    return;
+  }
+
+  if (command === "pipeline") {
+    parseSecurityMode(getStringFlag(args, "security"), "warn");
+    parseTargets(getStringFlag(args, "target"));
+    parseScope(getStringFlag(args, "scope"), "project");
+    parseMode(getStringFlag(args, "mode"), "copy");
     parseRemoteCacheTtl(getStringFlag(args, "remote-cache-ttl"));
     return;
   }
@@ -4747,6 +4788,391 @@ function runDoctor(args: ParsedArgs, cwd: string): { status: number; issues: Doc
   return { status: issues.length > 0 ? 2 : 0, issues, fixed };
 }
 
+function runUpdate(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
+  status: number;
+  code?: string;
+  lockfile: string;
+  lockfileVerified: boolean;
+  reason?: string;
+  sources: number;
+  skills: number;
+  trust: { summary: TrustSummary };
+} {
+  const resolution = resolveSkillUnitsForArgs(manifest, cwd, args);
+  const units = resolution.units;
+  const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
+  assertNoDuplicateSkillNames(units);
+  const lockPath = resolve(cwd, "skillbase.lock.json");
+  let resolvedSources: ReturnType<typeof materializeSkillsToStore>;
+  try {
+    resolvedSources = materializeSkillsToStore(units, resolution.sourceMetadata, cwd);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new CliError(`Invalid skill content: ${message}`, 1, "invalid-skill-content");
+  }
+  const frozen = getBooleanFlag(args, "frozen-lockfile");
+
+  if (frozen) {
+    if (!existsSync(lockPath)) {
+      return {
+        status: 11,
+        code: "lockfile-error",
+        lockfile: "skillbase.lock.json",
+        lockfileVerified: false,
+        reason: "missing-lockfile",
+        sources: 0,
+        skills: units.length,
+        trust: {
+          summary: trustSummary
+        }
+      };
+    }
+    let existing: SkillbaseLockfile;
+    try {
+      existing = readLockfile(lockPath);
+    } catch {
+      return {
+        status: 11,
+        code: "lockfile-error",
+        lockfile: "skillbase.lock.json",
+        lockfileVerified: false,
+        reason: "invalid-lockfile",
+        sources: 0,
+        skills: units.length,
+        trust: {
+          summary: trustSummary
+        }
+      };
+    }
+    const expected = buildLockfileFromSources(resolvedSources, existing.generatedAt);
+    if (!lockfilesEqual(existing, expected)) {
+      return {
+        status: 11,
+        code: "lockfile-error",
+        lockfile: "skillbase.lock.json",
+        lockfileVerified: false,
+        reason: "lockfile-mismatch",
+        sources: 0,
+        skills: units.length,
+        trust: {
+          summary: trustSummary
+        }
+      };
+    }
+    const sourcesCount = Object.keys(existing.sources).length;
+    const frozenTrustSummary = summarizeTrustFromLockfile(existing);
+    return {
+      status: 0,
+      lockfile: "skillbase.lock.json",
+      lockfileVerified: true,
+      sources: sourcesCount,
+      skills: units.length,
+      trust: {
+        summary: frozenTrustSummary
+      }
+    };
+  }
+
+  const lockfile = buildLockfileFromSources(resolvedSources);
+  writeLockfile(lockPath, lockfile);
+  const sourcesCount = Object.keys(lockfile.sources).length;
+  return {
+    status: 0,
+    lockfile: "skillbase.lock.json",
+    lockfileVerified: false,
+    sources: sourcesCount,
+    skills: units.length,
+    trust: {
+      summary: trustSummary
+    }
+  };
+}
+
+type PipelineGate = "pass" | "warn" | "blocked";
+
+type PipelineResult = {
+  status: number;
+  mode: "run";
+  failOnWarnings: boolean;
+  mutating: boolean;
+  stages: {
+    update: {
+      status: number;
+      code?: string;
+      reason?: string;
+      lockfile: string;
+      lockfileVerified: boolean;
+      sources: number;
+      skills: number;
+      trust: { summary: TrustSummary };
+    };
+    scan: {
+      status: number;
+      skipped?: boolean;
+      reason?: string;
+      summary: {
+        skills: number;
+        lintIssues: number;
+        highFindings: number;
+        mediumFindings: number;
+        suppressedFindings: number;
+      };
+    };
+    apply: {
+      status: number;
+      skipped?: boolean;
+      reason?: string;
+      dryRun: boolean;
+      operations: number;
+      lockfileVerified?: boolean;
+      summary: {
+        lintIssues: number;
+        highFindings: number;
+        mediumFindings: number;
+        suppressedFindings: number;
+      };
+    };
+  };
+  evaluation: {
+    gate: PipelineGate;
+    score: number;
+    reasons: string[];
+  };
+};
+
+function runPipeline(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): PipelineResult {
+  const pipelineSecurity = parseSecurityMode(
+    getStringFlag(args, "security"),
+    (manifest.defaults?.scan?.security ?? "warn") as SecurityMode
+  );
+  const failOnWarnings = getBooleanFlag(args, "fail-on-warnings");
+  const dryRun = getBooleanFlag(args, "dry-run");
+  const frozenLockfile = getBooleanFlag(args, "frozen-lockfile");
+  const refreshSources = getBooleanFlag(args, "refresh-sources");
+  const remoteCacheTtl = getStringFlag(args, "remote-cache-ttl");
+  const target = getStringFlag(args, "target");
+  const scope = getStringFlag(args, "scope");
+  const mode = getStringFlag(args, "mode");
+
+  const updateFlags = new Map<string, string | boolean>();
+  if (frozenLockfile) updateFlags.set("frozen-lockfile", true);
+  if (refreshSources) updateFlags.set("refresh-sources", true);
+  if (remoteCacheTtl) updateFlags.set("remote-cache-ttl", remoteCacheTtl);
+  const updateResult = runUpdate(
+    {
+      command: "update",
+      flags: updateFlags,
+      positionals: [],
+      duplicateFlags: []
+    },
+    cwd,
+    manifest
+  );
+
+  const zeroSummary = {
+    skills: 0,
+    lintIssues: 0,
+    highFindings: 0,
+    mediumFindings: 0,
+    suppressedFindings: 0
+  };
+
+  if (updateResult.status !== 0) {
+    return {
+      status: updateResult.status,
+      mode: "run",
+      failOnWarnings,
+      mutating: false,
+      stages: {
+        update: updateResult,
+        scan: {
+          status: 1,
+          skipped: true,
+          reason: "blocked-by-update",
+          summary: zeroSummary
+        },
+        apply: {
+          status: 1,
+          skipped: true,
+          reason: "blocked-by-update",
+          dryRun,
+          operations: 0,
+          summary: {
+            lintIssues: 0,
+            highFindings: 0,
+            mediumFindings: 0,
+            suppressedFindings: 0
+          }
+        }
+      },
+      evaluation: {
+        gate: "blocked",
+        score: 0,
+        reasons: ["update stage failed"]
+      }
+    };
+  }
+
+  const scanFlags = new Map<string, string | boolean>([
+    ["format", "json"],
+    ["security", pipelineSecurity]
+  ]);
+  if (refreshSources) scanFlags.set("refresh-sources", true);
+  if (remoteCacheTtl) scanFlags.set("remote-cache-ttl", remoteCacheTtl);
+  const scanResult = runScan(
+    {
+      command: "scan",
+      flags: scanFlags,
+      positionals: [],
+      duplicateFlags: []
+    },
+    cwd,
+    manifest
+  );
+  const scanPayload = scanResult.payload as { summary?: Partial<typeof zeroSummary> };
+  const scanSummary = {
+    skills: Number(scanPayload.summary?.skills ?? 0),
+    lintIssues: Number(scanPayload.summary?.lintIssues ?? 0),
+    highFindings: Number(scanPayload.summary?.highFindings ?? 0),
+    mediumFindings: Number(scanPayload.summary?.mediumFindings ?? 0),
+    suppressedFindings: Number(scanPayload.summary?.suppressedFindings ?? 0)
+  };
+
+  const scanBlocked = scanResult.status === 30 || (failOnWarnings && scanResult.status === 2);
+  if (scanBlocked) {
+    const reasons = scanResult.status === 30
+      ? ["scan stage blocked due fail-mode security findings"]
+      : ["scan stage reported warnings and --fail-on-warnings is enabled"];
+    const score = Math.max(
+      0,
+      Math.min(100, 100 - scanSummary.highFindings * 25 - scanSummary.mediumFindings * 10 - scanSummary.lintIssues * 4)
+    );
+    return {
+      status: scanResult.status,
+      mode: "run",
+      failOnWarnings,
+      mutating: false,
+      stages: {
+        update: updateResult,
+        scan: {
+          status: scanResult.status,
+          summary: scanSummary
+        },
+        apply: {
+          status: 1,
+          skipped: true,
+          reason: "blocked-by-scan",
+          dryRun,
+          operations: 0,
+          summary: {
+            lintIssues: 0,
+            highFindings: 0,
+            mediumFindings: 0,
+            suppressedFindings: 0
+          }
+        }
+      },
+      evaluation: {
+        gate: "blocked",
+        score,
+        reasons
+      }
+    };
+  }
+
+  const applyFlags = new Map<string, string | boolean>([
+    ["no-scan", true]
+  ]);
+  if (dryRun) applyFlags.set("dry-run", true);
+  if (frozenLockfile) applyFlags.set("frozen-lockfile", true);
+  if (target) applyFlags.set("target", target);
+  if (scope) applyFlags.set("scope", scope);
+  if (mode) applyFlags.set("mode", mode);
+  if (refreshSources) applyFlags.set("refresh-sources", true);
+  if (remoteCacheTtl) applyFlags.set("remote-cache-ttl", remoteCacheTtl);
+  const applyResult = runApply(
+    {
+      command: "apply",
+      flags: applyFlags,
+      positionals: [],
+      duplicateFlags: []
+    },
+    cwd,
+    manifest
+  );
+
+  const warningGate = scanResult.status === 2 || applyResult.status === 2;
+  const blockedGate = applyResult.status !== 0 && applyResult.status !== 2;
+  const gate: PipelineGate = blockedGate ? "blocked" : warningGate ? "warn" : "pass";
+  const reasons: string[] = [];
+  if (scanResult.status === 2) reasons.push("scan reported warnings");
+  if (applyResult.status === 2) reasons.push("apply reported warnings");
+  if (blockedGate) reasons.push("apply stage failed");
+  if (reasons.length === 0) reasons.push("all stages passed");
+  const score = Math.max(
+    0,
+    Math.min(
+      100,
+      100 -
+        scanSummary.highFindings * 25 -
+        scanSummary.mediumFindings * 10 -
+        scanSummary.lintIssues * 4 -
+        (applyResult.status !== 0 && applyResult.status !== 2 ? 20 : 0)
+    )
+  );
+
+  const finalStatus = blockedGate ? applyResult.status : warningGate ? 2 : 0;
+  const mutating = !dryRun && updateResult.status === 0 && applyResult.operations.length > 0 && !blockedGate;
+  return {
+    status: finalStatus,
+    mode: "run",
+    failOnWarnings,
+    mutating,
+    stages: {
+      update: updateResult,
+      scan: {
+        status: scanResult.status,
+        summary: scanSummary
+      },
+      apply: {
+        status: applyResult.status,
+        dryRun: applyResult.dryRun,
+        operations: applyResult.operations.length,
+        lockfileVerified: applyResult.lockfileVerified,
+        summary: applyResult.summary
+      }
+    },
+    evaluation: {
+      gate,
+      score,
+      reasons
+    }
+  };
+}
+
+function renderPipelineText(result: PipelineResult): string {
+  const lines = [
+    "Pipeline Summary",
+    `- Status: ${result.status}`,
+    `- Mode: ${result.mode}`,
+    `- Fail on warnings: ${result.failOnWarnings ? "yes" : "no"}`,
+    `- Update: ${result.stages.update.status}`,
+    `- Scan: ${result.stages.scan.status}${result.stages.scan.skipped ? " (skipped)" : ""}`,
+    `- Apply: ${result.stages.apply.status}${result.stages.apply.skipped ? " (skipped)" : ""}`,
+    `- Evaluation gate: ${result.evaluation.gate}`,
+    `- Evaluation score: ${result.evaluation.score}`,
+    "",
+    "Next:",
+    result.evaluation.gate === "blocked"
+      ? "  Address blocked stage findings, then rerun `runwright pipeline run --json`."
+      : result.evaluation.gate === "warn"
+        ? "  Review warning-level findings and optionally enable --fail-on-warnings."
+        : "  Pipeline passed. Continue to export/verify or publish.",
+    ""
+  ];
+  return lines.join("\n");
+}
+
 function runApply(args: ParsedArgs, cwd: string, manifest: SkillbaseManifest): {
   status: number;
   code?: string;
@@ -7115,6 +7541,22 @@ async function main() {
     process.exit(watchResult.status);
   }
 
+  if (cmd === "pipeline") {
+    const pipeline = runPipeline(parsed, cwd, manifest);
+    if (jsonOutput) writeJson(withJsonSchemaVersion(pipeline));
+    else process.stdout.write(renderPipelineText(pipeline));
+    recordOperationEvent(cwd, startedAtMs, "pipeline", pipeline.status, pipeline.mutating, {
+      counters: {
+        updateStatus: pipeline.stages.update.status,
+        scanStatus: pipeline.stages.scan.status,
+        applyStatus: pipeline.stages.apply.status,
+        applyOperations: pipeline.stages.apply.operations,
+        evaluationScore: pipeline.evaluation.score
+      }
+    });
+    process.exit(pipeline.status);
+  }
+
   if (cmd === "apply") {
     const applyResult = runApply(parsed, cwd, manifest);
     if (jsonOutput) writeJson(withJsonSchemaVersion({ ...applyResult }));
@@ -7216,118 +7658,13 @@ async function main() {
   }
 
   if (cmd === "update") {
-    const resolution = resolveSkillUnitsForArgs(manifest, cwd, parsed);
-    const units = resolution.units;
-    const trustSummary = summarizeTrustFromSourceMetadata(resolution.sourceMetadata);
-    assertNoDuplicateSkillNames(units);
-    const lockPath = resolve(cwd, "skillbase.lock.json");
-    let resolvedSources: ReturnType<typeof materializeSkillsToStore>;
-    try {
-      resolvedSources = materializeSkillsToStore(units, resolution.sourceMetadata, cwd);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new CliError(`Invalid skill content: ${message}`, 1, "invalid-skill-content");
-    }
-    const frozen = getBooleanFlag(parsed, "frozen-lockfile");
-
-    if (frozen) {
-      if (!existsSync(lockPath)) {
-        writeJson(
-          withJsonSchemaVersion({
-            status: 11,
-            code: "lockfile-error",
-            lockfileVerified: false,
-            reason: "missing-lockfile",
-            trust: {
-              summary: trustSummary
-            }
-          })
-        );
-        recordOperationEvent(cwd, startedAtMs, "update", 11, false, {
-          code: "lockfile-error",
-          counters: { skills: units.length }
-        });
-        process.exit(11);
-      }
-      let existing: SkillbaseLockfile;
-      try {
-        existing = readLockfile(lockPath);
-      } catch {
-        writeJson(
-          withJsonSchemaVersion({
-            status: 11,
-            code: "lockfile-error",
-            lockfileVerified: false,
-            reason: "invalid-lockfile",
-            trust: {
-              summary: trustSummary
-            }
-          })
-        );
-        recordOperationEvent(cwd, startedAtMs, "update", 11, false, {
-          code: "lockfile-error",
-          counters: { skills: units.length }
-        });
-        process.exit(11);
-      }
-      const expected = buildLockfileFromSources(resolvedSources, existing.generatedAt);
-      if (!lockfilesEqual(existing, expected)) {
-        writeJson(
-          withJsonSchemaVersion({
-            status: 11,
-            code: "lockfile-error",
-            lockfileVerified: false,
-            reason: "lockfile-mismatch",
-            trust: {
-              summary: trustSummary
-            }
-          })
-        );
-        recordOperationEvent(cwd, startedAtMs, "update", 11, false, {
-          code: "lockfile-error",
-          counters: { skills: units.length, sources: Object.keys(existing.sources).length }
-        });
-        process.exit(11);
-      }
-      const sourcesCount = Object.keys(existing.sources).length;
-      const frozenTrustSummary = summarizeTrustFromLockfile(existing);
-      writeJson(
-        withJsonSchemaVersion({
-          status: 0,
-          lockfile: "skillbase.lock.json",
-          lockfileVerified: true,
-          sources: sourcesCount,
-          skills: units.length,
-          trust: {
-            summary: frozenTrustSummary
-          }
-        })
-      );
-      recordOperationEvent(cwd, startedAtMs, "update", 0, false, {
-        counters: { skills: units.length, sources: sourcesCount }
-      });
-      process.exit(0);
-    }
-
-    const lockfile = buildLockfileFromSources(resolvedSources);
-    writeLockfile(lockPath, lockfile);
-    const sourcesCount = Object.keys(lockfile.sources).length;
-    writeJson(
-      withJsonSchemaVersion({
-        status: 0,
-        lockfile: "skillbase.lock.json",
-        lockfileVerified: false,
-        sources: sourcesCount,
-        skills: units.length,
-        trust: {
-          summary: trustSummary
-        }
-      })
-    );
-    recordOperationEvent(cwd, startedAtMs, "update", 0, true, {
-      counters: { skills: units.length, sources: sourcesCount }
+    const updateResult = runUpdate(parsed, cwd, manifest);
+    writeJson(withJsonSchemaVersion(updateResult));
+    recordOperationEvent(cwd, startedAtMs, "update", updateResult.status, updateResult.status === 0 && !updateResult.lockfileVerified, {
+      ...(updateResult.code ? { code: updateResult.code } : {}),
+      counters: { skills: updateResult.skills, sources: updateResult.sources }
     });
-    process.exit(0);
+    process.exit(updateResult.status);
   }
 
   if (cmd === "export") {
@@ -7356,6 +7693,7 @@ main().catch((err) => {
     failedCommand === "init" ||
     failedCommand === "doctor" ||
     failedCommand === "apply" ||
+    failedCommand === "pipeline" ||
     failedCommand === "apply-resume" ||
     failedCommand === "update" ||
     failedCommand === "export" ||
