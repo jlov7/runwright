@@ -3,163 +3,264 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Runwright | Release Showcase</title>
+    <title>SkillSet by Runwright | Public Showcase</title>
     <meta
       name="description"
-      content="Runwright release showcase: production-grade quality gates, guided UX, and verified release evidence."
+      content="SkillSet by Runwright: policy-first agent skill operations with guided onboarding, evidence snapshots, and recovery playbooks."
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <a class="skip-link" href="#content">Skip to content</a>
+    <a class="skip-link" href="#product">Skip to main content</a>
 
-    <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
-    <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
-
-    <header class="site-header">
-      <div class="brand-block">
-        <p class="eyebrow">Runwright</p>
-        <h1>Policy-first skill distribution, now packaged for launch.</h1>
+    <header class="site-header" aria-label="Site header">
+      <div class="brand-cluster">
+        <p class="eyebrow">SkillSet by Runwright</p>
+        <h1>One operating surface for agent skill lifecycle quality.</h1>
         <p class="lead">
-          This showcase highlights the most important product outcomes: guided user journeys, release evidence,
-          and repeatable quality gates.
+          Internal-first, external-grade: deterministic CLI workflows and a clear web layer for onboarding,
+          trust evidence, and unblocking guidance.
         </p>
       </div>
       <nav class="top-nav" aria-label="Primary">
-        <a href="#proof">Proof</a>
-        <a href="#journeys">Journeys</a>
+        <a href="#product">Product</a>
+        <a href="#get-started">Get Started</a>
         <a href="#evidence">Evidence</a>
-        <a href="#deploy">Deploy</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+        <a href="#docs-hub">Docs</a>
       </nav>
-      <div class="cta-row">
+      <div class="hero-actions">
         <a class="button button-primary" href="https://github.com/jlov7/runwright" target="_blank" rel="noreferrer"
           >View Repository</a
         >
         <a
           class="button button-secondary"
-          href="https://github.com/jlov7/runwright/blob/main/docs/demos/runwright-web-runtime-demo.md"
+          href="https://github.com/jlov7/runwright/blob/main/docs/help/README.md"
           target="_blank"
           rel="noreferrer"
-          >Open Guided Demo</a
+          >Open Help Center</a
         >
       </div>
     </header>
 
-    <main id="content">
-      <section id="proof" class="panel reveal">
-        <h2>Launch confidence, not launch vibes.</h2>
-        <div class="stat-grid" role="list" aria-label="Release proof points">
-          <article class="stat" role="listitem">
-            <p class="stat-value">404</p>
-            <p class="stat-label">Automated tests passing</p>
-          </article>
-          <article class="stat" role="listitem">
-            <p class="stat-value">35</p>
-            <p class="stat-label">Readiness criteria tracked</p>
-          </article>
-          <article class="stat" role="listitem">
-            <p class="stat-value">100%</p>
-            <p class="stat-label">Local CI gate reproducibility</p>
-          </article>
-          <article class="stat" role="listitem">
-            <p class="stat-value">0</p>
-            <p class="stat-label">Known secret leaks in tracked files</p>
-          </article>
+    <main>
+      <section id="product" class="panel">
+        <div class="panel-header">
+          <p class="kicker">Product</p>
+          <h2>What this joined-up system does</h2>
         </div>
-      </section>
-
-      <section id="journeys" class="panel reveal">
-        <h2>Persona journeys with progressive disclosure</h2>
         <p class="section-intro">
-          Each journey exposes exactly what that user needs first, then expands toward advanced controls.
+          SkillSet by Runwright unifies skill source control, policy scans, safe apply plans, and release evidence so
+          teams can adopt agent skills without fragmented tooling.
         </p>
-        <div class="journey-grid">
-          <details open>
-            <summary>Individual Builder</summary>
-            <ul>
-              <li>First success in minutes via `init -> update -> scan -> apply` flow.</li>
-              <li>Guided onboarding and next-step guidance in CLI + web runtime shell.</li>
-              <li>One-command local quality gate before every push.</li>
-            </ul>
-          </details>
-          <details>
-            <summary>Platform Lead</summary>
-            <ul>
-              <li>Deterministic lockfiles and exportable release bundles.</li>
-              <li>Evidence artifacts from doctor, ship gate, and attestation checks.</li>
-              <li>Manual hosted workflows remain available without forced recurring spend.</li>
-            </ul>
-          </details>
-          <details>
-            <summary>Security Reviewer</summary>
-            <ul>
-              <li>Policy scanning and trust constraints before install.</li>
-              <li>Signed bundle verification plus immutable artifact manifests.</li>
-              <li>Security-focused test suites embedded in standard quality gate.</li>
-            </ul>
-          </details>
+        <div class="pillars" role="list" aria-label="Core value pillars">
+          <article class="pillar" role="listitem">
+            <h3>Deterministic execution</h3>
+            <p>One command path from manifest to applied state with repeatable local quality gates.</p>
+          </article>
+          <article class="pillar" role="listitem">
+            <h3>Evidence over assumptions</h3>
+            <p>Snapshot-backed status, eval scorecards, and release artifacts for trustable decisions.</p>
+          </article>
+          <article class="pillar" role="listitem">
+            <h3>Human-ready operations</h3>
+            <p>Role-based onboarding, next-step prompts, and direct remediation recipes for failures.</p>
+          </article>
+        </div>
+        <div class="section-actions">
+          <a
+            class="button button-primary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/getting-started/quickstart.md"
+            target="_blank"
+            rel="noreferrer"
+            >Start Technical Quickstart</a
+          >
+          <a
+            class="button button-secondary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/getting-started/non-technical-onboarding.md"
+            target="_blank"
+            rel="noreferrer"
+            >Guide for Managers</a
+          >
         </div>
       </section>
 
-      <section id="evidence" class="panel reveal">
-        <h2>Evidence-first operating model</h2>
-        <div class="command-stack" aria-label="Core gate commands">
-          <article>
-            <h3>Day-to-day push gate</h3>
-            <pre><code>pnpm ci:local</code></pre>
-          </article>
-          <article>
-            <h3>Release gate</h3>
-            <pre><code>pnpm ci:local:full</code></pre>
-          </article>
-          <article>
-            <h3>Guided UX walkthrough capture</h3>
-            <pre><code>pnpm demo:showboat</code></pre>
-          </article>
+      <section id="get-started" class="panel">
+        <div class="panel-header">
+          <p class="kicker">Get Started</p>
+          <h2>Role-specific onboarding in under three clicks</h2>
         </div>
-
-        <ul class="artifact-links">
-          <li>
-            <a href="https://github.com/jlov7/runwright/blob/main/docs/release/RELEASE_GATES.md" target="_blank" rel="noreferrer"
-              >Release gates</a
-            >
-          </li>
-          <li>
-            <a href="https://github.com/jlov7/runwright/blob/main/docs/release/RELEASE_CHECKLIST.md" target="_blank" rel="noreferrer"
-              >Release checklist</a
-            >
-          </li>
-          <li>
-            <a href="https://github.com/jlov7/runwright/blob/main/docs/help/game-runtime.md" target="_blank" rel="noreferrer"
-              >Runtime help and onboarding</a
-            >
-          </li>
-          <li>
-            <a href="https://github.com/jlov7/runwright/blob/main/docs/demos/runwright-web-runtime-demo.md" target="_blank" rel="noreferrer"
-              >Showboat walkthrough artifact</a
-            >
-          </li>
-        </ul>
-      </section>
-
-      <section id="deploy" class="panel reveal">
-        <h2>Optional Vercel deployment (showcase only)</h2>
         <p class="section-intro">
-          Best-practice recommendation: keep production runtime/backend where it is, and deploy only this static
-          showcase as a polished public layer.
+          Choose your path. The panel shows time-to-first-success, exact commands, and next-best actions.
         </p>
-        <ol>
-          <li>Create a new Vercel project and set root directory to <code>apps/showcase</code>.</li>
-          <li>Leave build command empty (static site).</li>
-          <li>Publish and share the URL as your public product narrative page.</li>
-        </ol>
+        <div id="persona-switcher" class="switcher" role="tablist" aria-label="Persona journeys"></div>
+        <article id="persona-card" class="journey-card" aria-live="polite"></article>
+        <div class="section-actions">
+          <a
+            class="button button-primary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/help/cli-recipes.md"
+            target="_blank"
+            rel="noreferrer"
+            >Open CLI Recipes</a
+          >
+          <a
+            class="button button-secondary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/help/game-runtime.md"
+            target="_blank"
+            rel="noreferrer"
+            >Open Runtime Guide</a
+          >
+        </div>
+      </section>
+
+      <section id="evidence" class="panel">
+        <div class="panel-header">
+          <p class="kicker">Evidence</p>
+          <h2>Pipeline snapshots with provenance</h2>
+        </div>
+        <p class="section-intro">
+          These views are read-only artifact snapshots. They do not trigger runtime operations.
+        </p>
+        <label class="field-label" for="evidence-switcher">Snapshot scenario</label>
+        <select id="evidence-switcher" class="select-control" aria-describedby="evidence-provenance"></select>
+        <article id="evidence-summary" class="evidence-summary" aria-live="polite"></article>
+        <div id="evidence-stage-list" class="stage-grid" role="list" aria-label="Pipeline stage state"></div>
+        <div class="evidence-columns">
+          <article class="sub-panel">
+            <h3>What changed?</h3>
+            <ul id="evidence-change-list" class="list"></ul>
+          </article>
+          <article class="sub-panel">
+            <h3>Next actions</h3>
+            <ul id="evidence-action-list" class="list"></ul>
+          </article>
+        </div>
+        <p id="evidence-provenance" class="provenance"></p>
+        <div class="section-actions">
+          <a
+            class="button button-primary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/release/RELEASE_GATES.md"
+            target="_blank"
+            rel="noreferrer"
+            >Review Release Gates</a
+          >
+          <a
+            class="button button-secondary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/release/RELEASE_CHECKLIST.md"
+            target="_blank"
+            rel="noreferrer"
+            >Open Release Checklist</a
+          >
+        </div>
+      </section>
+
+      <section id="troubleshooting" class="panel">
+        <div class="panel-header">
+          <p class="kicker">Troubleshooting</p>
+          <h2>Symptom-to-command recovery paths</h2>
+        </div>
+        <p class="section-intro">
+          Pick the symptom that matches your issue, run the fix command, then verify using the companion command.
+        </p>
+        <div id="troubleshooting-grid" class="troubleshooting-grid" role="list" aria-label="Recovery cards"></div>
+        <div class="section-actions">
+          <a
+            class="button button-primary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/help/troubleshooting.md"
+            target="_blank"
+            rel="noreferrer"
+            >Open Full Troubleshooting</a
+          >
+          <a
+            class="button button-secondary"
+            href="https://github.com/jlov7/runwright/blob/main/docs/help/recovery-playbooks.md"
+            target="_blank"
+            rel="noreferrer"
+            >Recovery Playbooks</a
+          >
+        </div>
+      </section>
+
+      <section id="docs-hub" class="panel">
+        <div class="panel-header">
+          <p class="kicker">Docs Hub</p>
+          <h2>Canonical references and operating guides</h2>
+        </div>
+        <div class="docs-grid" role="list" aria-label="Documentation links">
+          <a
+            role="listitem"
+            class="doc-card"
+            href="https://github.com/jlov7/runwright/blob/main/docs/api-reference.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <h3>API Reference</h3>
+            <p>CLI and runtime contracts with schema-backed payload examples.</p>
+          </a>
+          <a
+            role="listitem"
+            class="doc-card"
+            href="https://github.com/jlov7/runwright/blob/main/docs/help/README.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <h3>Help Center</h3>
+            <p>Unblocking commands, diagnostics, and links to key operator guides.</p>
+          </a>
+          <a
+            role="listitem"
+            class="doc-card"
+            href="https://github.com/jlov7/runwright/blob/main/docs/specs/PRD.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <h3>Product Requirements</h3>
+            <p>Scope boundaries, acceptance criteria, and delivery priorities.</p>
+          </a>
+          <a
+            role="listitem"
+            class="doc-card"
+            href="https://github.com/jlov7/runwright/blob/main/CONTRIBUTING.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <h3>Contribution Guide</h3>
+            <p>Engineering standards, quality gates, and pull request expectations.</p>
+          </a>
+          <a
+            role="listitem"
+            class="doc-card"
+            href="https://github.com/jlov7/runwright/blob/main/SECURITY.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <h3>Security Policy</h3>
+            <p>Threat model assumptions, vulnerability disclosure, and integrity controls.</p>
+          </a>
+        </div>
+        <div class="section-actions">
+          <a
+            class="button button-primary"
+            href="https://github.com/jlov7/runwright/blob/main/README.md"
+            target="_blank"
+            rel="noreferrer"
+            >Repository Quick Start</a
+          >
+          <a class="button button-secondary" href="https://github.com/jlov7/runwright/issues" target="_blank" rel="noreferrer"
+            >Report an Issue</a
+          >
+        </div>
       </section>
     </main>
 
     <footer class="site-footer">
       <p>
-        Built for release-grade clarity: coherent journeys, explicit failure handling, and verifiable quality evidence.
+        <strong>Disclaimer:</strong> Runwright is a personal project by Jason Lovell and is not affiliated with any
+        employer or commercial entity.
       </p>
+      <p id="live-region" class="visually-hidden" role="status" aria-live="polite"></p>
     </footer>
+
+    <script type="module" src="./app.js"></script>
   </body>
 </html>

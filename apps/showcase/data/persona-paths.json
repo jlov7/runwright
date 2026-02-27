@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-02-27T09:30:00Z",
+  "personas": [
+    {
+      "id": "builder",
+      "label": "Builder",
+      "headline": "Get first success by running the core lifecycle with explicit evidence output.",
+      "timeToSuccess": "8-12 minutes",
+      "pathName": "manifest -> update -> scan -> apply",
+      "steps": [
+        {
+          "title": "Initialize and inspect journey",
+          "outcome": "Creates a starter manifest and prints the next best action.",
+          "command": "pnpm tsx src/cli.ts init && pnpm tsx src/cli.ts journey"
+        },
+        {
+          "title": "Run unified pipeline",
+          "outcome": "Executes update, scan, and apply with a single JSON summary.",
+          "command": "pnpm tsx src/cli.ts pipeline run --json"
+        },
+        {
+          "title": "Verify local quality gate",
+          "outcome": "Confirms lint, typecheck, tests, build, and quality evidence checks.",
+          "command": "pnpm ci:local"
+        }
+      ],
+      "primaryCta": {
+        "label": "Builder Quickstart",
+        "href": "https://github.com/jlov7/runwright/blob/main/docs/getting-started/quickstart.md"
+      },
+      "secondaryCta": {
+        "label": "CLI Recipes",
+        "href": "https://github.com/jlov7/runwright/blob/main/docs/help/cli-recipes.md"
+      }
+    },
+    {
+      "id": "reviewer",
+      "label": "Reviewer",
+      "headline": "Validate trust posture quickly with policy, evidence, and release readiness artifacts.",
+      "timeToSuccess": "10-15 minutes",
+      "pathName": "scan -> explain -> release-readiness",
+      "steps": [
+        {
+          "title": "Review policy outcomes",
+          "outcome": "Shows pass/fail findings with explicit reasoning.",
+          "command": "pnpm tsx src/cli.ts scan --format json"
+        },
+        {
+          "title": "Request explainability",
+          "outcome": "Outputs trust and policy rationale for each decision.",
+          "command": "pnpm tsx src/cli.ts policy check --explain --json"
+        },
+        {
+          "title": "Inspect release gate",
+          "outcome": "Verifies full release criteria with deterministic local evidence.",
+          "command": "pnpm ci:local:full"
+        }
+      ],
+      "primaryCta": {
+        "label": "Non-Technical Onboarding",
+        "href": "https://github.com/jlov7/runwright/blob/main/docs/getting-started/non-technical-onboarding.md"
+      },
+      "secondaryCta": {
+        "label": "Release Gates",
+        "href": "https://github.com/jlov7/runwright/blob/main/docs/release/RELEASE_GATES.md"
+      }
+    },
+    {
+      "id": "operator",
+      "label": "Operator",
+      "headline": "Keep production-grade delivery healthy with predictable checks and recovery playbooks.",
+      "timeToSuccess": "12-18 minutes",
+      "pathName": "doctor -> quality evidence -> remediation",
+      "steps": [
+        {
+          "title": "Collect environment diagnostics",
+          "outcome": "Generates a full doctor report for release readiness triage.",
+          "command": "pnpm doctor"
+        },
+        {
+          "title": "Verify evidence integrity",
+          "outcome": "Confirms scorecards, reports, and quality artifacts are current.",
+          "command": "pnpm quality:evidence:verify"
+        },
+        {
+          "title": "Generate safe remediation plan",
+          "outcome": "Produces a non-destructive fix plan for policy or lifecycle failures.",
+          "command": "pnpm tsx src/cli.ts fix --plan --json"
+        }
+      ],
+      "primaryCta": {
+        "label": "Troubleshooting Guide",
+        "href": "https://github.com/jlov7/runwright/blob/main/docs/help/troubleshooting.md"
+      },
+      "secondaryCta": {
+        "label": "Recovery Playbooks",
+        "href": "https://github.com/jlov7/runwright/blob/main/docs/help/recovery-playbooks.md"
+      }
+    }
+  ]
+}

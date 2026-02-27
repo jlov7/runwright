@@ -1,0 +1,120 @@
+{
+  "generatedAt": "2026-02-27T09:40:00Z",
+  "source": "reports/doctor + pipeline output snapshots",
+  "scenarios": [
+    {
+      "id": "healthy",
+      "label": "Healthy pipeline state",
+      "status": "good",
+      "evalScore": "97/100",
+      "snapshotState": "fresh",
+      "summary": "All lifecycle stages passed with no blocking policy findings.",
+      "stages": [
+        {
+          "name": "update",
+          "status": "good",
+          "detail": "Sources resolved and lockfile updated with pinned versions.",
+          "duration": "6.4s"
+        },
+        {
+          "name": "scan",
+          "status": "good",
+          "detail": "Policy checks passed without high-severity violations.",
+          "duration": "2.9s"
+        },
+        {
+          "name": "apply",
+          "status": "good",
+          "detail": "Planned actions applied idempotently across configured targets.",
+          "duration": "4.1s"
+        }
+      ],
+      "changes": [
+        "Added two pinned skill entries to lockfile.",
+        "Policy scanner updated trust annotations for one source.",
+        "No adapter drift detected across targets."
+      ],
+      "nextActions": [
+        "Run pnpm ci:local before pushing branch.",
+        "Attach reports/doctor/doctor.json to review notes.",
+        "Re-run pipeline if manifest changes."
+      ]
+    },
+    {
+      "id": "warning",
+      "label": "Warning: stale evidence snapshot",
+      "status": "warn",
+      "evalScore": "82/100",
+      "snapshotState": "stale",
+      "summary": "Pipeline previously passed, but source metadata changed after the last scan.",
+      "stages": [
+        {
+          "name": "update",
+          "status": "good",
+          "detail": "Manifest sync complete with deterministic lock updates.",
+          "duration": "6.0s"
+        },
+        {
+          "name": "scan",
+          "status": "warn",
+          "detail": "Evidence timestamp older than manifest update timestamp.",
+          "duration": "1.8s"
+        },
+        {
+          "name": "apply",
+          "status": "good",
+          "detail": "Last apply succeeded but should be revalidated.",
+          "duration": "3.9s"
+        }
+      ],
+      "changes": [
+        "Manifest hash differs from last scan artifact.",
+        "Two skill metadata fields changed upstream.",
+        "No blocked policy findings yet, but trust decision is provisional."
+      ],
+      "nextActions": [
+        "Run pnpm tsx src/cli.ts scan --format json.",
+        "Run pnpm tsx src/cli.ts pipeline run --json to refresh evidence.",
+        "Update review with new generatedAt timestamp."
+      ]
+    },
+    {
+      "id": "blocked",
+      "label": "Blocked: policy failure",
+      "status": "blocked",
+      "evalScore": "54/100",
+      "snapshotState": "fresh",
+      "summary": "Scan detected a blocking policy rule and prevented apply execution.",
+      "stages": [
+        {
+          "name": "update",
+          "status": "good",
+          "detail": "Resolution completed for all manifest entries.",
+          "duration": "7.1s"
+        },
+        {
+          "name": "scan",
+          "status": "blocked",
+          "detail": "Detected disallowed command pattern in skill instructions.",
+          "duration": "2.1s"
+        },
+        {
+          "name": "apply",
+          "status": "blocked",
+          "detail": "Apply intentionally skipped because fail mode is security fail.",
+          "duration": "0s"
+        }
+      ],
+      "changes": [
+        "One skill flagged for remote shell invocation risk.",
+        "Policy fail mode security fail blocked downstream actions.",
+        "No target directories were modified after block."
+      ],
+      "nextActions": [
+        "Run pnpm tsx src/cli.ts policy check --explain --json.",
+        "Generate fix plan with pnpm tsx src/cli.ts fix --plan --json.",
+        "Re-run pipeline after remediation approval."
+      ]
+    }
+  ]
+}

@@ -34,6 +34,7 @@ Then open the runtime URL and follow:
 - Failure recovery: `docs/help/troubleshooting.md`
 - Recovery playbooks: `docs/help/recovery-playbooks.md`
 - Game runtime shell: `docs/help/game-runtime.md`
+- Public showcase lanes: `apps/showcase` + `docs/testing/showcase-journey-tests.md`
 - Technical onboarding: `docs/getting-started/quickstart.md`
 - Non-technical onboarding: `docs/getting-started/non-technical-onboarding.md`
 

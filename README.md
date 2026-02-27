@@ -230,6 +230,10 @@ npx vercel --prod --cwd apps/showcase
 
 The showcase is intentionally static and links to real release evidence and demos.
 
+Quality references:
+- Journey test contract: [docs/testing/showcase-journey-tests.md](docs/testing/showcase-journey-tests.md)
+- Release readiness checklist: [docs/release/showcase-release-checklist.md](docs/release/showcase-release-checklist.md)
+
 ---
 
 ## Core Commands

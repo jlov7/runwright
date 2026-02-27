@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-02-27T09:45:00Z",
+  "items": [
+    {
+      "symptom": "Pipeline blocks at scan stage",
+      "signal": "pipeline run summary reports status blocked during scan",
+      "impact": "apply stage is skipped and target state is unchanged",
+      "fixCommand": "pnpm tsx src/cli.ts policy check --explain --json",
+      "verifyCommand": "pnpm tsx src/cli.ts pipeline run --json",
+      "docHref": "https://github.com/jlov7/runwright/blob/main/docs/help/troubleshooting.md"
+    },
+    {
+      "symptom": "Journey shows stale evidence",
+      "signal": "journey marks update or scan as pending after recent source changes",
+      "impact": "trust posture is provisional until evidence is refreshed",
+      "fixCommand": "pnpm tsx src/cli.ts scan --format json && pnpm tsx src/cli.ts journey",
+      "verifyCommand": "pnpm tsx src/cli.ts journey",
+      "docHref": "https://github.com/jlov7/runwright/blob/main/docs/help/README.md"
+    },
+    {
+      "symptom": "Quality evidence verification fails",
+      "signal": "quality:evidence:verify reports missing or stale report artifacts",
+      "impact": "release checks cannot be considered complete",
+      "fixCommand": "pnpm doctor && pnpm quality:evidence:verify",
+      "verifyCommand": "pnpm ci:local",
+      "docHref": "https://github.com/jlov7/runwright/blob/main/docs/release/RELEASE_CHECKLIST.md"
+    },
+    {
+      "symptom": "Apply reports drift after install",
+      "signal": "apply output shows planned changes despite expected convergence",
+      "impact": "tool target directories may be out of sync with lockfile",
+      "fixCommand": "pnpm tsx src/cli.ts apply --target all --scope project --mode copy --json",
+      "verifyCommand": "pnpm tsx src/cli.ts apply --target all --scope project --mode copy --dry-run --json",
+      "docHref": "https://github.com/jlov7/runwright/blob/main/docs/help/recovery-playbooks.md"
+    }
+  ]
+}
