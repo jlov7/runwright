@@ -1,5 +1,9 @@
 name: CI
 on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,13 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  verify-ubuntu:
+    name: verify (ubuntu-latest)
+    runs-on: ubuntu-latest
     timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -29,9 +30,29 @@ jobs:
       - run: pnpm test:visual
       - run: pnpm verify
 
+  verify-cross-platform:
+    if: github.event_name != 'pull_request'
+    needs: verify-ubuntu
+    name: verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+
   mutation:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: verify
+    needs: verify-ubuntu
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -48,8 +69,9 @@ jobs:
           path: reports/mutation/
 
   fuzz-differential:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: verify
+    needs: verify-ubuntu
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -70,8 +92,9 @@ jobs:
           path: .fuzz-artifacts/manifest-differential/
 
   sbom:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: verify
+    needs: verify-ubuntu
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -87,8 +110,9 @@ jobs:
           path: reports/sbom/bom.json
 
   compatibility-matrix:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: verify
+    needs: verify-ubuntu
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -100,8 +124,9 @@ jobs:
       - run: pnpm test:compat-matrix
 
   coverage:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: verify
+    needs: verify-ubuntu
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -118,8 +143,9 @@ jobs:
           path: reports/coverage/
 
   performance-trend:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: verify
+    needs: verify-ubuntu
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -151,8 +177,9 @@ jobs:
           path: reports/qa/frontend-device-matrix.json
 
   sarif:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: verify
+    needs: verify-ubuntu
     timeout-minutes: 20
     permissions:
       contents: read
@@ -197,9 +224,10 @@ jobs:
 
   quality-scorecard:
     runs-on: ubuntu-latest
-    if: always()
+    if: github.event_name != 'pull_request' && always()
     needs:
-      - verify
+      - verify-ubuntu
+      - verify-cross-platform
       - mutation
       - fuzz-differential
       - sbom
@@ -221,7 +249,8 @@ jobs:
             --out reports/quality/ci-scorecard.json \
             --md reports/quality/ci-scorecard.md \
             --title "Skillbase CI Quality Scorecard" \
-            --check verify=${{ needs.verify.result }} \
+            --check verify-ubuntu=${{ needs.verify-ubuntu.result }} \
+            --check verify-cross-platform=${{ needs.verify-cross-platform.result }} \
             --check mutation=${{ needs.mutation.result }} \
             --check fuzz-differential=${{ needs.fuzz-differential.result }} \
             --check sbom=${{ needs.sbom.result }} \
@@ -233,7 +262,8 @@ jobs:
         run: |
           pnpm tsx scripts/verify_quality_evidence.ts \
             --scorecard reports/quality/ci-scorecard.json \
-            --require-check verify \
+            --require-check verify-ubuntu \
+            --require-check verify-cross-platform \
             --require-check mutation \
             --require-check fuzz-differential \
             --require-check sbom \

@@ -15,7 +15,13 @@ pnpm hooks:install
 2. Keep scope minimal and reversible.
 3. Add or update tests for every behavior change.
 4. Run local quality gates before pushing.
-5. Open a PR with clear problem, approach, and evidence.
+5. Open a PR to `main` with clear problem, approach, and evidence.
+
+## Branch Discipline
+
+- Treat `main` as protected and PR-only.
+- Direct pushes to `main` are blocked locally by `.githooks/pre-push` unless `RUNWRIGHT_ALLOW_MAIN_PUSH=1` is set for an approved break-glass case.
+- Keep branches short-lived and delete them after merge.
 
 ## Required Quality Gates
 

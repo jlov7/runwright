@@ -4,5 +4,15 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+# Block direct pushes to main unless explicitly overridden for break-glass cases.
+# Usage override: RUNWRIGHT_ALLOW_MAIN_PUSH=1 git push origin main
+while read -r local_ref _local_sha remote_ref _remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" && "${RUNWRIGHT_ALLOW_MAIN_PUSH:-0}" != "1" ]]; then
+    echo "[runwright] direct pushes to main are blocked."
+    echo "[runwright] push a feature branch and merge through a PR, or set RUNWRIGHT_ALLOW_MAIN_PUSH=1 for approved emergencies."
+    exit 1
+  fi
+done
+
 echo "[runwright] running local pre-push gate: pnpm ci:local"
 pnpm ci:local

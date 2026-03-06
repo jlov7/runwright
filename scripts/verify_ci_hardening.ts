@@ -84,6 +84,15 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
+function readWorkflowTriggers(root: Record<string, unknown>): Set<string> {
+  const onField = root.on;
+  if (typeof onField === "string") return new Set([onField]);
+  if (Array.isArray(onField)) {
+    return new Set(onField.filter((entry): entry is string => typeof entry === "string"));
+  }
+  return new Set(Object.keys(asRecord(onField)));
+}
+
 function verifyWorkflow(filePath: string): WorkflowReport {
   const raw = readFileSync(filePath, "utf8");
   const parsed = load(raw) as unknown;
@@ -145,11 +154,24 @@ function generateReport(repoRoot: string): HardeningReport {
   if (existsSync(ciPath)) {
     const ciRaw = readFileSync(ciPath, "utf8");
     if (!ciRaw.includes("pnpm verify")) failures.push("ci.yml does not include 'pnpm verify' gate execution");
+    const ciRoot = asRecord(load(ciRaw) as unknown);
+    const ciTriggers = readWorkflowTriggers(ciRoot);
+    if (!ciTriggers.has("push") || !ciTriggers.has("pull_request")) {
+      failures.push("ci.yml must include both push and pull_request triggers");
+    }
   }
   const codeqlPath = join(workflowsDir, "codeql.yml");
   if (existsSync(codeqlPath)) {
     const codeqlRaw = readFileSync(codeqlPath, "utf8");
     if (!codeqlRaw.includes("analyze")) failures.push("codeql.yml does not include analyze step usage");
+    const codeqlRoot = asRecord(load(codeqlRaw) as unknown);
+    const codeqlTriggers = readWorkflowTriggers(codeqlRoot);
+    for (const requiredTrigger of ["push", "pull_request", "schedule"]) {
+      if (!codeqlTriggers.has(requiredTrigger)) {
+        failures.push("codeql.yml must include push, pull_request, and schedule triggers");
+        break;
+      }
+    }
   }
 
   return {
