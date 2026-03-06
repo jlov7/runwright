@@ -58,6 +58,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 
   for (let index = 2; index < argv.length; index += 1) {
     const token = argv[index] ?? "";
+    if (token === "--") {
+      continue;
+    }
     if (token === "--scorecard") {
       parsed.scorecardPath = readRequiredArgValue(argv, index, "--scorecard");
       index += 1;

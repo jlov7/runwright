@@ -17,6 +17,20 @@ afterEach(() => {
 });
 
 describe("frontend performance budget script", () => {
+  it("accepts pnpm passthrough separators before options", () => {
+    const outDir = makeTempDir("runwright-frontend-perf-passthrough-");
+    const outPath = join(outDir, "frontend-budget.passthrough.json");
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/check_frontend_performance.ts",
+      args: ["--", "--out", outPath, "--iterations", "3"],
+      cwd: process.cwd()
+    });
+
+    expect(result.status).toBe(0);
+    expect(existsSync(outPath)).toBe(true);
+  });
+
   it("writes budget report and passes with default thresholds", () => {
     const outDir = makeTempDir("runwright-frontend-perf-");
     const outPath = join(outDir, "frontend-budget.json");

@@ -18,6 +18,41 @@ afterEach(() => {
 });
 
 describe("quality evidence verifier script", () => {
+  it("accepts pnpm passthrough separators before options", () => {
+    const dir = makeTempDir("skillbase-quality-evidence-passthrough-");
+    const scorecardPath = join(dir, "scorecard.json");
+    const outPath = join(dir, "verify.json");
+
+    writeFileSync(
+      scorecardPath,
+      JSON.stringify({ overall: { pass: true }, checks: [{ name: "verify", result: "success" }] }),
+      "utf8"
+    );
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/verify_quality_evidence.ts",
+      args: ["--", "--scorecard", scorecardPath, "--require-check", "verify", "--out", outPath],
+      cwd: process.cwd()
+    });
+
+    expect(result.status).toBe(0);
+    const summary = JSON.parse(readFileSync(outPath, "utf8")) as { ok: boolean };
+    expect(summary.ok).toBe(true);
+  });
+
+  it("keeps the ci:local gate self-contained from a clean checkout", () => {
+    const packageJson = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.scripts["ci:local"]).toContain(
+      "pnpm ship:gate -- --only audit --only sbom --only release-verify-local"
+    );
+    expect(packageJson.scripts["ci:local"]).toContain(
+      "pnpm quality:evidence:verify -- --require-check audit --require-check sbom --require-check release-verify-local --sbom reports/sbom/bom.json"
+    );
+  });
+
   it("uses default scorecard and output paths when args are omitted", () => {
     const dir = makeTempDir("skillbase-quality-evidence-defaults-");
     const reportsDir = join(dir, "reports", "quality");

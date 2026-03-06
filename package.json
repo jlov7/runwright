@@ -40,7 +40,7 @@
     "doctor": "pnpm tsx scripts/doctor.ts",
     "ship:gate": "pnpm tsx scripts/run_ship_gate.ts",
     "ship:soak": "pnpm tsx scripts/soak_ship_gate.ts",
-    "ci:local": "pnpm verify && pnpm doctor && pnpm quality:evidence:verify",
+    "ci:local": "pnpm verify && pnpm doctor && pnpm ship:gate -- --only audit --only sbom --only release-verify-local && pnpm quality:evidence:verify -- --require-check audit --require-check sbom --require-check release-verify-local --sbom reports/sbom/bom.json",
     "ci:local:full": "pnpm ship:gate",
     "hooks:install": "git config core.hooksPath .githooks && chmod +x .githooks/pre-push",
     "release:verify-local": "bash scripts/verify_release_artifact.sh",

@@ -18,6 +18,10 @@ import { runTsxScript } from "./harness/runTsxScript.js";
 
 const tempDirs: string[] = [];
 
+function normalizePathSeparators(value: string): string {
+  return value.replaceAll("\\", "/");
+}
+
 function makeTempDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix));
   tempDirs.push(dir);
@@ -2178,8 +2182,8 @@ describe("cli integration", () => {
         primarySurface: "web-runtime-shell"
       })
     );
-    expect(payload.details.startupContract.webShell).toContain("apps/web/index.html");
-    expect(payload.details.startupContract.runtimeScript).toContain("scripts/game_runtime.ts");
+    expect(normalizePathSeparators(payload.details.startupContract.webShell)).toContain("apps/web/index.html");
+    expect(normalizePathSeparators(payload.details.startupContract.runtimeScript)).toContain("scripts/game_runtime.ts");
   });
 
   it("export --deterministic produces byte-identical bundles with fixed SOURCE_DATE_EPOCH", () => {

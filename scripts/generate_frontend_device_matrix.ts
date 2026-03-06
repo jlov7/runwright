@@ -39,6 +39,9 @@ function parseArgs(argv: string[]): ParsedArgs {
   let outPath = "reports/qa/frontend-device-matrix.json";
   for (let index = 2; index < argv.length; index += 1) {
     const token = argv[index] ?? "";
+    if (token === "--") {
+      continue;
+    }
     if (token === "--out") {
       const next = argv[index + 1];
       if (!next || next.startsWith("--")) throw new Error("Missing value for --out");
