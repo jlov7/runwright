@@ -17,6 +17,20 @@ afterEach(() => {
 });
 
 describe("frontend device matrix script", () => {
+  it("accepts pnpm passthrough separators before options", () => {
+    const outDir = makeTempDir("runwright-frontend-matrix-passthrough-");
+    const outPath = join(outDir, "frontend-device-matrix.passthrough.json");
+
+    const result = runTsxScript({
+      scriptRelativePath: "scripts/generate_frontend_device_matrix.ts",
+      args: ["--", "--out", outPath],
+      cwd: process.cwd()
+    });
+
+    expect(result.status).toBe(0);
+    expect(existsSync(outPath)).toBe(true);
+  });
+
   it("writes qa matrix artifact", () => {
     const outDir = makeTempDir("runwright-frontend-matrix-");
     const outPath = join(outDir, "frontend-device-matrix.json");

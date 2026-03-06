@@ -90,6 +90,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 
   for (let index = 2; index < argv.length; index += 1) {
     const token = argv[index] ?? "";
+    if (token === "--") {
+      continue;
+    }
     if (token === "--html") {
       parsed.htmlPath = readRequiredArgValue(argv, index, "--html");
       index += 1;
