@@ -355,7 +355,7 @@ pnpm verify           # lint + typecheck + test + build
 
 ```bash
 pnpm hooks:install    # Enforce local pre-push gate in this repo
-pnpm ci:local         # Fast local CI gate (verify + doctor + evidence)
+pnpm ci:local         # Self-contained local CI gate (verify + doctor + narrowed ship gate + evidence)
 pnpm ci:local:full    # Full release gate (ship:gate)
 ```
 
