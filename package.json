@@ -74,7 +74,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^2.1.9",
-    "ajv": "^8.17.1",
+    "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
     "eslint": "^9.0.0",
     "fast-check": "^4.5.3",
