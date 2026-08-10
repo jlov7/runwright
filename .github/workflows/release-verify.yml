@@ -85,7 +85,7 @@ jobs:
             --out .release/project/skillbase-release.attestation.local.verify.json
         env:
           SOURCE_DATE_EPOCH: "1704067200"
-      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: .release/project/skillbase-release.zip
       - name: Download attestation bundle for offline verification
