@@ -217,7 +217,7 @@ jobs:
         with:
           name: skillbase-sarif
           path: .ci-scan/skillbase.sarif
-      - uses: github/codeql-action/upload-sarif@f5c2471be782132e47a6e6f9c725e56730d6e9a3 # v3
+      - uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v3
         continue-on-error: true
         with:
           sarif_file: .ci-scan/skillbase.sarif
